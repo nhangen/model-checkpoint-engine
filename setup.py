@@ -33,7 +33,6 @@ setup(
     python_requires=">=3.8",
     install_requires=[
         "sqlalchemy>=1.4.0",
-        "sqlite3",  # Built into Python
         "numpy>=1.21.0",
         "matplotlib>=3.5.0",
         "jinja2>=3.0.0",
