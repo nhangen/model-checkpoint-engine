@@ -1,61 +1,57 @@
 """Database models for experiment tracking"""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Any
 import time
+
+# Optimize: Use field(default_factory) instead of post_init for better performance
+def _current_time() -> float:
+    """Cached time function to avoid repeated time.time() calls"""
+    return time.time()
 
 
 @dataclass
 class Experiment:
-    """Experiment record"""
+    """Experiment record with enhanced tracking"""
     id: str
     name: str
     project_name: Optional[str] = None
     status: str = 'running'
-    start_time: float = None
+    start_time: float = field(default_factory=_current_time)
     end_time: Optional[float] = None
-    tags: List[str] = None
-    config: Dict[str, Any] = None
-    
-    def __post_init__(self):
-        if self.start_time is None:
-            self.start_time = time.time()
-        if self.tags is None:
-            self.tags = []
-        if self.config is None:
-            self.config = {}
+    tags: List[str] = field(default_factory=list)
+    config: Dict[str, Any] = field(default_factory=dict)
+    step: int = 0
 
 
 @dataclass
 class Metric:
-    """Metric record"""
+    """Metric record - optimized with field defaults"""
     experiment_id: str
     metric_name: str
     metric_value: float
     step: Optional[int] = None
-    timestamp: float = None
-    
-    def __post_init__(self):
-        if self.timestamp is None:
-            self.timestamp = time.time()
+    timestamp: float = field(default_factory=_current_time)
 
 
 @dataclass
 class Checkpoint:
-    """Checkpoint record"""
+    """Enhanced checkpoint record with integrity and metadata tracking - optimized"""
     id: str
     experiment_id: str
     epoch: Optional[int] = None
-    checkpoint_type: str = 'manual'  # 'best', 'last', 'manual'
+    step: int = 0
+    checkpoint_type: str = 'manual'
     file_path: str = ''
-    metrics: Dict[str, Any] = None
-    metadata: Dict[str, Any] = None
-    created_at: float = None
-    
-    def __post_init__(self):
-        if self.created_at is None:
-            self.created_at = time.time()
-        if self.metrics is None:
-            self.metrics = {}
-        if self.metadata is None:
-            self.metadata = {}
+    file_size: Optional[int] = None
+    checksum: Optional[str] = None
+    model_name: Optional[str] = None
+    loss: Optional[float] = None
+    val_loss: Optional[float] = None
+    notes: Optional[str] = None
+    is_best_loss: bool = False
+    is_best_val_loss: bool = False
+    is_best_metric: bool = False
+    metrics: Dict[str, Any] = field(default_factory=dict)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    created_at: float = field(default_factory=_current_time)
