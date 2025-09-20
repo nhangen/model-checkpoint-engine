@@ -209,8 +209,8 @@ class CheckpointCache:
 
     def invalidate_checkpoint(self, checkpoint_id: str) -> None:
         """Invalidate all cached data for a checkpoint"""
-        self.metadata_cache.delete(f"metadata:{checkpoint_id}")
-        self.data_cache.delete(f"data:{checkpoint_id}")
+        self.metadata_cache.delete(self._metadata_prefix + checkpoint_id)
+        self.data_cache.delete(self._data_prefix + checkpoint_id)
 
     def invalidate_experiment(self, experiment_id: str) -> None:
         """Invalidate all cached data related to an experiment"""

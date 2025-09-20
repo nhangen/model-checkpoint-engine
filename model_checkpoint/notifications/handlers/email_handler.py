@@ -208,11 +208,12 @@ class EmailHandler(BaseNotificationHandler):
         except (KeyError, ValueError) as e:
             print(f"HTML template formatting error: {e}")
             # Fallback to simple HTML
+            message_html = event.message.replace('\n', '<br>')
             return f"""
             <html>
             <body>
                 <h2>[{event.priority.name}] {event.title}</h2>
-                <p>{event.message.replace('\n', '<br>')}</p>
+                <p>{message_html}</p>
                 <p><strong>Time:</strong> {formatted_time}</p>
                 <p><strong>Event Type:</strong> {event.event_type.value}</p>
                 {experiment_info}

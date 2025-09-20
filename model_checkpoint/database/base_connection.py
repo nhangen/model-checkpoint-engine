@@ -16,6 +16,7 @@ class BaseDatabaseConnection:
         """Initialize base database connection"""
         self.db_path = self._extract_db_path(database_url)
         self.logger = logging.getLogger(__name__)
+        self._init_tables()
 
     @staticmethod
     def _extract_db_path(database_url: str) -> str:
