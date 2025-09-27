@@ -9,6 +9,7 @@ import json
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from .shared_utils import current_time, is_loss_metric, calculate_statistics
+from ..hooks import HookManager, HookEvent, HookContext
 
 
 @dataclass
@@ -28,13 +29,15 @@ class MetricsCollector:
     """Optimized metrics collection with zero redundancy"""
 
     def __init__(self, db_connection: Optional[EnhancedDatabaseConnection] = None,
-                 auto_persist: bool = True):
+                 auto_persist: bool = True,
+                 enable_hooks: bool = True):
         """
         Initialize metrics collector
 
         Args:
             db_connection: Database connection for persistence
             auto_persist: Automatically persist metrics to database
+            enable_hooks: Enable hook system for metric events
         """
         self.db_connection = db_connection
         self.auto_persist = auto_persist
@@ -48,6 +51,12 @@ class MetricsCollector:
         # Optimized: Pre-computed constants
         self._persist_interval = 60.0  # seconds
         self._max_memory_metrics = 10000
+
+        # Initialize hook system
+        if enable_hooks:
+            self.hook_manager = HookManager(enable_async=True)
+        else:
+            self.hook_manager = None
 
     def define_metric(self, name: str, metric_type: str = 'custom',
                      direction: str = 'minimize', weight: float = 1.0,
@@ -102,6 +111,23 @@ class MetricsCollector:
         if timestamp is None:
             timestamp = current_time()
 
+        # Fire before metric collection hook
+        if self.hook_manager:
+            context = HookContext(
+                event=HookEvent.BEFORE_METRIC_COLLECTION,
+                data={
+                    'metric_name': name,
+                    'value': value,
+                    'step': step,
+                    'epoch': epoch,
+                    'timestamp': timestamp,
+                    'metadata': metadata
+                }
+            )
+            hook_result = self.hook_manager.fire_hook(HookEvent.BEFORE_METRIC_COLLECTION, context)
+            if not hook_result.success or hook_result.stopped_by:
+                return  # Skip metric collection if hook cancels
+
         metric_entry = {
             'value': float(value),
             'timestamp': timestamp,
@@ -111,6 +137,28 @@ class MetricsCollector:
         }
 
         self._metrics[name].append(metric_entry)
+
+        # Check for threshold alerts
+        if self.hook_manager and name in self._definitions:
+            definition = self._definitions[name]
+            if definition.threshold is not None:
+                threshold_crossed = (
+                    (definition.direction == 'minimize' and value <= definition.threshold) or
+                    (definition.direction == 'maximize' and value >= definition.threshold)
+                )
+                if threshold_crossed:
+                    threshold_context = HookContext(
+                        event=HookEvent.ON_METRIC_THRESHOLD,
+                        data={
+                            'metric_name': name,
+                            'value': value,
+                            'threshold': definition.threshold,
+                            'direction': definition.direction,
+                            'step': step,
+                            'epoch': epoch
+                        }
+                    )
+                    self.hook_manager.fire_hook(HookEvent.ON_METRIC_THRESHOLD, threshold_context)
 
         # Clear cached aggregation for this metric
         self._aggregated_cache.pop(name, None)
@@ -123,6 +171,22 @@ class MetricsCollector:
         # Optimized: Memory management
         if len(self._metrics[name]) > self._max_memory_metrics:
             self._metrics[name] = self._metrics[name][-self._max_memory_metrics >> 1:]
+
+        # Fire after metric collection hook
+        if self.hook_manager:
+            after_context = HookContext(
+                event=HookEvent.AFTER_METRIC_COLLECTION,
+                data={
+                    'metric_name': name,
+                    'value': value,
+                    'step': step,
+                    'epoch': epoch,
+                    'timestamp': timestamp,
+                    'metric_entry': metric_entry,
+                    'total_metrics': len(self._metrics[name])
+                }
+            )
+            self.hook_manager.fire_hook(HookEvent.AFTER_METRIC_COLLECTION, after_context)
 
     def collect_batch(self, metrics: Dict[str, Union[float, int]],
                      step: Optional[int] = None,

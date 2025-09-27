@@ -3,7 +3,11 @@
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
-import torch
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 
 class BaseStorageBackend(ABC):
@@ -36,7 +40,7 @@ class BaseStorageBackend(ABC):
         pass
 
     @abstractmethod
-    def load_checkpoint(self, file_path: str, device: Optional[torch.device] = None) -> Dict[str, Any]:
+    def load_checkpoint(self, file_path: str, device: Optional[Any] = None) -> Dict[str, Any]:
         """
         Load checkpoint data from file
 

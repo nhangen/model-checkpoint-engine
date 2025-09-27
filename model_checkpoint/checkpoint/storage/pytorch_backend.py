@@ -4,7 +4,11 @@ import os
 import time
 from typing import Any, Dict, Optional, Union
 from pathlib import Path
-import torch
+
+try:
+    import torch
+except ImportError:
+    torch = None
 
 from .base_backend import BaseStorageBackend
 from ...utils.checksum import calculate_file_checksum
@@ -71,7 +75,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
                 pass
             raise RuntimeError(f"Failed to save checkpoint: {e}") from e
 
-    def load_checkpoint(self, file_path: str, device: Optional[torch.device] = None) -> Dict[str, Any]:
+    def load_checkpoint(self, file_path: str, device: Optional[Any] = None) -> Dict[str, Any]:
         """
         Load checkpoint using PyTorch's optimized format
 
@@ -159,7 +163,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
         remaining_data['_safetensors_model_path'] = safetensors_path
         torch.save(remaining_data, file_path)
 
-    def _load_with_safetensors(self, file_path: str, device: Optional[torch.device] = None) -> Dict[str, Any]:
+    def _load_with_safetensors(self, file_path: str, device: Optional[Any] = None) -> Dict[str, Any]:
         """Load using safetensors for the model state"""
         # Load main checkpoint
         checkpoint_data = torch.load(file_path, map_location='cpu')

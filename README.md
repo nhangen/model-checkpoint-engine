@@ -25,6 +25,7 @@ A high-performance, zero-redundancy checkpoint management and experiment trackin
 - **Performance Monitoring**: Real-time profiling with percentile calculations
 - **Legacy Migration**: Format adapters for seamless system upgrades
 - **Auto Documentation**: API docs, validation, interactive dashboards
+- **🎣 Hook System**: Event-driven architecture with 40+ integration points
 
 ## Architecture Principles
 
@@ -140,6 +141,65 @@ migrator.migrate_from_legacy(
 )
 ```
 
+## 🎣 Hook System
+
+The checkpoint engine features a comprehensive hook system that allows you to tie custom actions to any point in the pipeline:
+
+### Key Features
+- **40+ predefined events** across all phases (checkpoint save/load, metrics collection, API requests, etc.)
+- **Priority-based execution** (CRITICAL → HIGH → NORMAL → LOW → BACKGROUND)
+- **Conditional hooks** with lambda-based conditions
+- **Error handling** - failed hooks don't crash the pipeline
+- **Performance tracking** for all hook executions
+- **Async/sync support** with timeout handling
+
+### Quick Hook Examples
+
+```python
+from model_checkpoint.hooks import HookEvent, HookPriority
+
+# Basic hook registration
+def validate_checkpoint(context):
+    if context.get('loss') > 1.0:
+        print("⚠️ High loss detected!")
+    return True
+
+manager.register_hook(
+    "validation",
+    validate_checkpoint,
+    [HookEvent.BEFORE_CHECKPOINT_SAVE],
+    priority=HookPriority.HIGH
+)
+
+# Object-based hooks with decorators
+from model_checkpoint.hooks import BaseHook, hook_handler
+
+class MyHooks(BaseHook):
+    @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
+    def backup_best_models(self, context):
+        if context.get('is_best_loss'):
+            # Upload to cloud storage
+            cloud_backup(context.get('file_path'))
+        return True
+
+manager.hook_manager.register_object_hooks(MyHooks())
+
+# Conditional hooks
+from model_checkpoint.hooks.decorators import conditional_hook
+
+@conditional_hook(lambda ctx: ctx.get('epoch') % 10 == 0)
+def periodic_notification(context):
+    send_slack_message(f"Checkpoint saved at epoch {context.get('epoch')}")
+    return True
+```
+
+### Available Events
+- **Phase 1**: `BEFORE_CHECKPOINT_SAVE`, `AFTER_CHECKPOINT_SAVE`, `BEFORE_INTEGRITY_CHECK`, etc.
+- **Phase 2**: `BEFORE_METRIC_COLLECTION`, `ON_METRIC_THRESHOLD`, `BEFORE_CLOUD_UPLOAD`, etc.
+- **Phase 3**: `BEFORE_API_REQUEST`, `BEFORE_CONFIG_LOAD`, `BEFORE_PLUGIN_EXECUTE`, etc.
+
+See `examples/hook_examples.py` for comprehensive examples.
+
 ## Documentation
 
 - System architecture and design principles
@@ -147,6 +207,7 @@ migrator.migrate_from_legacy(
 - Performance optimization guidelines
 - Plugin development guide
 - Migration procedures
+- Hook system integration guide
 
 ## Testing
 

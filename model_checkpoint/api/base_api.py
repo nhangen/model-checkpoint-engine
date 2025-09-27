@@ -7,6 +7,8 @@ from abc import ABC, abstractmethod
 from enum import Enum
 import json
 
+from ..hooks import HookManager, HookEvent, HookContext
+
 
 def _current_time() -> float:
     """Shared time function"""
@@ -70,13 +72,14 @@ class EndpointConfig:
 class BaseAPI(ABC):
     """Optimized base class for API implementations"""
 
-    def __init__(self, name: str, version: str = "1.0.0"):
+    def __init__(self, name: str, version: str = "1.0.0", enable_hooks: bool = True):
         """
         Initialize base API
 
         Args:
             name: API name identifier
             version: API version string
+            enable_hooks: Enable hook system for API events
         """
         self.name = name
         self.version = version
@@ -97,6 +100,12 @@ class BaseAPI(ABC):
         # Optimized: Caching
         self._response_cache: Dict[str, Dict[str, Any]] = {}
         self._cache_timestamps: Dict[str, float] = {}
+
+        # Initialize hook system
+        if enable_hooks:
+            self.hook_manager = HookManager(enable_async=True)
+        else:
+            self.hook_manager = None
 
     @abstractmethod
     def start_server(self, host: str = "0.0.0.0", port: int = 8000) -> bool:
@@ -165,6 +174,29 @@ class BaseAPI(ABC):
         start_time = _current_time()
         request_id = f"req_{int(start_time * 1000)}_{self._request_count}"
 
+        # Fire before API request hook
+        if self.hook_manager:
+            context = HookContext(
+                event=HookEvent.BEFORE_API_REQUEST,
+                data={
+                    'path': path,
+                    'method': method.value,
+                    'data': data,
+                    'headers': headers,
+                    'client_id': client_id,
+                    'request_id': request_id
+                }
+            )
+            hook_result = self.hook_manager.fire_hook(HookEvent.BEFORE_API_REQUEST, context)
+            if not hook_result.success or hook_result.stopped_by:
+                return APIResponse(
+                    status=APIStatus.ERROR,
+                    message=f"Request cancelled by hook: {hook_result.stopped_by}",
+                    error_code="REQUEST_CANCELLED",
+                    request_id=request_id,
+                    execution_time_ms=(_current_time() - start_time) * 1000
+                )
+
         try:
             # Update request tracking
             self._request_count += 1
@@ -217,6 +249,24 @@ class BaseAPI(ABC):
             # Cache response if applicable
             if endpoint.cache_ttl and response.status == APIStatus.SUCCESS:
                 self._cache_response(endpoint_key, data, response, endpoint.cache_ttl)
+
+            # Fire after API request hook
+            if self.hook_manager:
+                after_context = HookContext(
+                    event=HookEvent.AFTER_API_REQUEST,
+                    data={
+                        'path': path,
+                        'method': method.value,
+                        'request_data': data,
+                        'headers': headers,
+                        'client_id': client_id,
+                        'request_id': request_id,
+                        'response': response,
+                        'execution_time_ms': response.execution_time_ms,
+                        'status': response.status.value
+                    }
+                )
+                self.hook_manager.fire_hook(HookEvent.AFTER_API_REQUEST, after_context)
 
             return response
 

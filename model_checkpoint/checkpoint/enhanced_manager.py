@@ -17,6 +17,7 @@ from ..database.models import Checkpoint
 from .storage import BaseStorageBackend, PyTorchStorageBackend
 from ..integrity import ChecksumCalculator, IntegrityTracker, CheckpointVerifier
 from ..performance import CacheManager, BatchProcessor
+from ..hooks import HookManager, HookEvent, HookContext
 
 
 class EnhancedCheckpointManager:
@@ -40,7 +41,8 @@ class EnhancedCheckpointManager:
                  save_last: bool = True,
                  save_frequency: int = 5,
                  max_checkpoints: int = 10,
-                 database_url: str = "sqlite:///experiments.db"):
+                 database_url: str = "sqlite:///experiments.db",
+                 enable_hooks: bool = True):
         """
         Initialize enhanced checkpoint manager
 
@@ -57,6 +59,7 @@ class EnhancedCheckpointManager:
             save_frequency: Save checkpoint every N epochs
             max_checkpoints: Maximum checkpoints to keep per experiment
             database_url: Database connection string
+            enable_hooks: Enable hook system for extensibility
         """
         # Core configuration
         self.save_best = save_best
@@ -109,6 +112,12 @@ class EnhancedCheckpointManager:
             self.cache_manager = None
 
         self.batch_processor = BatchProcessor(self.db)
+
+        # Initialize hook system
+        if enable_hooks:
+            self.hook_manager = HookManager(enable_async=True)
+        else:
+            self.hook_manager = None
 
         # Track best metrics per experiment
         self.best_metrics = {}
@@ -186,6 +195,31 @@ class EnhancedCheckpointManager:
 
         # Generate checkpoint ID
         checkpoint_id = str(uuid.uuid4())
+        start_time = time.time()
+
+        # Fire before checkpoint save hook
+        if self.hook_manager:
+            context = HookContext(
+                event=HookEvent.BEFORE_CHECKPOINT_SAVE,
+                checkpoint_id=checkpoint_id,
+                experiment_id=exp_id,
+                data={
+                    'model': model,
+                    'optimizer': optimizer,
+                    'scheduler': scheduler,
+                    'epoch': epoch,
+                    'step': step,
+                    'loss': loss,
+                    'val_loss': val_loss,
+                    'metrics': metrics,
+                    'model_name': model_name,
+                    'checkpoint_type': checkpoint_type,
+                    'notes': notes
+                }
+            )
+            hook_result = self.hook_manager.fire_hook(HookEvent.BEFORE_CHECKPOINT_SAVE, context)
+            if not hook_result.success or hook_result.stopped_by:
+                raise RuntimeError(f"Checkpoint save cancelled by hook: {hook_result.stopped_by}")
 
         # Prepare checkpoint data
         checkpoint_data = {
@@ -282,7 +316,45 @@ class EnhancedCheckpointManager:
         # Cleanup old checkpoints if needed
         self._cleanup_old_checkpoints(exp_id)
 
+        # Fire after checkpoint save hook
+        if self.hook_manager:
+            context.data.update({
+                'checkpoint_id': checkpoint_id,
+                'file_path': file_path,
+                'file_size': file_size,
+                'checksum': checksum,
+                'save_time': time.time() - start_time,
+                'checkpoint_record': checkpoint_record
+            })
+            self.hook_manager.fire_hook(HookEvent.AFTER_CHECKPOINT_SAVE, context)
+
         return checkpoint_id
+
+    def register_hook(self, name: str, handler: Callable, events: List[HookEvent], **kwargs):
+        """
+        Register a hook for checkpoint operations.
+
+        Args:
+            name: Unique name for the hook
+            handler: Function to call when event fires
+            events: List of events to hook into
+            **kwargs: Additional hook configuration
+        """
+        if self.hook_manager:
+            self.hook_manager.register_hook(name, handler, events, **kwargs)
+        else:
+            self.logger.warning("Hook system disabled, cannot register hook")
+
+    def unregister_hook(self, name: str):
+        """Unregister a hook by name"""
+        if self.hook_manager:
+            self.hook_manager.unregister_hook(name)
+
+    def list_hooks(self):
+        """List all registered hooks"""
+        if self.hook_manager:
+            return self.hook_manager.list_hooks()
+        return []
 
     def load_checkpoint(self,
                        checkpoint_id: Optional[str] = None,

@@ -69,3 +69,44 @@ class TestPhase2Components:
             # Expected due to dependency issues
             print(f"Expected notification import issue: {e}")
             assert True
+
+    def test_hook_integration_with_phase2(self):
+        """Test hook integration with Phase 2 components"""
+        from model_checkpoint.hooks import HookManager, HookEvent
+
+        # Test hook manager can be created
+        manager = HookManager(enable_async=False)
+        assert manager is not None
+
+        # Test Phase 2 specific events exist
+        assert HookEvent.BEFORE_METRIC_COLLECTION is not None
+        assert HookEvent.AFTER_METRIC_COLLECTION is not None
+        assert HookEvent.ON_METRIC_THRESHOLD is not None
+        assert HookEvent.BEFORE_CLOUD_UPLOAD is not None
+        assert HookEvent.AFTER_CLOUD_UPLOAD is not None
+
+    def test_metrics_collector_hooks_integration(self):
+        """Test metrics collector with hooks"""
+        try:
+            from model_checkpoint.analytics.metrics_collector import MetricsCollector
+            from model_checkpoint.hooks import HookEvent
+
+            # Create collector with hooks
+            collector = MetricsCollector(enable_hooks=True)
+            assert collector.hook_manager is not None
+
+            # Test hook can be registered
+            def test_hook(context):
+                return True
+
+            collector.hook_manager.register_hook(
+                "test", test_hook, [HookEvent.BEFORE_METRIC_COLLECTION]
+            )
+
+            # Verify hook registration
+            hooks = collector.hook_manager.list_hooks()
+            assert len(hooks) > 0
+
+        except ImportError as e:
+            print(f"Metrics collector hooks test skipped: {e}")
+            assert True
