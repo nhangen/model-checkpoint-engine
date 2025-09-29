@@ -1,102 +1,90 @@
 # ML Model Checkpoint Engine
 
-A high-performance, zero-redundancy checkpoint management and experiment tracking system for machine learning projects. Built with enterprise-grade scalability and optimization.
+A high-performance, generic checkpoint management and experiment tracking system for machine learning projects. Built with enterprise-grade scalability and framework-agnostic design.
 
 ## Core Features
 
-### Phase 1: Enhanced Infrastructure
-- **Advanced Checkpoint Management**: 15+ features including best model detection, integrity verification, and backward compatibility
-- **Database Optimization**: Zero-redundancy inheritance architecture with connection pooling and WAL mode
+### Enhanced Checkpoint Management
 - **Multi-Backend Storage**: PyTorch, SafeTensors with pluggable architecture
-- **Data Integrity**: SHA256 checksum verification with comprehensive tracking
-- **Performance Caching**: LRU with TTL, pre-computed optimizations
+- **Data Integrity**: SHA256 checksum verification with comprehensive tracking  
+- **Performance Caching**: LRU with TTL, optimized metadata access
+- **Best Model Detection**: Automatic flagging based on configurable metrics
+- **Retention Policies**: Configurable cleanup with protected checkpoint types
 
-### Phase 2: Advanced Analytics
-- **Real-time Metrics**: Aggregated collection with trend analysis
-- **Intelligent Model Selection**: Multi-criteria best model detection with early stopping
-- **Cloud Integration**: S3, GCS, Azure with multipart uploads and retention policies
-- **Event-driven Notifications**: Email, Slack, webhooks with rate limiting
-- **Automated Cleanup**: Policy-based retention and storage optimization
+### Experiment Tracking
+- **Database Optimization**: SQLite with connection pooling and WAL mode
+- **Metadata Management**: Comprehensive experiment and checkpoint metadata
+- **Query Interface**: Advanced filtering and analytics capabilities
+- **Statistics**: Real-time performance and usage statistics
 
-### Phase 3: Integration & Extensibility
-- **Unified REST API**: Rate limiting, caching, standardized responses
-- **Configuration Management**: Environment-aware, validation, hot-reload
-- **Plugin Architecture**: Auto-discovery, dependency resolution, version compatibility
-- **Performance Monitoring**: Real-time profiling with percentile calculations
-- **Legacy Migration**: Format adapters for seamless system upgrades
-- **Auto Documentation**: API docs, validation, interactive dashboards
-- **🎣 Hook System**: Event-driven architecture with 40+ integration points
+### Hook System
+- **Event-Driven Architecture**: 15+ hook events for extensibility
+- **Priority-Based Execution**: Configurable execution order
+- **Error Handling**: Robust failure isolation
+- **Async/Sync Support**: Flexible hook execution models
 
 ## Architecture Principles
 
-- **Zero Redundancy**: Shared utilities eliminate 65% code duplication
-- **Inheritance Optimization**: Base classes reduce implementation by 78%
-- **Batch Processing**: 40-60% performance improvements
-- **Thread Safety**: Concurrent operations with connection pooling
-- **Backward Compatibility**: Seamless upgrade path from legacy systems
+- **Framework Agnostic**: Works with any ML framework (PyTorch, TensorFlow, JAX, etc.)
+- **Storage Flexibility**: Pluggable storage backends
+- **Thread Safety**: Concurrent operations with proper locking
+- **Backward Compatibility**: Seamless integration with existing systems
+- **Zero Dependencies**: Minimal external requirements for core functionality
 
 ## Quick Start
 
 ```python
+from model_checkpoint import ExperimentTracker
 from model_checkpoint.checkpoint.enhanced_manager import EnhancedCheckpointManager
-from model_checkpoint.analytics.metrics_collector import MetricsCollector
-from model_checkpoint.cloud.s3_provider import S3Provider
 
-# Initialize enhanced system
-manager = EnhancedCheckpointManager(
-    database_url="sqlite:///experiments.db",
-    storage_backend="pytorch"
+# Initialize experiment tracking
+tracker = ExperimentTracker(
+    experiment_name="my_experiment",
+    project_name="my_project",
+    config={"learning_rate": 0.001, "batch_size": 32}
 )
 
-collector = MetricsCollector()
-cloud = S3Provider(bucket_name="ml-checkpoints")
+# Initialize checkpoint manager
+manager = EnhancedCheckpointManager(
+    experiment_tracker=tracker,
+    checkpoint_dir="./checkpoints",
+    storage_backend="pytorch",
+    enable_hooks=True
+)
 
 # During training
 for epoch in range(epochs):
-    # Training logic...
-
-    # Collect metrics with aggregation
-    collector.collect_metric("train_loss", loss, step=epoch)
-    collector.collect_metric("val_accuracy", accuracy, step=epoch)
-
-    # Enhanced checkpoint saving with best model detection
+    # Your training logic here...
+    
+    # Save checkpoint with automatic best model detection
     checkpoint_id = manager.save_checkpoint(
         model=model,
         optimizer=optimizer,
         epoch=epoch,
-        loss=loss,
+        loss=train_loss,
         val_loss=val_loss,
-        metrics={'accuracy': accuracy, 'f1': f1_score},
-        auto_best=True  # Automatic best model flagging
+        metrics={"accuracy": accuracy},
+        notes=f"Checkpoint at epoch {epoch}"
     )
+    
+    print(f"Saved checkpoint: {checkpoint_id}")
 
-    # Cloud backup with integrity verification
-    if manager.is_best_checkpoint(checkpoint_id):
-        cloud.upload(
-            local_path=manager.get_checkpoint_path(checkpoint_id),
-            remote_path=f"best_models/{checkpoint_id}.pt"
-        )
-
-# Advanced analytics and reporting
-best_model = manager.get_best_checkpoint(metric="val_loss", mode="min")
-aggregated_metrics = collector.get_all_aggregated_metrics()
-performance_report = manager.generate_performance_report()
+# Load best checkpoint
+best_checkpoint = manager.load_checkpoint(
+    experiment_id=tracker.experiment_id,
+    checkpoint_type="best_val_loss"
+)
 ```
 
 ## Installation
 
 ```bash
-# Core system
-pip install torch  # or your preferred ML framework
+# Install from source
 pip install -e .
 
-# Cloud providers (optional)
-pip install boto3  # for S3
-pip install google-cloud-storage  # for GCS
-pip install azure-storage-blob  # for Azure
-
-# Visualization (optional)
-pip install plotly dash  # for dashboard
+# Core dependencies are minimal
+# - SQLite (built into Python)
+# - PyTorch (optional, only if using PyTorch storage backend)
 ```
 
 ## System Architecture
@@ -104,110 +92,142 @@ pip install plotly dash  # for dashboard
 ```
 model_checkpoint/
 ├── checkpoint/          # Enhanced checkpoint management
-├── database/           # Optimized database layer
-├── analytics/          # Advanced metrics and model selection
-├── cloud/             # Multi-provider cloud storage
-├── notifications/     # Event-driven notification system
-├── api/              # Unified REST API interface
-├── config/           # Configuration management
-├── plugins/          # Plugin architecture
-├── monitoring/       # Performance monitoring
-├── migration/        # Legacy system migration
-├── docs/            # Auto-generated documentation
-├── visualization/   # Interactive dashboards
-└── phase3_shared/   # Zero-redundancy utilities
+│   ├── enhanced_manager.py
+│   └── storage/        # Storage backend implementations
+├── database/           # Database layer and models
+│   ├── enhanced_connection.py
+│   └── models.py
+├── hooks/              # Hook system for extensibility
+│   ├── base_hook.py
+│   ├── hook_manager.py
+│   ├── quaternion_validation.py
+│   ├── grid_monitoring.py
+│   └── checkpoint_strategies.py
+├── integrity/          # Data integrity verification
+├── performance/        # Caching and optimization
+└── utils/             # Shared utilities
 ```
 
-## Performance Benchmarks
+## Hook System
 
-- **65% reduction** in code duplication through shared utilities
-- **78% optimization** in database operations via inheritance
-- **40-60% faster** checkpoint operations through caching
-- **Zero redundancy** achieved across all 3 phases
-- **Thread-safe** concurrent operations
-- **Sub-second** checkpoint loading for models up to 10GB
+The checkpoint engine features a flexible hook system for extending functionality:
 
-## Migration from Legacy Systems
+### Available Hook Events
+- `BEFORE_CHECKPOINT_SAVE` - Before saving a checkpoint
+- `AFTER_CHECKPOINT_SAVE` - After successfully saving a checkpoint  
+- `BEFORE_CHECKPOINT_LOAD` - Before loading a checkpoint
+- `AFTER_CHECKPOINT_LOAD` - After successfully loading a checkpoint
+- `BEFORE_INTEGRITY_CHECK` - Before running integrity verification
+- `AFTER_INTEGRITY_CHECK` - After completing integrity verification
+- And more...
 
-The system includes comprehensive migration utilities for upgrading from existing checkpoint systems:
-
-```python
-from model_checkpoint.migration.migration_manager import MigrationManager
-
-migrator = MigrationManager()
-migrator.migrate_from_legacy(
-    source_dir="/path/to/old/checkpoints",
-    format_type="pytorch_legacy"
-)
-```
-
-## 🎣 Hook System
-
-The checkpoint engine features a comprehensive hook system that allows you to tie custom actions to any point in the pipeline:
-
-### Key Features
-- **40+ predefined events** across all phases (checkpoint save/load, metrics collection, API requests, etc.)
-- **Priority-based execution** (CRITICAL → HIGH → NORMAL → LOW → BACKGROUND)
-- **Conditional hooks** with lambda-based conditions
-- **Error handling** - failed hooks don't crash the pipeline
-- **Performance tracking** for all hook executions
-- **Async/sync support** with timeout handling
-
-### Quick Hook Examples
+### Hook Registration Examples
 
 ```python
-from model_checkpoint.hooks import HookEvent, HookPriority
+from model_checkpoint.hooks import BaseHook, HookEvent
 
-# Basic hook registration
-def validate_checkpoint(context):
-    if context.get('loss') > 1.0:
-        print("⚠️ High loss detected!")
+# Simple function hook
+def log_checkpoint_save(context):
+    print(f"Saving checkpoint for experiment {context.experiment_id}")
     return True
 
-manager.register_hook(
-    "validation",
-    validate_checkpoint,
-    [HookEvent.BEFORE_CHECKPOINT_SAVE],
-    priority=HookPriority.HIGH
+manager.hook_manager.register_hook(
+    "logger", 
+    log_checkpoint_save, 
+    [HookEvent.BEFORE_CHECKPOINT_SAVE]
 )
 
-# Object-based hooks with decorators
-from model_checkpoint.hooks import BaseHook, hook_handler
-
-class MyHooks(BaseHook):
-    @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
-    def backup_best_models(self, context):
-        if context.get('is_best_loss'):
-            # Upload to cloud storage
-            cloud_backup(context.get('file_path'))
+# Class-based hook for complex logic
+class ValidationHook(BaseHook):
+    def execute(self, context):
+        # Custom validation logic here
+        if context.data.get('loss') > self.max_loss_threshold:
+            print("Warning: High loss detected!")
         return True
 
-manager.hook_manager.register_object_hooks(MyHooks())
-
-# Conditional hooks
-from model_checkpoint.hooks.decorators import conditional_hook
-
-@conditional_hook(lambda ctx: ctx.get('epoch') % 10 == 0)
-def periodic_notification(context):
-    send_slack_message(f"Checkpoint saved at epoch {context.get('epoch')}")
-    return True
+validation_hook = ValidationHook(priority=10)
+manager.hook_manager.register_hook(validation_hook)
 ```
 
-### Available Events
-- **Phase 1**: `BEFORE_CHECKPOINT_SAVE`, `AFTER_CHECKPOINT_SAVE`, `BEFORE_INTEGRITY_CHECK`, etc.
-- **Phase 2**: `BEFORE_METRIC_COLLECTION`, `ON_METRIC_THRESHOLD`, `BEFORE_CLOUD_UPLOAD`, etc.
-- **Phase 3**: `BEFORE_API_REQUEST`, `BEFORE_CONFIG_LOAD`, `BEFORE_PLUGIN_EXECUTE`, etc.
+## Key Features
 
-See `examples/hook_examples.py` for comprehensive examples.
+### Experiment Tracking
+- Hierarchical experiment organization with tags and metadata
+- Configurable database backends (SQLite, PostgreSQL, MySQL)
+- Thread-safe concurrent experiment tracking
+- Rich metadata storage for reproducibility
 
-## Documentation
+### Enhanced Checkpoint Management
+- Best model automatic detection based on multiple criteria
+- Configurable retention policies with protected checkpoints
+- Integrity verification with SHA256 checksums
+- Multiple storage backends (PyTorch native, SafeTensors)
+- Compression support for space optimization
 
-- System architecture and design principles
-- API reference with interactive examples
-- Performance optimization guidelines
-- Plugin development guide
-- Migration procedures
-- Hook system integration guide
+### Performance Optimizations
+- LRU caching for checkpoint metadata
+- Batch processing for database operations
+- Connection pooling for improved concurrency
+- WAL mode SQLite for better performance
+
+### Extensibility
+- Hook system for custom functionality
+- Pluggable storage backends
+- Event-driven architecture
+- Framework-agnostic design
+
+## Usage Examples
+
+### Basic Experiment Tracking
+```python
+from model_checkpoint import ExperimentTracker
+
+tracker = ExperimentTracker(
+    experiment_name="resnet_training",
+    project_name="image_classification", 
+    tags=["baseline", "resnet50"],
+    config={
+        "model": "resnet50",
+        "learning_rate": 0.001,
+        "batch_size": 64,
+        "optimizer": "adam"
+    }
+)
+
+tracker.log_metric("train_loss", 0.5, step=100)
+tracker.log_metric("val_accuracy", 0.85, step=100)
+```
+
+### Advanced Checkpoint Management
+```python
+from model_checkpoint.checkpoint.enhanced_manager import EnhancedCheckpointManager
+
+manager = EnhancedCheckpointManager(
+    experiment_tracker=tracker,
+    save_best=True,
+    save_frequency=5,  # Save every 5 epochs
+    max_checkpoints=10,  # Keep max 10 checkpoints
+    enable_integrity_checks=True,
+    enable_caching=True
+)
+
+# Save with automatic best model detection
+checkpoint_id = manager.save_checkpoint(
+    model=model,
+    optimizer=optimizer,
+    epoch=epoch,
+    loss=train_loss,
+    val_loss=val_loss,
+    metrics={"accuracy": val_acc, "f1_score": f1},
+    update_best=True
+)
+
+# Load best performing checkpoint
+best_checkpoint = manager.load_checkpoint(
+    checkpoint_type="best_val_loss",
+    verify_integrity=True
+)
+```
 
 ## Testing
 
@@ -215,10 +235,26 @@ See `examples/hook_examples.py` for comprehensive examples.
 # Run all tests
 python -m pytest
 
-# Run specific phase tests
-python -m pytest tests/test_phase2_simplified.py
-python -m pytest tests/test_phase3_simplified.py
+# Run specific test suites  
+python -m pytest tests/test_enhanced_checkpoint.py
+python -m pytest tests/test_hooks.py
+python -m pytest tests/test_database.py
 
-# Core functionality
+# Core functionality tests
 python -m pytest tests/test_integrity_verification.py
+python -m pytest tests/test_experiment_tracker.py
 ```
+
+## Contributing
+
+This is a generic ML checkpoint management system designed to be framework-agnostic and reusable across different ML projects. When contributing:
+
+1. Keep the system data-agnostic and domain-neutral
+2. Maintain backward compatibility
+3. Add comprehensive tests for new features
+4. Update documentation for API changes
+5. Follow the existing code style and patterns
+
+## License
+
+MIT License - see LICENSE file for details.

@@ -2,96 +2,127 @@
 
 ## Overview
 
-The ML Model Checkpoint Engine follows a three-phase architecture designed for zero redundancy optimization, scalability, and enterprise-grade performance.
+The ML Model Checkpoint Engine is a generic, framework-agnostic checkpoint management system designed for scalability, performance, and extensibility in machine learning projects.
 
 ## Design Principles
 
-### Zero Redundancy Optimization
-- **Shared Utilities**: Common functions consolidated into phase-specific shared modules
-- **Inheritance Architecture**: Base classes eliminate duplicate implementations
-- **Pre-computed Caching**: Expensive operations cached with TTL
-- **Single-pass Algorithms**: Minimize computational overhead
+### Framework Agnostic
+- **Storage Abstraction**: Works with PyTorch, TensorFlow, JAX, and custom formats
+- **Generic Interfaces**: No assumptions about model architecture or training process
+- **Pluggable Backends**: Extensible storage and database backends
+- **Universal Metadata**: Framework-neutral checkpoint and experiment tracking
 
 ### Performance Optimization
-- **Database Layer**: WAL mode, connection pooling, optimized queries
+- **Database Layer**: WAL mode SQLite, connection pooling, optimized queries
 - **Memory Management**: LRU caching with configurable limits
-- **Concurrent Operations**: Thread-safe design with connection pooling
-- **Batch Processing**: Group operations for improved throughput
+- **Concurrent Operations**: Thread-safe design with proper locking
+- **Integrity Verification**: Efficient SHA256 checksum computation
 
 ### Extensibility
-- **Plugin Architecture**: Auto-discovery with dependency resolution
-- **Provider Pattern**: Pluggable storage and cloud backends
-- **Configuration Management**: Environment-aware with validation
-- **API-first Design**: RESTful interface for external integration
+- **Hook System**: Event-driven architecture for custom functionality
+- **Storage Backends**: Pluggable storage implementations
+- **Database Flexibility**: Support for SQLite, PostgreSQL, MySQL
+- **Modular Design**: Loosely coupled components for easy extension
 
-## Three-Phase Architecture
+## Core Architecture
 
-### Phase 1: Enhanced Infrastructure (Core)
-**Location**: `model_checkpoint/checkpoint/`, `model_checkpoint/database/`, `model_checkpoint/utils/`
-
-**Components**:
-- `BaseDatabaseConnection`: Shared database functionality with optimizations
-- `EnhancedCheckpointManager`: 15+ features including best model detection
-- `ChecksumCalculator`: SHA256 integrity verification
-- `CheckpointCache`: LRU caching with TTL support
-
-**Optimizations**:
-- Reduced database code from 400+ lines to 20 lines via inheritance
-- 78% reduction in connection management overhead
-- Pre-computed cache prefixes for 60% faster lookups
-
-### Phase 2: Advanced Analytics & Cloud
-**Location**: `model_checkpoint/analytics/`, `model_checkpoint/cloud/`, `model_checkpoint/notifications/`
+### Database Layer
+**Location**: `model_checkpoint/database/`
 
 **Components**:
-- `MetricsCollector`: Real-time aggregation with trend analysis
-- `BestModelSelector`: Multi-criteria selection algorithms
-- `S3Provider`: Enterprise cloud storage with multipart uploads
-- `NotificationManager`: Event-driven notifications with rate limiting
+- `EnhancedDatabaseConnection`: Optimized database connection management
+- `models.py`: SQLAlchemy models for experiments and checkpoints
+- Database migrations and schema management
 
-**Shared Module**: `model_checkpoint/analytics/shared_utils.py`
-- Eliminates 200+ lines of duplicate time/calculation functions
-- Shared metric evaluation logic across all analytics components
+**Features**:
+- Connection pooling for improved concurrency
+- WAL mode for better SQLite performance  
+- Thread-safe operations with proper locking
+- Comprehensive metadata storage
 
-### Phase 3: Integration & Polish
-**Location**: `model_checkpoint/api/`, `model_checkpoint/config/`, `model_checkpoint/plugins/`, etc.
+### Checkpoint Management
+**Location**: `model_checkpoint/checkpoint/`
 
 **Components**:
-- `BaseAPI`: Unified REST interface with caching and rate limiting
-- `ConfigManager`: Environment-aware configuration with validation
-- `PluginManager`: Auto-discovery with version compatibility
-- `PerformanceMonitor`: Real-time profiling with percentile calculations
+- `EnhancedCheckpointManager`: Core checkpoint management functionality
+- `storage/`: Pluggable storage backend implementations
+- Best model detection and retention policies
+- Integrity verification and metadata tracking
 
-**Shared Module**: `model_checkpoint/phase3_shared/shared_utils.py`
-- Final optimization consolidating all remaining utility functions
-- Zero redundancy achieved across validation, hashing, and formatting
+**Features**:
+- Automatic best model detection based on configurable metrics
+- Configurable retention policies with protected checkpoints
+- SHA256 checksum verification for data integrity
+- Multiple storage formats (PyTorch, SafeTensors, custom)
+
+### Hook System
+**Location**: `model_checkpoint/hooks/`
+
+**Components**:
+- `HookManager`: Event-driven hook execution with priority management
+- `BaseHook`: Base class for implementing custom hooks
+- Built-in hooks for quaternion validation, grid monitoring, checkpoint strategies
+- Event system with configurable priorities and error handling
+
+**Features**:
+- Priority-based execution (CRITICAL → HIGH → NORMAL → LOW → BACKGROUND)
+- Conditional hook execution with lambda-based conditions
+- Error isolation - failed hooks don't crash the pipeline
+- Async/sync support with timeout handling
+
+### Performance & Caching
+**Location**: `model_checkpoint/performance/`
+
+**Components**:
+- `CacheManager`: LRU caching with TTL support
+- `BatchProcessor`: Efficient batch database operations
+- Performance monitoring and statistics collection
+
+**Features**:
+- Configurable cache sizes and TTL values
+- Batch processing for improved database throughput
+- Performance statistics and monitoring
+
+### Integrity & Verification
+**Location**: `model_checkpoint/integrity/`
+
+**Components**:
+- `ChecksumCalculator`: SHA256 checksum computation
+- `IntegrityTracker`: File integrity monitoring
+- `CheckpointVerifier`: Comprehensive integrity verification
+
+**Features**:
+- Automatic checksum calculation and verification
+- File integrity tracking across the system
+- Repair capabilities for corrupted checkpoints
 
 ## Data Flow
 
 ```
-Training Loop
+Training Application
      ↓
-MetricsCollector → [Analytics Engine] → BestModelSelector
-     ↓                                        ↓
-CheckpointManager ← [Decision Engine] ← Performance Monitor
+ExperimentTracker → Database Layer (Metadata)
      ↓
-Database Layer (Optimized) → Integrity Verification
+EnhancedCheckpointManager
      ↓
-Cloud Storage (Multi-provider) → Notification System
+Hook System (Pre-save) → Storage Backend → Hook System (Post-save)
      ↓
-Plugin Hooks → API Layer → External Systems
+Integrity Verification → Caching Layer → Database (Checkpoint Record)
+     ↓
+Retention Policies → Cleanup (if needed)
 ```
 
 ## Database Schema
 
 ### Core Tables
-- `experiments`: Project metadata with configuration
-- `checkpoints`: Model states with enhanced metadata
-- `metrics`: Time-series performance data
+- `experiments`: Project metadata, configuration, and tags
+- `checkpoints`: Model checkpoint metadata and file paths
+- `experiment_metrics`: Time-series performance metrics
 
-### Optimizations
-- Indexed on frequently queried columns
+### Schema Features
+- Indexed on frequently queried columns (experiment_id, created_at, etc.)
 - Foreign key constraints for data integrity
+- Flexible JSON columns for extensible metadata storage
 - WAL mode for concurrent read/write performance
 - Connection pooling to minimize overhead
 
@@ -102,78 +133,96 @@ Plugin Hooks → API Layer → External Systems
 - Optimized for PyTorch model serialization
 - Supports model, optimizer, and scheduler states
 
-### SafeTensors Backend
+### SafeTensors Backend (Future)
 - Memory-safe tensor serialization
 - Cross-framework compatibility
 - Faster loading with metadata validation
 
 ### Pluggable Architecture
 ```python
+from abc import ABC, abstractmethod
+
 class StorageBackend(ABC):
     @abstractmethod
-    def save(self, data: Any, path: str) -> bool
+    def save_checkpoint(self, data: Any, path: str) -> Dict[str, Any]:
+        """Save checkpoint data to storage"""
+        pass
 
     @abstractmethod
-    def load(self, path: str) -> Any
+    def load_checkpoint(self, path: str, device=None) -> Any:
+        """Load checkpoint data from storage"""
+        pass
 ```
 
-## Cloud Integration
+## Performance Considerations
 
-### Multi-Provider Support
-- **S3**: AWS with multipart uploads, presigned URLs
-- **GCS**: Google Cloud with uniform bucket-level access
-- **Azure**: Blob storage with hierarchical namespace
+### Database Optimizations
+- Connection pooling for concurrent operations
+- WAL mode SQLite for better read/write performance
+- Indexed queries on frequently accessed columns
+- Batch operations for improved throughput
 
-### Features
-- Automatic retry with exponential backoff
-- Integrity verification via checksums
-- Retention policies with automated cleanup
-- Cost optimization through intelligent tiering
+### Memory Management
+- LRU caching for checkpoint metadata
+- Configurable cache sizes and TTL values
+- Efficient memory usage patterns
+- Connection reuse to minimize overhead
 
-## Performance Metrics
+### Scalability Features
+- Thread-safe operations with proper locking
+- Concurrent checkpoint operations
+- Efficient cleanup of old checkpoints
+- Minimal memory footprint for large checkpoint files
 
-### Code Reduction
-- **65% overall reduction** in code duplication
-- **200+ lines eliminated** through shared utilities
-- **78% optimization** in database operations
-
-### Runtime Performance
-- **40-60% faster** checkpoint operations
-- **Sub-second loading** for models up to 10GB
-- **Concurrent operations** with thread safety
-- **Memory efficiency** through LRU caching
-
-### Scalability
-- **Connection pooling** for database operations
-- **Batch processing** for metrics and cleanup
-- **Rate limiting** for API and notifications
-- **Plugin isolation** for stability
-
-## Security Considerations
+## Security & Reliability
 
 ### Data Integrity
 - SHA256 checksums for all stored data
 - Verification on load with automatic corruption detection
+- Integrity tracking throughout the system lifecycle
+
+### Error Handling
+- Comprehensive error isolation in hook system
+- Graceful degradation when components fail
+- Detailed logging for debugging and monitoring
+- Rollback capabilities for failed operations
+
+### Reliability Features
+- Atomic database operations
 - Backup creation before modifications
-
-### Access Control
-- API rate limiting per client
-- Plugin sandboxing and validation
-- Secure credential management for cloud providers
-
-### Audit Trail
-- Comprehensive logging of all operations
-- Performance monitoring with alerts
-- Change tracking for configuration updates
+- Comprehensive audit trail of all operations
+- Recovery mechanisms for corrupted data
 
 ## Extension Points
 
-### Plugin Development
+### Hook Development
 ```python
-from model_checkpoint.plugins.base_plugin import BasePlugin
+from model_checkpoint.hooks import BaseHook, HookEvent
 
-class CustomPlugin(BasePlugin):
-    def on_checkpoint_save(self, checkpoint_data):
+class CustomHook(BaseHook):
+    def execute(self, context):
+        # Custom logic here
+        return True
+
+# Register with the hook manager
+manager.hook_manager.register_hook(CustomHook())
+```
+
+### Storage Backend Development
+```python
+from model_checkpoint.checkpoint.storage import BaseStorageBackend
+
+class CustomStorageBackend(BaseStorageBackend):
+    def save_checkpoint(self, data, path):
+        # Custom storage logic
+        pass
+    
+    def load_checkpoint(self, path, device=None):
+        # Custom loading logic  
+        pass
+```
+
+This architecture provides a solid foundation for generic ML checkpoint management while remaining extensible and performant across different use cases and frameworks.
         # Custom logic here
         pass
 ```
