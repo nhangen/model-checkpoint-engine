@@ -197,6 +197,11 @@ class EnhancedCheckpointManager:
         checkpoint_id = str(uuid.uuid4())
         start_time = time.time()
 
+        # Determine checkpoint type and update best flags (needed for hooks)
+        checkpoint_type, best_flags = self._determine_checkpoint_type_and_flags(
+            exp_id, epoch, step, loss, val_loss, metrics, update_best
+        )
+
         # Fire before checkpoint save hook
         if self.hook_manager:
             context = HookContext(
@@ -214,7 +219,8 @@ class EnhancedCheckpointManager:
                     'metrics': metrics,
                     'model_name': model_name,
                     'checkpoint_type': checkpoint_type,
-                    'notes': notes
+                    'notes': notes,
+                    'best_flags': best_flags
                 }
             )
             hook_result = self.hook_manager.fire_hook(HookEvent.BEFORE_CHECKPOINT_SAVE, context)
