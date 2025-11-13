@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Setup script for Model Checkpoint Engine"""
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
@@ -43,11 +43,26 @@ setup(
         "postgresql": ["psycopg2-binary>=2.9.0"],
         "mysql": ["PyMySQL>=1.0.0"],
         "dev": [
+            # Testing
             "pytest>=6.2.0",
             "pytest-cov>=2.12.0",
+            # Code formatting and linting
             "black>=21.0.0",
             "flake8>=3.9.0",
+            "flake8-docstrings>=1.6.0",
+            "flake8-bugbear>=21.0.0",
+            "flake8-comprehensions>=3.7.0",
+            "isort>=5.10.0",
+            # Type checking
             "mypy>=0.910",
+            "types-setuptools>=57.0.0",
+            # Security
+            "bandit>=1.7.0",
+            "safety>=2.0.0",
+            # Documentation
+            "pydocstyle>=6.1.0",
+            # Pre-commit framework
+            "pre-commit>=2.15.0",
         ],
         "web": [
             "flask>=2.0.0",

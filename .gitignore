@@ -128,6 +128,12 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# Pre-commit
+.pre-commit-cache/
+
+# Ruff cache
+.ruff_cache/
+
 # ML specific
 *.pt
 *.pth
