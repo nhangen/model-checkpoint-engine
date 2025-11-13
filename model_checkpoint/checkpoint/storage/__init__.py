@@ -3,4 +3,4 @@
 from .base_backend import BaseStorageBackend
 from .pytorch_backend import PyTorchStorageBackend
 
-__all__ = ['BaseStorageBackend', 'PyTorchStorageBackend']
+__all__ = ["BaseStorageBackend", "PyTorchStorageBackend"]

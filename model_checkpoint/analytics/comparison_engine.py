@@ -1,11 +1,11 @@
 """Optimized experiment comparison and visualization tools - zero redundancy design"""
 
-import time
-import statistics
-from typing import Dict, List, Any, Optional, Union, Tuple, Set
-from dataclasses import dataclass, field
-from collections import defaultdict
 import json
+import statistics
+import time
+from collections import defaultdict
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from .metrics_collector import MetricsCollector
@@ -19,13 +19,14 @@ def _current_time() -> float:
 @dataclass
 class ExperimentSummary:
     """Optimized experiment summary - using field defaults"""
+
     experiment_id: str
     name: str
     total_checkpoints: int = 0
     duration_seconds: float = 0.0
     start_time: float = field(default_factory=_current_time)
     end_time: Optional[float] = None
-    status: str = 'running'
+    status: str = "running"
     best_metrics: Dict[str, float] = field(default_factory=dict)
     final_metrics: Dict[str, float] = field(default_factory=dict)
     peak_metrics: Dict[str, float] = field(default_factory=dict)
@@ -35,6 +36,7 @@ class ExperimentSummary:
 @dataclass
 class ComparisonResult:
     """Optimized comparison result structure"""
+
     experiments: List[ExperimentSummary] = field(default_factory=list)
     metric_comparisons: Dict[str, Dict[str, Any]] = field(default_factory=dict)
     rankings: Dict[str, List[str]] = field(default_factory=dict)
@@ -61,8 +63,9 @@ class ExperimentComparisonEngine:
         self._cache_timestamps: Dict[str, float] = {}
         self._cache_ttl = 300.0  # 5 minutes
 
-    def get_experiment_summary(self, experiment_id: str,
-                             force_refresh: bool = False) -> Optional[ExperimentSummary]:
+    def get_experiment_summary(
+        self, experiment_id: str, force_refresh: bool = False
+    ) -> Optional[ExperimentSummary]:
         """
         Get comprehensive experiment summary - optimized with caching
 
@@ -76,8 +79,12 @@ class ExperimentComparisonEngine:
         current_time = _current_time()
 
         # Optimized: Check cache first
-        if (not force_refresh and experiment_id in self._experiment_cache and
-            current_time - self._cache_timestamps.get(experiment_id, 0) < self._cache_ttl):
+        if (
+            not force_refresh
+            and experiment_id in self._experiment_cache
+            and current_time - self._cache_timestamps.get(experiment_id, 0)
+            < self._cache_ttl
+        ):
             return self._experiment_cache[experiment_id]
 
         if not self.db_connection:
@@ -86,11 +93,14 @@ class ExperimentComparisonEngine:
         try:
             with self.db_connection.get_connection() as conn:
                 # Optimized: Single query for experiment metadata
-                exp_cursor = conn.execute("""
+                exp_cursor = conn.execute(
+                    """
                     SELECT id, name, created_at, updated_at, status, metadata
                     FROM experiments
                     WHERE id = ? OR name = ?
-                """, (experiment_id, experiment_id))
+                """,
+                    (experiment_id, experiment_id),
+                )
 
                 exp_row = exp_cursor.fetchone()
                 if not exp_row:
@@ -99,7 +109,8 @@ class ExperimentComparisonEngine:
                 exp_id, name, created_at, updated_at, status, metadata_json = exp_row
 
                 # Optimized: Single query for checkpoint statistics
-                stats_cursor = conn.execute("""
+                stats_cursor = conn.execute(
+                    """
                     SELECT
                         COUNT(*) as checkpoint_count,
                         MIN(timestamp) as first_checkpoint,
@@ -107,13 +118,18 @@ class ExperimentComparisonEngine:
                         AVG(file_size) as avg_file_size
                     FROM checkpoints
                     WHERE experiment_id = ?
-                """, (exp_id,))
+                """,
+                    (exp_id,),
+                )
 
                 stats_row = stats_cursor.fetchone()
-                checkpoint_count, first_checkpoint, last_checkpoint, avg_file_size = stats_row or (0, None, None, None)
+                checkpoint_count, first_checkpoint, last_checkpoint, avg_file_size = (
+                    stats_row or (0, None, None, None)
+                )
 
                 # Optimized: Single query for all metrics aggregation
-                metrics_cursor = conn.execute("""
+                metrics_cursor = conn.execute(
+                    """
                     SELECT
                         metric_name,
                         MAX(value) as max_value,
@@ -125,7 +141,9 @@ class ExperimentComparisonEngine:
                     WHERE experiment_id = ?
                     GROUP BY metric_name
                     ORDER BY latest_timestamp DESC
-                """, (exp_id,))
+                """,
+                    (exp_id,),
+                )
 
                 # Optimized: Process metrics in single pass
                 best_metrics = {}
@@ -136,7 +154,9 @@ class ExperimentComparisonEngine:
                     metric_name, max_val, min_val, avg_val, final_val, _ = row
 
                     # Determine if this is a metric to maximize or minimize
-                    is_loss_metric = 'loss' in metric_name.lower() or 'error' in metric_name.lower()
+                    is_loss_metric = (
+                        "loss" in metric_name.lower() or "error" in metric_name.lower()
+                    )
 
                     if is_loss_metric:
                         best_metrics[metric_name] = min_val
@@ -164,12 +184,12 @@ class ExperimentComparisonEngine:
                     total_checkpoints=checkpoint_count or 0,
                     duration_seconds=duration,
                     start_time=first_checkpoint or created_at,
-                    end_time=last_checkpoint if status == 'completed' else None,
-                    status=status or 'unknown',
+                    end_time=last_checkpoint if status == "completed" else None,
+                    status=status or "unknown",
                     best_metrics=best_metrics,
                     final_metrics=final_metrics,
                     peak_metrics=peak_metrics,
-                    metadata=metadata
+                    metadata=metadata,
                 )
 
                 # Cache the result
@@ -182,9 +202,12 @@ class ExperimentComparisonEngine:
             print(f"Error getting experiment summary: {e}")
             return None
 
-    def compare_experiments(self, experiment_ids: List[str],
-                          metrics: Optional[List[str]] = None,
-                          include_visualization: bool = True) -> ComparisonResult:
+    def compare_experiments(
+        self,
+        experiment_ids: List[str],
+        metrics: Optional[List[str]] = None,
+        include_visualization: bool = True,
+    ) -> ComparisonResult:
         """
         Compare multiple experiments - optimized batch processing
 
@@ -226,30 +249,42 @@ class ExperimentComparisonEngine:
             for summary in summaries:
                 if metric_name in summary.best_metrics:
                     best_values.append(summary.best_metrics[metric_name])
-                    final_values.append(summary.final_metrics.get(metric_name, summary.best_metrics[metric_name]))
+                    final_values.append(
+                        summary.final_metrics.get(
+                            metric_name, summary.best_metrics[metric_name]
+                        )
+                    )
                     exp_names.append(summary.name)
 
             if not best_values:
                 continue
 
             # Optimized: Calculate statistics in single pass
-            is_loss_metric = 'loss' in metric_name.lower() or 'error' in metric_name.lower()
+            is_loss_metric = (
+                "loss" in metric_name.lower() or "error" in metric_name.lower()
+            )
 
             metric_comparisons[metric_name] = {
-                'best_values': dict(zip(exp_names, best_values)),
-                'final_values': dict(zip(exp_names, final_values)),
-                'statistics': {
-                    'mean': statistics.mean(best_values),
-                    'std': statistics.stdev(best_values) if len(best_values) > 1 else 0.0,
-                    'min': min(best_values),
-                    'max': max(best_values),
-                    'range': max(best_values) - min(best_values)
+                "best_values": dict(zip(exp_names, best_values)),
+                "final_values": dict(zip(exp_names, final_values)),
+                "statistics": {
+                    "mean": statistics.mean(best_values),
+                    "std": (
+                        statistics.stdev(best_values) if len(best_values) > 1 else 0.0
+                    ),
+                    "min": min(best_values),
+                    "max": max(best_values),
+                    "range": max(best_values) - min(best_values),
                 },
-                'is_loss_metric': is_loss_metric
+                "is_loss_metric": is_loss_metric,
             }
 
             # Optimized: Create rankings
-            sorted_pairs = sorted(zip(exp_names, best_values), key=lambda x: x[1], reverse=not is_loss_metric)
+            sorted_pairs = sorted(
+                zip(exp_names, best_values),
+                key=lambda x: x[1],
+                reverse=not is_loss_metric,
+            )
             rankings[metric_name] = [name for name, _ in sorted_pairs]
 
         # Generate visualization data if requested
@@ -261,16 +296,17 @@ class ExperimentComparisonEngine:
             experiments=summaries,
             metric_comparisons=metric_comparisons,
             rankings=rankings,
-            visualization_data=visualization_data
+            visualization_data=visualization_data,
         )
 
-    def _generate_visualization_data(self, summaries: List[ExperimentSummary],
-                                   metrics: List[str]) -> Dict[str, Any]:
+    def _generate_visualization_data(
+        self, summaries: List[ExperimentSummary], metrics: List[str]
+    ) -> Dict[str, Any]:
         """Generate data for visualization - optimized format"""
         viz_data = {
-            'experiment_names': [s.name for s in summaries],
-            'experiment_ids': [s.experiment_id for s in summaries],
-            'metrics': {}
+            "experiment_names": [s.name for s in summaries],
+            "experiment_ids": [s.experiment_id for s in summaries],
+            "metrics": {},
         }
 
         # Optimized: Generate data for each metric
@@ -282,23 +318,27 @@ class ExperimentComparisonEngine:
                 best_values.append(summary.best_metrics.get(metric_name, 0.0))
                 final_values.append(summary.final_metrics.get(metric_name, 0.0))
 
-            viz_data['metrics'][metric_name] = {
-                'best_values': best_values,
-                'final_values': final_values,
-                'type': 'loss' if 'loss' in metric_name.lower() or 'error' in metric_name.lower() else 'metric'
+            viz_data["metrics"][metric_name] = {
+                "best_values": best_values,
+                "final_values": final_values,
+                "type": (
+                    "loss"
+                    if "loss" in metric_name.lower() or "error" in metric_name.lower()
+                    else "metric"
+                ),
             }
 
         # Add timing data
-        viz_data['duration_comparison'] = {
-            'durations': [s.duration_seconds for s in summaries],
-            'checkpoint_counts': [s.total_checkpoints for s in summaries]
+        viz_data["duration_comparison"] = {
+            "durations": [s.duration_seconds for s in summaries],
+            "checkpoint_counts": [s.total_checkpoints for s in summaries],
         }
 
         return viz_data
 
-    def get_metric_trends(self, experiment_ids: List[str],
-                         metric_names: List[str],
-                         window_size: int = 10) -> Dict[str, Dict[str, List[float]]]:
+    def get_metric_trends(
+        self, experiment_ids: List[str], metric_names: List[str], window_size: int = 10
+    ) -> Dict[str, Dict[str, List[float]]]:
         """
         Get metric trends over time - optimized for large datasets
 
@@ -322,12 +362,15 @@ class ExperimentComparisonEngine:
 
                     for metric_name in metric_names:
                         # Optimized: Single query per metric
-                        cursor = conn.execute("""
+                        cursor = conn.execute(
+                            """
                             SELECT value, step, epoch, timestamp
                             FROM experiment_metrics
                             WHERE experiment_id = ? AND metric_name = ?
                             ORDER BY timestamp
-                        """, (exp_id, metric_name))
+                        """,
+                            (exp_id, metric_name),
+                        )
 
                         # Optimized: Process all values in single pass
                         values = []
@@ -339,7 +382,7 @@ class ExperimentComparisonEngine:
                         if len(values) >= window_size:
                             smoothed_values = []
                             for i in range(len(values) - window_size + 1):
-                                window = values[i:i + window_size]
+                                window = values[i : i + window_size]
                                 smoothed_values.append(sum(window) / window_size)
                             trends[exp_id][metric_name] = smoothed_values
                         else:
@@ -350,8 +393,9 @@ class ExperimentComparisonEngine:
 
         return trends
 
-    def generate_comparison_report(self, comparison_result: ComparisonResult,
-                                 format_type: str = 'json') -> Union[str, Dict[str, Any]]:
+    def generate_comparison_report(
+        self, comparison_result: ComparisonResult, format_type: str = "json"
+    ) -> Union[str, Dict[str, Any]]:
         """
         Generate comprehensive comparison report - optimized formatting
 
@@ -364,54 +408,59 @@ class ExperimentComparisonEngine:
         """
         # Optimized: Pre-structure report data
         report_data = {
-            'summary': {
-                'total_experiments': len(comparison_result.experiments),
-                'comparison_timestamp': comparison_result.comparison_timestamp,
-                'metrics_compared': list(comparison_result.metric_comparisons.keys())
+            "summary": {
+                "total_experiments": len(comparison_result.experiments),
+                "comparison_timestamp": comparison_result.comparison_timestamp,
+                "metrics_compared": list(comparison_result.metric_comparisons.keys()),
             },
-            'experiments': [
+            "experiments": [
                 {
-                    'id': exp.experiment_id,
-                    'name': exp.name,
-                    'status': exp.status,
-                    'duration_hours': exp.duration_seconds / 3600,
-                    'total_checkpoints': exp.total_checkpoints,
-                    'best_metrics': exp.best_metrics,
-                    'final_metrics': exp.final_metrics
+                    "id": exp.experiment_id,
+                    "name": exp.name,
+                    "status": exp.status,
+                    "duration_hours": exp.duration_seconds / 3600,
+                    "total_checkpoints": exp.total_checkpoints,
+                    "best_metrics": exp.best_metrics,
+                    "final_metrics": exp.final_metrics,
                 }
                 for exp in comparison_result.experiments
             ],
-            'metric_analysis': {},
-            'rankings': comparison_result.rankings
+            "metric_analysis": {},
+            "rankings": comparison_result.rankings,
         }
 
         # Optimized: Single pass through metric comparisons
-        for metric_name, comparison_data in comparison_result.metric_comparisons.items():
-            best_exp = max(comparison_data['best_values'].items(),
-                          key=lambda x: x[1] if not comparison_data['is_loss_metric'] else -x[1])
+        for (
+            metric_name,
+            comparison_data,
+        ) in comparison_result.metric_comparisons.items():
+            best_exp = max(
+                comparison_data["best_values"].items(),
+                key=lambda x: x[1] if not comparison_data["is_loss_metric"] else -x[1],
+            )
 
-            report_data['metric_analysis'][metric_name] = {
-                'best_experiment': best_exp[0],
-                'best_value': best_exp[1],
-                'statistics': comparison_data['statistics'],
-                'is_loss_metric': comparison_data['is_loss_metric'],
-                'improvement_over_worst': self._calculate_improvement(comparison_data)
+            report_data["metric_analysis"][metric_name] = {
+                "best_experiment": best_exp[0],
+                "best_value": best_exp[1],
+                "statistics": comparison_data["statistics"],
+                "is_loss_metric": comparison_data["is_loss_metric"],
+                "improvement_over_worst": self._calculate_improvement(comparison_data),
             }
 
-        if format_type == 'json':
+        if format_type == "json":
             return json.dumps(report_data, indent=2, default=str)
-        elif format_type == 'markdown':
+        elif format_type == "markdown":
             return self._format_as_markdown(report_data)
         else:
             return report_data
 
     def _calculate_improvement(self, comparison_data: Dict[str, Any]) -> float:
         """Calculate improvement percentage - optimized calculation"""
-        values = list(comparison_data['best_values'].values())
+        values = list(comparison_data["best_values"].values())
         if len(values) < 2:
             return 0.0
 
-        is_loss = comparison_data['is_loss_metric']
+        is_loss = comparison_data["is_loss_metric"]
         best_val = min(values) if is_loss else max(values)
         worst_val = max(values) if is_loss else min(values)
 
@@ -431,32 +480,39 @@ class ExperimentComparisonEngine:
             f"**Experiments Compared:** {report_data['summary']['total_experiments']}",
             "",
             "## Experiment Summary",
-            ""
+            "",
         ]
 
         # Optimized: Build table in single pass
         lines.append("| Experiment | Status | Duration (hrs) | Checkpoints |")
         lines.append("|------------|--------|----------------|-------------|")
 
-        for exp in report_data['experiments']:
-            lines.append(f"| {exp['name']} | {exp['status']} | {exp['duration_hours']:.2f} | {exp['total_checkpoints']} |")
+        for exp in report_data["experiments"]:
+            lines.append(
+                f"| {exp['name']} | {exp['status']} | {exp['duration_hours']:.2f} | {exp['total_checkpoints']} |"
+            )
 
         lines.extend(["", "## Metric Analysis", ""])
 
         # Optimized: Build metric analysis
-        for metric_name, analysis in report_data['metric_analysis'].items():
-            lines.extend([
-                f"### {metric_name}",
-                f"**Best:** {analysis['best_experiment']} ({analysis['best_value']:.4f})",
-                f"**Improvement:** {analysis['improvement_over_worst']:.2f}%",
-                ""
-            ])
+        for metric_name, analysis in report_data["metric_analysis"].items():
+            lines.extend(
+                [
+                    f"### {metric_name}",
+                    f"**Best:** {analysis['best_experiment']} ({analysis['best_value']:.4f})",
+                    f"**Improvement:** {analysis['improvement_over_worst']:.2f}%",
+                    "",
+                ]
+            )
 
         return "\n".join(lines)
 
-    def find_similar_experiments(self, target_experiment_id: str,
-                               similarity_threshold: float = 0.8,
-                               max_results: int = 10) -> List[Tuple[str, float]]:
+    def find_similar_experiments(
+        self,
+        target_experiment_id: str,
+        similarity_threshold: float = 0.8,
+        max_results: int = 10,
+    ) -> List[Tuple[str, float]]:
         """
         Find experiments similar to target - optimized similarity calculation
 
@@ -480,11 +536,14 @@ class ExperimentComparisonEngine:
         try:
             with self.db_connection.get_connection() as conn:
                 # Optimized: Get all experiments in single query
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT DISTINCT experiment_id
                     FROM experiment_metrics
                     WHERE experiment_id != ?
-                """, (target_experiment_id,))
+                """,
+                    (target_experiment_id,),
+                )
 
                 candidate_ids = [row[0] for row in cursor.fetchall()]
 
@@ -494,7 +553,9 @@ class ExperimentComparisonEngine:
                     if not candidate_summary:
                         continue
 
-                    similarity = self._calculate_similarity(target_summary, candidate_summary)
+                    similarity = self._calculate_similarity(
+                        target_summary, candidate_summary
+                    )
 
                     if similarity >= similarity_threshold:
                         similar_experiments.append((candidate_id, similarity))
@@ -507,8 +568,9 @@ class ExperimentComparisonEngine:
             print(f"Error finding similar experiments: {e}")
             return []
 
-    def _calculate_similarity(self, exp1: ExperimentSummary,
-                            exp2: ExperimentSummary) -> float:
+    def _calculate_similarity(
+        self, exp1: ExperimentSummary, exp2: ExperimentSummary
+    ) -> float:
         """Calculate similarity between experiments - optimized computation"""
         # Optimized: Find common metrics
         common_metrics = set(exp1.best_metrics.keys()) & set(exp2.best_metrics.keys())
@@ -533,7 +595,7 @@ class ExperimentComparisonEngine:
         if norm1 == 0 or norm2 == 0:
             return 0.0
 
-        cosine_similarity = dot_product / (norm1 ** 0.5 * norm2 ** 0.5)
+        cosine_similarity = dot_product / (norm1**0.5 * norm2**0.5)
 
         # Normalize to 0-1 range
         return (cosine_similarity + 1) / 2

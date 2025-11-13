@@ -1,6 +1,7 @@
 """Simplified tests for Phase 2 components"""
 
 import pytest
+
 from model_checkpoint.analytics.metrics_collector import MetricsCollector
 from model_checkpoint.analytics.model_selector import BestModelSelector
 
@@ -46,7 +47,8 @@ class TestPhase2Components:
     def test_phase2_imports(self):
         """Test that Phase 2 modules can be imported"""
         try:
-            from model_checkpoint.analytics import MetricsCollector, BestModelSelector
+            from model_checkpoint.analytics import BestModelSelector, MetricsCollector
+
             assert MetricsCollector is not None
             assert BestModelSelector is not None
         except ImportError as e:
@@ -62,7 +64,10 @@ class TestPhase2Components:
     def test_notification_system(self):
         """Test notification system initialization"""
         try:
-            from model_checkpoint.notifications.notification_manager import NotificationManager
+            from model_checkpoint.notifications.notification_manager import (
+                NotificationManager,
+            )
+
             manager = NotificationManager()
             assert manager is not None
         except (ImportError, SyntaxError) as e:
@@ -72,7 +77,7 @@ class TestPhase2Components:
 
     def test_hook_integration_with_phase2(self):
         """Test hook integration with Phase 2 components"""
-        from model_checkpoint.hooks import HookManager, HookEvent
+        from model_checkpoint.hooks import HookEvent, HookManager
 
         # Test hook manager can be created
         manager = HookManager(enable_async=False)

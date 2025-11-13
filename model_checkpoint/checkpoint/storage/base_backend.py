@@ -1,8 +1,8 @@
 """Base storage backend interface for checkpoint storage"""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Union
 from pathlib import Path
+from typing import Any, Dict, Optional, Union
 
 try:
     import torch
@@ -26,7 +26,9 @@ class BaseStorageBackend(ABC):
         self.checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
     @abstractmethod
-    def save_checkpoint(self, checkpoint_data: Dict[str, Any], file_path: str) -> Dict[str, Any]:
+    def save_checkpoint(
+        self, checkpoint_data: Dict[str, Any], file_path: str
+    ) -> Dict[str, Any]:
         """
         Save checkpoint data to file
 
@@ -40,7 +42,9 @@ class BaseStorageBackend(ABC):
         pass
 
     @abstractmethod
-    def load_checkpoint(self, file_path: str, device: Optional[Any] = None) -> Dict[str, Any]:
+    def load_checkpoint(
+        self, file_path: str, device: Optional[Any] = None
+    ) -> Dict[str, Any]:
         """
         Load checkpoint data from file
 
@@ -71,8 +75,12 @@ class BaseStorageBackend(ABC):
         """
         pass
 
-    def get_checkpoint_path(self, checkpoint_id: str, checkpoint_type: str = 'manual',
-                          epoch: Optional[int] = None) -> str:
+    def get_checkpoint_path(
+        self,
+        checkpoint_id: str,
+        checkpoint_type: str = "manual",
+        epoch: Optional[int] = None,
+    ) -> str:
         """
         Generate checkpoint file path
 

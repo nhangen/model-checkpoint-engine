@@ -1,10 +1,10 @@
 """Base classes for hook implementation"""
 
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
-from enum import Enum
 import copy
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Dict, List, Optional
 
 
 @dataclass
@@ -20,6 +20,7 @@ class HookContext:
         user_data: Custom user data that persists across hooks
         metadata: Additional metadata about the event
     """
+
     event: Any  # HookEvent type
     data: Dict[str, Any] = field(default_factory=dict)
     checkpoint_id: Optional[str] = None
@@ -27,7 +28,7 @@ class HookContext:
     user_data: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
-    def copy(self) -> 'HookContext':
+    def copy(self) -> "HookContext":
         """Create a deep copy of the context"""
         return HookContext(
             event=self.event,
@@ -35,7 +36,7 @@ class HookContext:
             checkpoint_id=self.checkpoint_id,
             experiment_id=self.experiment_id,
             user_data=copy.deepcopy(self.user_data),
-            metadata=copy.deepcopy(self.metadata)
+            metadata=copy.deepcopy(self.metadata),
         )
 
     def get(self, key: str, default: Any = None) -> Any:
@@ -71,7 +72,7 @@ class HookResult:
     def add_result(self, hook_name: str, result: Dict[str, Any]) -> None:
         """Add a hook execution result"""
         self.results[hook_name] = result
-        if not result.get('success', True):
+        if not result.get("success", True):
             self.errors.append(f"{hook_name}: {result.get('error', 'Unknown error')}")
 
     def get_result(self, hook_name: str) -> Optional[Dict[str, Any]]:
@@ -109,12 +110,13 @@ class BaseHook(ABC):
             Dict mapping method names to their configuration
         """
         import inspect
+
         from .hook_manager import HookEvent, HookPriority
 
         methods = {}
 
         for name, method in inspect.getmembers(self, predicate=inspect.ismethod):
-            if name.startswith('on_'):
+            if name.startswith("on_"):
                 # Convert method name to event name
                 event_name = name[3:].upper()
 
@@ -124,10 +126,10 @@ class BaseHook(ABC):
 
                     # Get method metadata if available
                     config = {
-                        'events': [event],
-                        'priority': getattr(method, '_priority', HookPriority.NORMAL),
-                        'timeout': getattr(method, '_timeout', None),
-                        'async_execution': getattr(method, '_async', False)
+                        "events": [event],
+                        "priority": getattr(method, "_priority", HookPriority.NORMAL),
+                        "timeout": getattr(method, "_timeout", None),
+                        "async_execution": getattr(method, "_async", False),
                     }
 
                     methods[name] = config

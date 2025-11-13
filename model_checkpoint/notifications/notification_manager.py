@@ -1,12 +1,12 @@
 """Optimized notification management system - zero redundancy design"""
 
-import time
+import json
 import threading
-from typing import Dict, List, Any, Optional, Callable, Union
+import time
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from enum import Enum
-import json
-from collections import defaultdict, deque
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 
@@ -18,6 +18,7 @@ def _current_time() -> float:
 
 class EventType(Enum):
     """Optimized event type enum"""
+
     EXPERIMENT_STARTED = "experiment_started"
     EXPERIMENT_COMPLETED = "experiment_completed"
     EXPERIMENT_FAILED = "experiment_failed"
@@ -32,6 +33,7 @@ class EventType(Enum):
 
 class Priority(Enum):
     """Optimized priority enum"""
+
     LOW = 1
     NORMAL = 2
     HIGH = 3
@@ -41,6 +43,7 @@ class Priority(Enum):
 @dataclass
 class NotificationEvent:
     """Optimized notification event"""
+
     event_type: EventType
     title: str
     message: str
@@ -55,6 +58,7 @@ class NotificationEvent:
 @dataclass
 class NotificationRule:
     """Optimized notification rule"""
+
     name: str
     event_types: List[EventType] = field(default_factory=list)
     handlers: List[str] = field(default_factory=list)
@@ -89,37 +93,42 @@ class NotificationManager:
         self._lock = threading.Lock()
 
         # Optimized: Rate limiting and statistics
-        self._rate_limits: Dict[str, Dict[str, float]] = defaultdict(dict)  # handler -> event_type -> last_sent
+        self._rate_limits: Dict[str, Dict[str, float]] = defaultdict(
+            dict
+        )  # handler -> event_type -> last_sent
         self._stats = {
-            'events_processed': 0,
-            'notifications_sent': 0,
-            'notifications_failed': 0,
-            'last_processing_time': 0.0
+            "events_processed": 0,
+            "notifications_sent": 0,
+            "notifications_failed": 0,
+            "last_processing_time": 0.0,
         }
 
         # Optimized: Pre-defined common rules
         self._default_rules = {
-            'critical_failures': NotificationRule(
-                name='critical_failures',
+            "critical_failures": NotificationRule(
+                name="critical_failures",
                 event_types=[EventType.EXPERIMENT_FAILED, EventType.STORAGE_FULL],
-                handlers=['email', 'slack'],
+                handlers=["email", "slack"],
                 priority_filter=Priority.CRITICAL,
-                rate_limit_seconds=300.0  # 5 minutes
+                rate_limit_seconds=300.0,  # 5 minutes
             ),
-            'best_model_updates': NotificationRule(
-                name='best_model_updates',
+            "best_model_updates": NotificationRule(
+                name="best_model_updates",
                 event_types=[EventType.BEST_MODEL_UPDATED],
-                handlers=['webhook'],
+                handlers=["webhook"],
                 priority_filter=Priority.NORMAL,
-                rate_limit_seconds=60.0  # 1 minute
+                rate_limit_seconds=60.0,  # 1 minute
             ),
-            'experiment_lifecycle': NotificationRule(
-                name='experiment_lifecycle',
-                event_types=[EventType.EXPERIMENT_STARTED, EventType.EXPERIMENT_COMPLETED],
-                handlers=['email'],
+            "experiment_lifecycle": NotificationRule(
+                name="experiment_lifecycle",
+                event_types=[
+                    EventType.EXPERIMENT_STARTED,
+                    EventType.EXPERIMENT_COMPLETED,
+                ],
+                handlers=["email"],
                 priority_filter=Priority.NORMAL,
-                rate_limit_seconds=0.0  # No rate limiting
-            )
+                rate_limit_seconds=0.0,  # No rate limiting
+            ),
         }
 
     def register_handler(self, name: str, handler: Any) -> bool:
@@ -135,7 +144,7 @@ class NotificationManager:
         """
         try:
             # Validate handler has required methods
-            if not hasattr(handler, 'send_notification'):
+            if not hasattr(handler, "send_notification"):
                 raise ValueError("Handler must implement send_notification method")
 
             with self._lock:
@@ -175,7 +184,9 @@ class NotificationManager:
                 return False
 
             self._running = True
-            self._processing_thread = threading.Thread(target=self._processing_loop, daemon=True)
+            self._processing_thread = threading.Thread(
+                target=self._processing_loop, daemon=True
+            )
             self._processing_thread.start()
             return True
 
@@ -207,8 +218,12 @@ class NotificationManager:
         if self.db_connection:
             self._persist_event(event)
 
-    def emit_experiment_started(self, experiment_id: str, experiment_name: str,
-                              metadata: Optional[Dict[str, Any]] = None) -> None:
+    def emit_experiment_started(
+        self,
+        experiment_id: str,
+        experiment_name: str,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
         """Emit experiment started event - optimized helper"""
         event = NotificationEvent(
             event_type=EventType.EXPERIMENT_STARTED,
@@ -216,12 +231,16 @@ class NotificationManager:
             message=f"Experiment '{experiment_name}' ({experiment_id}) has started training.",
             experiment_id=experiment_id,
             metadata=metadata or {},
-            tags=['experiment', 'lifecycle']
+            tags=["experiment", "lifecycle"],
         )
         self.emit_event(event)
 
-    def emit_experiment_completed(self, experiment_id: str, experiment_name: str,
-                                final_metrics: Optional[Dict[str, float]] = None) -> None:
+    def emit_experiment_completed(
+        self,
+        experiment_id: str,
+        experiment_name: str,
+        final_metrics: Optional[Dict[str, float]] = None,
+    ) -> None:
         """Emit experiment completed event - optimized helper"""
         message = f"Experiment '{experiment_name}' ({experiment_id}) has completed successfully."
         if final_metrics:
@@ -233,14 +252,19 @@ class NotificationManager:
             title=f"Experiment Completed: {experiment_name}",
             message=message,
             experiment_id=experiment_id,
-            metadata={'final_metrics': final_metrics or {}},
-            tags=['experiment', 'lifecycle', 'success']
+            metadata={"final_metrics": final_metrics or {}},
+            tags=["experiment", "lifecycle", "success"],
         )
         self.emit_event(event)
 
-    def emit_best_model_updated(self, experiment_id: str, checkpoint_id: str,
-                              metric_name: str, metric_value: float,
-                              previous_value: Optional[float] = None) -> None:
+    def emit_best_model_updated(
+        self,
+        experiment_id: str,
+        checkpoint_id: str,
+        metric_name: str,
+        metric_value: float,
+        previous_value: Optional[float] = None,
+    ) -> None:
         """Emit best model updated event - optimized helper"""
         improvement = ""
         if previous_value is not None:
@@ -251,46 +275,55 @@ class NotificationManager:
             event_type=EventType.BEST_MODEL_UPDATED,
             title="New Best Model Found",
             message=f"New best model found for experiment {experiment_id}. "
-                   f"{metric_name}: {metric_value:.4f}{improvement}",
+            f"{metric_name}: {metric_value:.4f}{improvement}",
             priority=Priority.HIGH,
             experiment_id=experiment_id,
             checkpoint_id=checkpoint_id,
             metadata={
-                'metric_name': metric_name,
-                'metric_value': metric_value,
-                'previous_value': previous_value,
-                'improvement': metric_value - (previous_value or 0)
+                "metric_name": metric_name,
+                "metric_value": metric_value,
+                "previous_value": previous_value,
+                "improvement": metric_value - (previous_value or 0),
             },
-            tags=['model', 'improvement', 'best']
+            tags=["model", "improvement", "best"],
         )
         self.emit_event(event)
 
-    def emit_metric_threshold(self, experiment_id: str, metric_name: str,
-                            metric_value: float, threshold: float,
-                            threshold_type: str = 'exceeded') -> None:
+    def emit_metric_threshold(
+        self,
+        experiment_id: str,
+        metric_name: str,
+        metric_value: float,
+        threshold: float,
+        threshold_type: str = "exceeded",
+    ) -> None:
         """Emit metric threshold event - optimized helper"""
         event = NotificationEvent(
             event_type=EventType.METRIC_THRESHOLD,
             title=f"Metric Threshold {threshold_type.title()}",
             message=f"Metric '{metric_name}' has {threshold_type} threshold in experiment {experiment_id}. "
-                   f"Current value: {metric_value:.4f}, Threshold: {threshold:.4f}",
+            f"Current value: {metric_value:.4f}, Threshold: {threshold:.4f}",
             priority=Priority.HIGH,
             experiment_id=experiment_id,
             metadata={
-                'metric_name': metric_name,
-                'metric_value': metric_value,
-                'threshold': threshold,
-                'threshold_type': threshold_type
+                "metric_name": metric_name,
+                "metric_value": metric_value,
+                "threshold": threshold,
+                "threshold_type": threshold_type,
             },
-            tags=['metric', 'threshold', threshold_type]
+            tags=["metric", "threshold", threshold_type],
         )
         self.emit_event(event)
 
-    def emit_custom_event(self, title: str, message: str,
-                         priority: Priority = Priority.NORMAL,
-                         experiment_id: Optional[str] = None,
-                         metadata: Optional[Dict[str, Any]] = None,
-                         tags: Optional[List[str]] = None) -> None:
+    def emit_custom_event(
+        self,
+        title: str,
+        message: str,
+        priority: Priority = Priority.NORMAL,
+        experiment_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+        tags: Optional[List[str]] = None,
+    ) -> None:
         """Emit custom event - optimized helper"""
         event = NotificationEvent(
             event_type=EventType.CUSTOM,
@@ -299,7 +332,7 @@ class NotificationManager:
             priority=priority,
             experiment_id=experiment_id,
             metadata=metadata or {},
-            tags=tags or ['custom']
+            tags=tags or ["custom"],
         )
         self.emit_event(event)
 
@@ -323,8 +356,8 @@ class NotificationManager:
                         self._process_single_event(event)
 
                     processing_time = _current_time() - start_time
-                    self._stats['last_processing_time'] = processing_time
-                    self._stats['events_processed'] += len(events_to_process)
+                    self._stats["last_processing_time"] = processing_time
+                    self._stats["events_processed"] += len(events_to_process)
 
                 # Sleep between processing cycles
                 time.sleep(0.1)
@@ -347,8 +380,9 @@ class NotificationManager:
         for rule in matching_rules:
             self._execute_rule(rule, event, current_time)
 
-    def _rule_matches_event(self, rule: NotificationRule,
-                          event: NotificationEvent, current_time: float) -> bool:
+    def _rule_matches_event(
+        self, rule: NotificationRule, event: NotificationEvent, current_time: float
+    ) -> bool:
         """Check if rule matches event - optimized matching"""
         # Check if rule is enabled
         if not rule.enabled:
@@ -375,35 +409,37 @@ class NotificationManager:
 
         return True
 
-    def _evaluate_conditions(self, conditions: Dict[str, Any],
-                           event: NotificationEvent) -> bool:
+    def _evaluate_conditions(
+        self, conditions: Dict[str, Any], event: NotificationEvent
+    ) -> bool:
         """Evaluate custom conditions - optimized evaluation"""
         for condition_type, condition_value in conditions.items():
-            if condition_type == 'experiment_id':
+            if condition_type == "experiment_id":
                 if event.experiment_id != condition_value:
                     return False
 
-            elif condition_type == 'tags_include':
+            elif condition_type == "tags_include":
                 if not any(tag in event.tags for tag in condition_value):
                     return False
 
-            elif condition_type == 'tags_exclude':
+            elif condition_type == "tags_exclude":
                 if any(tag in event.tags for tag in condition_value):
                     return False
 
-            elif condition_type == 'metadata_contains':
+            elif condition_type == "metadata_contains":
                 for key, value in condition_value.items():
                     if event.metadata.get(key) != value:
                         return False
 
-            elif condition_type == 'priority_min':
+            elif condition_type == "priority_min":
                 if event.priority.value < condition_value:
                     return False
 
         return True
 
-    def _execute_rule(self, rule: NotificationRule,
-                     event: NotificationEvent, current_time: float) -> None:
+    def _execute_rule(
+        self, rule: NotificationRule, event: NotificationEvent, current_time: float
+    ) -> None:
         """Execute rule by sending notifications - optimized execution"""
         successful_sends = 0
         failed_sends = 0
@@ -423,8 +459,8 @@ class NotificationManager:
             rule.trigger_count += 1
 
         # Update global statistics
-        self._stats['notifications_sent'] += successful_sends
-        self._stats['notifications_failed'] += failed_sends
+        self._stats["notifications_sent"] += successful_sends
+        self._stats["notifications_failed"] += failed_sends
 
     def _send_to_handler(self, handler_name: str, event: NotificationEvent) -> bool:
         """Send event to specific handler - optimized with error handling"""
@@ -455,30 +491,36 @@ class NotificationManager:
         """Persist event to database - optimized storage"""
         try:
             with self.db_connection.get_connection() as conn:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT INTO notification_events
                     (event_type, title, message, priority, timestamp, experiment_id,
                      checkpoint_id, metadata, tags)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    event.event_type.value,
-                    event.title,
-                    event.message,
-                    event.priority.value,
-                    event.timestamp,
-                    event.experiment_id,
-                    event.checkpoint_id,
-                    json.dumps(event.metadata),
-                    json.dumps(event.tags)
-                ))
+                """,
+                    (
+                        event.event_type.value,
+                        event.title,
+                        event.message,
+                        event.priority.value,
+                        event.timestamp,
+                        event.experiment_id,
+                        event.checkpoint_id,
+                        json.dumps(event.metadata),
+                        json.dumps(event.tags),
+                    ),
+                )
                 conn.commit()
 
         except Exception as e:
             print(f"Failed to persist notification event: {e}")
 
-    def get_recent_events(self, limit: int = 100,
-                         event_types: Optional[List[EventType]] = None,
-                         experiment_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_recent_events(
+        self,
+        limit: int = 100,
+        event_types: Optional[List[EventType]] = None,
+        experiment_id: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Get recent notification events - optimized query
 
@@ -501,7 +543,7 @@ class NotificationManager:
 
                 if event_types:
                     event_type_strings = [et.value for et in event_types]
-                    placeholders = ','.join('?' * len(event_type_strings))
+                    placeholders = ",".join("?" * len(event_type_strings))
                     where_clauses.append(f"event_type IN ({placeholders})")
                     params.extend(event_type_strings)
 
@@ -509,20 +551,35 @@ class NotificationManager:
                     where_clauses.append("experiment_id = ?")
                     params.append(experiment_id)
 
-                where_sql = " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+                where_sql = (
+                    " WHERE " + " AND ".join(where_clauses) if where_clauses else ""
+                )
 
-                cursor = conn.execute(f"""
+                cursor = conn.execute(
+                    f"""
                     SELECT event_type, title, message, priority, timestamp,
                            experiment_id, checkpoint_id, metadata, tags
                     FROM notification_events
                     {where_sql}
                     ORDER BY timestamp DESC
                     LIMIT ?
-                """, params + [limit])
+                """,
+                    params + [limit],
+                )
 
                 events = []
                 for row in cursor.fetchall():
-                    event_type, title, message, priority, timestamp, exp_id, cp_id, metadata_json, tags_json = row
+                    (
+                        event_type,
+                        title,
+                        message,
+                        priority,
+                        timestamp,
+                        exp_id,
+                        cp_id,
+                        metadata_json,
+                        tags_json,
+                    ) = row
 
                     try:
                         metadata = json.loads(metadata_json) if metadata_json else {}
@@ -531,17 +588,19 @@ class NotificationManager:
                         metadata = {}
                         tags = []
 
-                    events.append({
-                        'event_type': event_type,
-                        'title': title,
-                        'message': message,
-                        'priority': priority,
-                        'timestamp': timestamp,
-                        'experiment_id': exp_id,
-                        'checkpoint_id': cp_id,
-                        'metadata': metadata,
-                        'tags': tags
-                    })
+                    events.append(
+                        {
+                            "event_type": event_type,
+                            "title": title,
+                            "message": message,
+                            "priority": priority,
+                            "timestamp": timestamp,
+                            "experiment_id": exp_id,
+                            "checkpoint_id": cp_id,
+                            "metadata": metadata,
+                            "tags": tags,
+                        }
+                    )
 
                 return events
 
@@ -554,13 +613,15 @@ class NotificationManager:
         with self._lock:
             stats = self._stats.copy()
 
-        stats.update({
-            'registered_handlers': len(self._handlers),
-            'active_rules': len([r for r in self._rules.values() if r.enabled]),
-            'total_rules': len(self._rules),
-            'queue_size': len(self._event_queue),
-            'processing_active': self._running
-        })
+        stats.update(
+            {
+                "registered_handlers": len(self._handlers),
+                "active_rules": len([r for r in self._rules.values() if r.enabled]),
+                "total_rules": len(self._rules),
+                "queue_size": len(self._event_queue),
+                "processing_active": self._running,
+            }
+        )
 
         return stats
 
@@ -575,7 +636,7 @@ class NotificationManager:
             Test results
         """
         if handler_name not in self._handlers:
-            return {'success': False, 'error': 'Handler not found'}
+            return {"success": False, "error": "Handler not found"}
 
         try:
             # Create test event
@@ -584,7 +645,7 @@ class NotificationManager:
                 title="Test Notification",
                 message=f"This is a test notification sent to {handler_name} handler.",
                 priority=Priority.NORMAL,
-                tags=['test']
+                tags=["test"],
             )
 
             start_time = _current_time()
@@ -592,34 +653,29 @@ class NotificationManager:
             response_time = _current_time() - start_time
 
             return {
-                'success': success,
-                'response_time_ms': response_time * 1000,
-                'handler_name': handler_name
+                "success": success,
+                "response_time_ms": response_time * 1000,
+                "handler_name": handler_name,
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'handler_name': handler_name
-            }
+            return {"success": False, "error": str(e), "handler_name": handler_name}
 
     def export_configuration(self) -> Dict[str, Any]:
         """Export notification manager configuration"""
         with self._lock:
-            config = {
-                'handlers': list(self._handlers.keys()),
-                'rules': {}
-            }
+            config = {"handlers": list(self._handlers.keys()), "rules": {}}
 
             for name, rule in self._rules.items():
-                config['rules'][name] = {
-                    'event_types': [et.value for et in rule.event_types],
-                    'handlers': rule.handlers,
-                    'conditions': rule.conditions,
-                    'priority_filter': rule.priority_filter.value if rule.priority_filter else None,
-                    'rate_limit_seconds': rule.rate_limit_seconds,
-                    'enabled': rule.enabled
+                config["rules"][name] = {
+                    "event_types": [et.value for et in rule.event_types],
+                    "handlers": rule.handlers,
+                    "conditions": rule.conditions,
+                    "priority_filter": (
+                        rule.priority_filter.value if rule.priority_filter else None
+                    ),
+                    "rate_limit_seconds": rule.rate_limit_seconds,
+                    "enabled": rule.enabled,
                 }
 
         return config

@@ -1,7 +1,8 @@
 """Decorators for easy hook registration and configuration"""
 
 from functools import wraps
-from typing import List, Optional, Callable, Any
+from typing import Any, Callable, List, Optional
+
 from .hook_manager import HookEvent, HookPriority
 
 
@@ -9,7 +10,7 @@ def hook_handler(
     events: List[HookEvent],
     priority: HookPriority = HookPriority.NORMAL,
     timeout: Optional[float] = None,
-    async_execution: bool = False
+    async_execution: bool = False,
 ):
     """
     Decorator for marking methods as hook handlers.
@@ -26,6 +27,7 @@ def hook_handler(
             # Validation logic
             return True
     """
+
     def decorator(func: Callable) -> Callable:
         # Store metadata on the function
         func._hook_events = events
@@ -38,13 +40,14 @@ def hook_handler(
             return func(*args, **kwargs)
 
         return wrapper
+
     return decorator
 
 
 def async_hook_handler(
     events: List[HookEvent],
     priority: HookPriority = HookPriority.NORMAL,
-    timeout: Optional[float] = None
+    timeout: Optional[float] = None,
 ):
     """
     Decorator specifically for async hooks.
@@ -67,13 +70,16 @@ def conditional_hook(condition: Callable[[Any], bool]):
             # Only runs if checkpoint_id exists
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(context, *args, **kwargs):
             if condition(context):
                 return func(context, *args, **kwargs)
-            return {'success': True, 'skipped': True}
+            return {"success": True, "skipped": True}
+
         return wrapper
+
     return decorator
 
 
@@ -91,6 +97,7 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
             # May fail due to network issues
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -107,7 +114,9 @@ def retry_on_failure(max_retries: int = 3, delay: float = 1.0):
                     continue
 
             raise last_exception
+
         return wrapper
+
     return decorator
 
 
@@ -123,12 +132,15 @@ def transform_result(transformer: Callable[[Any], Any]):
         def get_metrics(context):
             return [1, 2, 3]
     """
+
     def decorator(func: Callable) -> Callable:
         @wraps(func)
         def wrapper(*args, **kwargs):
             result = func(*args, **kwargs)
             return transformer(result)
+
         return wrapper
+
     return decorator
 
 
@@ -145,9 +157,10 @@ def benchmark_hook(name: Optional[str] = None):
             # Time-consuming validation
             pass
     """
+
     def decorator(func: Callable) -> Callable:
-        import time
         import logging
+        import time
 
         logger = logging.getLogger(__name__)
         hook_name = name or func.__name__
@@ -163,6 +176,7 @@ def benchmark_hook(name: Optional[str] = None):
                 logger.debug(f"Hook '{hook_name}' executed in {execution_time:.3f}s")
 
         return wrapper
+
     return decorator
 
 
@@ -179,8 +193,10 @@ def suppress_errors(default_return: Any = None):
             # Non-critical operation
             pass
     """
+
     def decorator(func: Callable) -> Callable:
         import logging
+
         logger = logging.getLogger(__name__)
 
         @wraps(func)
@@ -190,5 +206,7 @@ def suppress_errors(default_return: Any = None):
             except Exception as e:
                 logger.warning(f"Suppressed error in hook '{func.__name__}': {e}")
                 return default_return
+
         return wrapper
+
     return decorator

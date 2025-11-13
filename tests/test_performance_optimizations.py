@@ -1,18 +1,24 @@
 """Tests for performance optimization components"""
 
 import os
-import tempfile
 import shutil
-import pytest
+import tempfile
 import time
 from concurrent.futures import ThreadPoolExecutor
 
-from model_checkpoint.performance import (
-    LRUCache, CheckpointCache, ExperimentCache, CacheManager,
-    BatchProcessor, ParallelCheckpointProcessor, BulkDataExporter
-)
+import pytest
+
 from model_checkpoint.database.enhanced_connection import EnhancedDatabaseConnection
-from model_checkpoint.database.models import Experiment, Metric, Checkpoint
+from model_checkpoint.database.models import Checkpoint, Experiment, Metric
+from model_checkpoint.performance import (
+    BatchProcessor,
+    BulkDataExporter,
+    CacheManager,
+    CheckpointCache,
+    ExperimentCache,
+    LRUCache,
+    ParallelCheckpointProcessor,
+)
 
 
 class TestLRUCache:
@@ -21,7 +27,9 @@ class TestLRUCache:
     @pytest.fixture
     def cache(self):
         """Create LRU cache"""
-        return LRUCache(max_size=3, default_ttl=1.0)  # Small size and short TTL for testing
+        return LRUCache(
+            max_size=3, default_ttl=1.0
+        )  # Small size and short TTL for testing
 
     def test_basic_get_set(self, cache):
         """Test basic get/set operations"""
@@ -70,7 +78,7 @@ class TestLRUCache:
         cache.set("key4", "value4")
 
         assert cache.get("key1") == "value1"  # Should still be present
-        assert cache.get("key2") is None      # Should be evicted
+        assert cache.get("key2") is None  # Should be evicted
         assert cache.get("key3") == "value3"
         assert cache.get("key4") == "value4"
 
@@ -96,10 +104,10 @@ class TestLRUCache:
         cache.get("key2")  # Miss
 
         stats = cache.get_stats()
-        assert stats['hits'] == 1
-        assert stats['misses'] == 1
-        assert stats['total_requests'] == 2
-        assert stats['hit_rate_percent'] == 50.0
+        assert stats["hits"] == 1
+        assert stats["misses"] == 1
+        assert stats["total_requests"] == 2
+        assert stats["hit_rate_percent"] == 50.0
 
     def test_clear_cache(self, cache):
         """Test cache clearing"""
@@ -128,10 +136,10 @@ class TestCheckpointCache:
     def test_metadata_caching(self, checkpoint_cache):
         """Test checkpoint metadata caching"""
         metadata = {
-            'epoch': 10,
-            'step': 1000,
-            'loss': 0.5,
-            'file_path': '/path/to/checkpoint.pth'
+            "epoch": 10,
+            "step": 1000,
+            "loss": 0.5,
+            "file_path": "/path/to/checkpoint.pth",
         }
 
         # Cache metadata
@@ -144,8 +152,10 @@ class TestCheckpointCache:
     def test_data_caching_size_limit(self, checkpoint_cache):
         """Test checkpoint data caching with size limits"""
         # Small data (should be cached)
-        small_data = {'model_state': {'layer': [1, 2, 3]}}
-        cached = checkpoint_cache.set_checkpoint_data("ckpt_001", small_data, max_size_mb=1.0)
+        small_data = {"model_state": {"layer": [1, 2, 3]}}
+        cached = checkpoint_cache.set_checkpoint_data(
+            "ckpt_001", small_data, max_size_mb=1.0
+        )
         assert cached is True
 
         # Retrieve small data
@@ -153,16 +163,18 @@ class TestCheckpointCache:
         assert retrieved == small_data
 
         # Large data (should not be cached)
-        large_data = {'model_state': {'layer': list(range(100000))}}
-        cached = checkpoint_cache.set_checkpoint_data("ckpt_002", large_data, max_size_mb=0.001)
+        large_data = {"model_state": {"layer": list(range(100000))}}
+        cached = checkpoint_cache.set_checkpoint_data(
+            "ckpt_002", large_data, max_size_mb=0.001
+        )
         assert cached is False
 
     def test_query_caching(self, checkpoint_cache):
         """Test query result caching"""
-        query_params = {'experiment_id': 'exp_001', 'checkpoint_type': 'best'}
+        query_params = {"experiment_id": "exp_001", "checkpoint_type": "best"}
         query_hash = checkpoint_cache.create_query_hash(query_params)
 
-        result = [{'id': 'ckpt_001', 'loss': 0.5}]
+        result = [{"id": "ckpt_001", "loss": 0.5}]
 
         # Cache query result
         checkpoint_cache.set_query_result(query_hash, result)
@@ -174,8 +186,8 @@ class TestCheckpointCache:
     def test_cache_invalidation(self, checkpoint_cache):
         """Test cache invalidation"""
         # Cache some data
-        metadata = {'epoch': 10, 'loss': 0.5}
-        data = {'model_state': {}}
+        metadata = {"epoch": 10, "loss": 0.5}
+        data = {"model_state": {}}
 
         checkpoint_cache.set_checkpoint_metadata("ckpt_001", metadata)
         checkpoint_cache.set_checkpoint_data("ckpt_001", data)
@@ -222,17 +234,17 @@ class TestBatchProcessor:
                 experiment_id="exp_001",
                 metric_name="loss",
                 metric_value=1.0 / (i + 1),
-                step=i * 10
+                step=i * 10,
             )
             metrics.append(metric)
 
         # Save metrics in batches
         result = batch_processor.batch_save_metrics(metrics)
 
-        assert result['total_metrics'] == 12
-        assert result['saved_count'] == 12
-        assert result['error_count'] == 0
-        assert result['metrics_per_second'] > 0
+        assert result["total_metrics"] == 12
+        assert result["saved_count"] == 12
+        assert result["error_count"] == 0
+        assert result["metrics_per_second"] > 0
 
     def test_batch_save_checkpoints(self, batch_processor):
         """Test batch saving of checkpoints"""
@@ -246,16 +258,16 @@ class TestBatchProcessor:
                 step=(i + 1) * 100,
                 checkpoint_type="manual",
                 file_path=f"/path/to/checkpoint_{i}.pth",
-                loss=1.0 / (i + 1)
+                loss=1.0 / (i + 1),
             )
             checkpoints.append(checkpoint)
 
         # Save checkpoints in batches
         result = batch_processor.batch_save_checkpoints(checkpoints)
 
-        assert result['total_checkpoints'] == 8
-        assert result['saved_count'] == 8
-        assert result['error_count'] == 0
+        assert result["total_checkpoints"] == 8
+        assert result["saved_count"] == 8
+        assert result["error_count"] == 0
 
     def test_batch_update_best_flags(self, batch_processor, db_connection):
         """Test batch updating of best model flags"""
@@ -266,7 +278,7 @@ class TestBatchProcessor:
                 id=f"ckpt_{i:03d}",
                 experiment_id="exp_001",
                 epoch=i + 1,
-                loss=1.0 / (i + 1)
+                loss=1.0 / (i + 1),
             )
             checkpoints.append(checkpoint)
             db_connection.save_checkpoint(checkpoint)
@@ -274,23 +286,23 @@ class TestBatchProcessor:
         # Create update specifications
         updates = [
             {
-                'experiment_id': 'exp_001',
-                'checkpoint_id': 'ckpt_004',  # Best loss (lowest)
-                'is_best_loss': True
+                "experiment_id": "exp_001",
+                "checkpoint_id": "ckpt_004",  # Best loss (lowest)
+                "is_best_loss": True,
             },
             {
-                'experiment_id': 'exp_001',
-                'checkpoint_id': 'ckpt_002',
-                'is_best_val_loss': True
-            }
+                "experiment_id": "exp_001",
+                "checkpoint_id": "ckpt_002",
+                "is_best_val_loss": True,
+            },
         ]
 
         # Update best flags in batch
         result = batch_processor.batch_update_best_flags(updates)
 
-        assert result['total_updates'] == 2
-        assert result['updated_count'] == 2
-        assert result['error_count'] == 0
+        assert result["total_updates"] == 2
+        assert result["updated_count"] == 2
+        assert result["error_count"] == 0
 
 
 class TestParallelCheckpointProcessor:
@@ -316,11 +328,11 @@ class TestParallelCheckpointProcessor:
         files = []
         for i in range(5):
             checkpoint_data = {
-                'model_state_dict': {'layer.weight': torch.randn(10, 5)},
-                'optimizer_state_dict': {'param_groups': []},
-                'epoch': i + 1,
-                'step': (i + 1) * 100,
-                'metrics': {'loss': 1.0 / (i + 1)}
+                "model_state_dict": {"layer.weight": torch.randn(10, 5)},
+                "optimizer_state_dict": {"param_groups": []},
+                "epoch": i + 1,
+                "step": (i + 1) * 100,
+                "metrics": {"loss": 1.0 / (i + 1)},
             }
 
             file_path = os.path.join(temp_dir, f"checkpoint_{i}.pth")
@@ -334,26 +346,28 @@ class TestParallelCheckpointProcessor:
         # Load metadata in parallel
         result = processor.parallel_load_checkpoint_metadata(test_checkpoint_files)
 
-        assert result['total_files'] == 5
-        assert result['successful_loads'] == 5
-        assert result['failed_loads'] == 0
+        assert result["total_files"] == 5
+        assert result["successful_loads"] == 5
+        assert result["failed_loads"] == 0
 
         # Check individual results
         for file_path in test_checkpoint_files:
-            assert file_path in result['results']
-            metadata = result['results'][file_path]
+            assert file_path in result["results"]
+            metadata = result["results"][file_path]
 
-            assert 'file_size' in metadata
-            assert 'epoch' in metadata
-            assert 'step' in metadata
-            assert 'has_model_state' in metadata
-            assert metadata['has_model_state'] is True
+            assert "file_size" in metadata
+            assert "epoch" in metadata
+            assert "step" in metadata
+            assert "has_model_state" in metadata
+            assert metadata["has_model_state"] is True
 
     def test_parallel_processing_performance(self, processor, test_checkpoint_files):
         """Test that parallel processing is faster than sequential"""
         # Time parallel processing
         start_time = time.time()
-        parallel_result = processor.parallel_load_checkpoint_metadata(test_checkpoint_files)
+        parallel_result = processor.parallel_load_checkpoint_metadata(
+            test_checkpoint_files
+        )
         parallel_time = time.time() - start_time
 
         # Time sequential processing (simulate)
@@ -362,16 +376,17 @@ class TestParallelCheckpointProcessor:
         for file_path in test_checkpoint_files:
             # Simulate individual processing
             import torch
-            checkpoint = torch.load(file_path, map_location='cpu')
+
+            checkpoint = torch.load(file_path, map_location="cpu")
             sequential_results[file_path] = {
-                'epoch': checkpoint.get('epoch'),
-                'step': checkpoint.get('step')
+                "epoch": checkpoint.get("epoch"),
+                "step": checkpoint.get("step"),
             }
         sequential_time = time.time() - start_time
 
         # Parallel should complete successfully
-        assert parallel_result['successful_loads'] == len(test_checkpoint_files)
-        assert parallel_result['processing_time'] > 0
+        assert parallel_result["successful_loads"] == len(test_checkpoint_files)
+        assert parallel_result["processing_time"] > 0
 
         # Note: Parallel processing might not always be faster for small workloads
         # due to overhead, but it should handle the same amount of work
@@ -395,8 +410,12 @@ class TestBulkDataExporter:
 
         # Create sample experiments
         experiments = [
-            Experiment(id="exp_001", name="Test Experiment 1", project_name="Test Project"),
-            Experiment(id="exp_002", name="Test Experiment 2", project_name="Test Project")
+            Experiment(
+                id="exp_001", name="Test Experiment 1", project_name="Test Project"
+            ),
+            Experiment(
+                id="exp_002", name="Test Experiment 2", project_name="Test Project"
+            ),
         ]
 
         for exp in experiments:
@@ -409,7 +428,7 @@ class TestBulkDataExporter:
                     experiment_id=exp_id,
                     metric_name="loss",
                     metric_value=1.0 / (i + 1),
-                    step=i * 10
+                    step=i * 10,
                 )
                 db.save_metric(metric)
 
@@ -421,7 +440,7 @@ class TestBulkDataExporter:
                     experiment_id=exp_id,
                     epoch=i + 1,
                     step=(i + 1) * 100,
-                    loss=1.0 / (i + 1)
+                    loss=1.0 / (i + 1),
                 )
                 db.save_checkpoint(checkpoint)
 
@@ -438,36 +457,35 @@ class TestBulkDataExporter:
 
         # Export data
         result = exporter.export_experiment_data(
-            experiment_ids=experiment_ids,
-            include_checkpoints=True
+            experiment_ids=experiment_ids, include_checkpoints=True
         )
 
-        assert result['total_experiments'] == 2
-        assert result['successful_exports'] == 2
-        assert result['failed_exports'] == 0
+        assert result["total_experiments"] == 2
+        assert result["successful_exports"] == 2
+        assert result["failed_exports"] == 0
 
         # Check exported data structure
-        assert 'exp_001' in result['data']
-        assert 'exp_002' in result['data']
+        assert "exp_001" in result["data"]
+        assert "exp_002" in result["data"]
 
         for exp_id in experiment_ids:
-            exp_data = result['data'][exp_id]
-            assert 'experiment' in exp_data
-            assert 'metrics' in exp_data
-            assert 'statistics' in exp_data
-            assert 'checkpoints' in exp_data
+            exp_data = result["data"][exp_id]
+            assert "experiment" in exp_data
+            assert "metrics" in exp_data
+            assert "statistics" in exp_data
+            assert "checkpoints" in exp_data
 
             # Check experiment data
-            exp_info = exp_data['experiment']
-            assert exp_info['id'] == exp_id
-            assert 'name' in exp_info
+            exp_info = exp_data["experiment"]
+            assert exp_info["id"] == exp_id
+            assert "name" in exp_info
 
             # Check metrics data
-            metrics = exp_data['metrics']
+            metrics = exp_data["metrics"]
             assert len(metrics) == 10  # 10 metrics per experiment
 
             # Check checkpoints data
-            checkpoints = exp_data['checkpoints']
+            checkpoints = exp_data["checkpoints"]
             assert len(checkpoints) == 3  # 3 checkpoints per experiment
 
     def test_save_exported_data_json(self, exporter, temp_dir):
@@ -478,22 +496,21 @@ class TestBulkDataExporter:
         # Save as JSON
         output_path = os.path.join(temp_dir, "export.json")
         save_result = exporter.save_exported_data(
-            export_result['data'],
-            output_path,
-            format_type='json'
+            export_result["data"], output_path, format_type="json"
         )
 
-        assert save_result['success'] is True
-        assert save_result['format'] == 'json'
+        assert save_result["success"] is True
+        assert save_result["format"] == "json"
         assert os.path.exists(output_path)
-        assert save_result['file_size'] > 0
+        assert save_result["file_size"] > 0
 
         # Verify JSON content
         import json
-        with open(output_path, 'r') as f:
+
+        with open(output_path, "r") as f:
             loaded_data = json.load(f)
 
-        assert 'exp_001' in loaded_data
+        assert "exp_001" in loaded_data
 
     def test_save_exported_data_csv(self, exporter, temp_dir):
         """Test saving exported data as CSV"""
@@ -503,30 +520,27 @@ class TestBulkDataExporter:
         # Save as CSV
         output_path = os.path.join(temp_dir, "export.csv")
         save_result = exporter.save_exported_data(
-            export_result['data'],
-            output_path,
-            format_type='csv'
+            export_result["data"], output_path, format_type="csv"
         )
 
-        assert save_result['success'] is True
+        assert save_result["success"] is True
 
         # Check that CSV files were created
-        assert os.path.exists(output_path.replace('.csv', '_experiments.csv'))
-        assert os.path.exists(output_path.replace('.csv', '_metrics.csv'))
-        assert os.path.exists(output_path.replace('.csv', '_checkpoints.csv'))
+        assert os.path.exists(output_path.replace(".csv", "_experiments.csv"))
+        assert os.path.exists(output_path.replace(".csv", "_metrics.csv"))
+        assert os.path.exists(output_path.replace(".csv", "_checkpoints.csv"))
 
     def test_export_without_checkpoints(self, exporter):
         """Test exporting data without checkpoint metadata"""
         result = exporter.export_experiment_data(
-            experiment_ids=["exp_001"],
-            include_checkpoints=False
+            experiment_ids=["exp_001"], include_checkpoints=False
         )
 
-        exp_data = result['data']['exp_001']
-        assert 'experiment' in exp_data
-        assert 'metrics' in exp_data
-        assert 'statistics' in exp_data
-        assert 'checkpoints' not in exp_data
+        exp_data = result["data"]["exp_001"]
+        assert "experiment" in exp_data
+        assert "metrics" in exp_data
+        assert "statistics" in exp_data
+        assert "checkpoints" not in exp_data
 
 
 class TestCacheManager:
@@ -545,26 +559,32 @@ class TestCacheManager:
     def test_global_statistics(self, cache_manager):
         """Test global cache statistics"""
         # Add some data to caches
-        cache_manager.checkpoint_cache.set_checkpoint_metadata("ckpt_001", {'epoch': 1})
-        cache_manager.experiment_cache.set_experiment_metadata("exp_001", {'name': 'Test'})
+        cache_manager.checkpoint_cache.set_checkpoint_metadata("ckpt_001", {"epoch": 1})
+        cache_manager.experiment_cache.set_experiment_metadata(
+            "exp_001", {"name": "Test"}
+        )
 
         # Get global statistics
         stats = cache_manager.get_global_statistics()
 
-        assert 'checkpoint_cache' in stats
-        assert 'experiment_cache' in stats
-        assert 'total_cached_items' in stats
-        assert stats['total_cached_items'] >= 2
+        assert "checkpoint_cache" in stats
+        assert "experiment_cache" in stats
+        assert "total_cached_items" in stats
+        assert stats["total_cached_items"] >= 2
 
     def test_clear_all_caches(self, cache_manager):
         """Test clearing all caches"""
         # Add data
-        cache_manager.checkpoint_cache.set_checkpoint_metadata("ckpt_001", {'epoch': 1})
-        cache_manager.experiment_cache.set_experiment_metadata("exp_001", {'name': 'Test'})
+        cache_manager.checkpoint_cache.set_checkpoint_metadata("ckpt_001", {"epoch": 1})
+        cache_manager.experiment_cache.set_experiment_metadata(
+            "exp_001", {"name": "Test"}
+        )
 
         # Clear all caches
         cache_manager.clear_all()
 
         # Verify caches are empty
-        assert cache_manager.checkpoint_cache.get_checkpoint_metadata("ckpt_001") is None
+        assert (
+            cache_manager.checkpoint_cache.get_checkpoint_metadata("ckpt_001") is None
+        )
         assert cache_manager.experiment_cache.get_experiment_metadata("exp_001") is None

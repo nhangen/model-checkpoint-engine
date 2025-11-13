@@ -216,7 +216,7 @@ class CustomStorageBackend(BaseStorageBackend):
     def save_checkpoint(self, data, path):
         # Custom storage logic
         pass
-    
+
     def load_checkpoint(self, path, device=None):
         # Custom loading logic  
         pass

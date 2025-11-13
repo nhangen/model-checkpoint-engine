@@ -3,4 +3,4 @@
 from .checksum import ChecksumCalculator, IntegrityTracker
 from .verification import CheckpointVerifier
 
-__all__ = ['ChecksumCalculator', 'IntegrityTracker', 'CheckpointVerifier']
+__all__ = ["ChecksumCalculator", "IntegrityTracker", "CheckpointVerifier"]

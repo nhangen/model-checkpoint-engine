@@ -1,8 +1,9 @@
 """Database models for experiment tracking"""
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Any
 import time
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Optional
+
 
 # Optimize: Use field(default_factory) instead of post_init for better performance
 def _current_time() -> float:
@@ -13,10 +14,11 @@ def _current_time() -> float:
 @dataclass
 class Experiment:
     """Experiment record with enhanced tracking"""
+
     id: str
     name: str
     project_name: Optional[str] = None
-    status: str = 'running'
+    status: str = "running"
     start_time: float = field(default_factory=_current_time)
     end_time: Optional[float] = None
     tags: List[str] = field(default_factory=list)
@@ -27,6 +29,7 @@ class Experiment:
 @dataclass
 class Metric:
     """Metric record - optimized with field defaults"""
+
     experiment_id: str
     metric_name: str
     metric_value: float
@@ -37,12 +40,13 @@ class Metric:
 @dataclass
 class Checkpoint:
     """Enhanced checkpoint record with integrity and metadata tracking - optimized"""
+
     id: str
     experiment_id: str
     epoch: Optional[int] = None
     step: int = 0
-    checkpoint_type: str = 'manual'
-    file_path: str = ''
+    checkpoint_type: str = "manual"
+    file_path: str = ""
     file_size: Optional[int] = None
     checksum: Optional[str] = None
     model_name: Optional[str] = None

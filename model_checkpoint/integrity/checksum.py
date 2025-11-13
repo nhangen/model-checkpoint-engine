@@ -2,16 +2,16 @@
 
 import os
 import time
-from typing import Optional, Dict, Any
 from pathlib import Path
+from typing import Any, Dict, Optional
 
-from ..utils.checksum import calculate_file_checksum, calculate_data_checksum
+from ..utils.checksum import calculate_data_checksum, calculate_file_checksum
 
 
 class ChecksumCalculator:
     """Efficient checksum calculation - now uses shared optimized utilities"""
 
-    def __init__(self, algorithm: str = 'sha256', chunk_size: int = 65536):
+    def __init__(self, algorithm: str = "sha256", chunk_size: int = 65536):
         """
         Initialize checksum calculator - optimized with larger default chunk size
 
@@ -20,12 +20,15 @@ class ChecksumCalculator:
             chunk_size: Chunk size for reading large files (64KB for optimal performance)
         """
         import hashlib
+
         self.algorithm = algorithm.lower()
         self.chunk_size = chunk_size
 
         # Validate algorithm
         if self.algorithm not in hashlib.algorithms_available:
-            raise ValueError(f"Algorithm {algorithm} not available. Available: {hashlib.algorithms_available}")
+            raise ValueError(
+                f"Algorithm {algorithm} not available. Available: {hashlib.algorithms_available}"
+            )
 
     def calculate_file_checksum(self, file_path: str) -> str:
         """Calculate checksum for a file - uses shared optimized utility"""
@@ -77,16 +80,20 @@ class ChecksumCalculator:
         stat = os.stat(file_path)
 
         return {
-            'checksum': checksum,
-            'algorithm': self.algorithm,
-            'file_size': stat.st_size,
-            'modification_time': stat.st_mtime,
-            'calculation_time': time.time() - start_time,
-            'file_path': file_path
+            "checksum": checksum,
+            "algorithm": self.algorithm,
+            "file_size": stat.st_size,
+            "modification_time": stat.st_mtime,
+            "calculation_time": time.time() - start_time,
+            "file_path": file_path,
         }
 
-    def verify_with_metadata(self, file_path: str, expected_checksum: str,
-                           expected_size: Optional[int] = None) -> Dict[str, Any]:
+    def verify_with_metadata(
+        self,
+        file_path: str,
+        expected_checksum: str,
+        expected_size: Optional[int] = None,
+    ) -> Dict[str, Any]:
         """
         Verify file with comprehensive checks
 
@@ -99,15 +106,15 @@ class ChecksumCalculator:
             Verification results
         """
         result = {
-            'file_exists': False,
-            'checksum_match': False,
-            'size_match': None,
-            'file_path': file_path,
-            'expected_checksum': expected_checksum,
-            'actual_checksum': None,
-            'expected_size': expected_size,
-            'actual_size': None,
-            'verification_time': None
+            "file_exists": False,
+            "checksum_match": False,
+            "size_match": None,
+            "file_path": file_path,
+            "expected_checksum": expected_checksum,
+            "actual_checksum": None,
+            "expected_size": expected_size,
+            "actual_size": None,
+            "verification_time": None,
         }
 
         start_time = time.time()
@@ -116,29 +123,31 @@ class ChecksumCalculator:
             if not os.path.exists(file_path):
                 return result
 
-            result['file_exists'] = True
+            result["file_exists"] = True
 
             # Get file size
             actual_size = os.path.getsize(file_path)
-            result['actual_size'] = actual_size
+            result["actual_size"] = actual_size
 
             # Check size if expected
             if expected_size is not None:
-                result['size_match'] = actual_size == expected_size
-                if not result['size_match']:
+                result["size_match"] = actual_size == expected_size
+                if not result["size_match"]:
                     # Size mismatch - file is likely corrupted, skip checksum calculation
                     return result
 
             # Calculate and verify checksum
             actual_checksum = self.calculate_file_checksum(file_path)
-            result['actual_checksum'] = actual_checksum
-            result['checksum_match'] = actual_checksum.lower() == expected_checksum.lower()
+            result["actual_checksum"] = actual_checksum
+            result["checksum_match"] = (
+                actual_checksum.lower() == expected_checksum.lower()
+            )
 
         except Exception as e:
-            result['error'] = str(e)
+            result["error"] = str(e)
 
         finally:
-            result['verification_time'] = time.time() - start_time
+            result["verification_time"] = time.time() - start_time
 
         return result
 
@@ -153,7 +162,7 @@ class IntegrityTracker:
         Args:
             tracker_file: File to store integrity records (JSON)
         """
-        self.tracker_file = tracker_file or '.integrity_tracker.json'
+        self.tracker_file = tracker_file or ".integrity_tracker.json"
         self.calculator = ChecksumCalculator()
         self._load_records()
 
@@ -164,7 +173,7 @@ class IntegrityTracker:
         self.records = {}
         if os.path.exists(self.tracker_file):
             try:
-                with open(self.tracker_file, 'r') as f:
+                with open(self.tracker_file, "r") as f:
                     self.records = json.load(f)
             except (json.JSONDecodeError, IOError):
                 self.records = {}
@@ -174,12 +183,14 @@ class IntegrityTracker:
         import json
 
         try:
-            with open(self.tracker_file, 'w') as f:
+            with open(self.tracker_file, "w") as f:
                 json.dump(self.records, f, indent=2)
         except IOError:
             pass  # Fail silently if unable to save
 
-    def add_file(self, file_path: str, force_recalculate: bool = False) -> Dict[str, Any]:
+    def add_file(
+        self, file_path: str, force_recalculate: bool = False
+    ) -> Dict[str, Any]:
         """
         Add file to integrity tracking
 
@@ -196,12 +207,12 @@ class IntegrityTracker:
         if not force_recalculate and abs_path in self.records:
             record = self.records[abs_path]
             stat = os.stat(abs_path)
-            if record.get('modification_time') == stat.st_mtime:
+            if record.get("modification_time") == stat.st_mtime:
                 return record
 
         # Calculate integrity metadata
         metadata = self.calculator.calculate_with_metadata(abs_path)
-        metadata['tracked_at'] = time.time()
+        metadata["tracked_at"] = time.time()
 
         # Store record
         self.records[abs_path] = metadata
@@ -223,29 +234,27 @@ class IntegrityTracker:
 
         if abs_path not in self.records:
             return {
-                'status': 'not_tracked',
-                'message': 'File is not being tracked for integrity'
+                "status": "not_tracked",
+                "message": "File is not being tracked for integrity",
             }
 
         record = self.records[abs_path]
         result = self.calculator.verify_with_metadata(
-            abs_path,
-            record['checksum'],
-            record.get('file_size')
+            abs_path, record["checksum"], record.get("file_size")
         )
 
         # Determine overall status
-        if not result['file_exists']:
-            status = 'file_missing'
-        elif result.get('size_match') is False:
-            status = 'size_mismatch'
-        elif not result['checksum_match']:
-            status = 'checksum_mismatch'
+        if not result["file_exists"]:
+            status = "file_missing"
+        elif result.get("size_match") is False:
+            status = "size_mismatch"
+        elif not result["checksum_match"]:
+            status = "checksum_mismatch"
         else:
-            status = 'verified'
+            status = "verified"
 
-        result['status'] = status
-        result['tracked_record'] = record
+        result["status"] = status
+        result["tracked_record"] = record
 
         return result
 
@@ -257,32 +266,29 @@ class IntegrityTracker:
             Summary of all verification results
         """
         results = {
-            'total_files': len(self.records),
-            'verified': 0,
-            'corrupted': 0,
-            'missing': 0,
-            'errors': 0,
-            'details': {}
+            "total_files": len(self.records),
+            "verified": 0,
+            "corrupted": 0,
+            "missing": 0,
+            "errors": 0,
+            "details": {},
         }
 
         for file_path in self.records:
             try:
                 result = self.verify_file(file_path)
-                results['details'][file_path] = result
+                results["details"][file_path] = result
 
-                if result['status'] == 'verified':
-                    results['verified'] += 1
-                elif result['status'] == 'file_missing':
-                    results['missing'] += 1
+                if result["status"] == "verified":
+                    results["verified"] += 1
+                elif result["status"] == "file_missing":
+                    results["missing"] += 1
                 else:
-                    results['corrupted'] += 1
+                    results["corrupted"] += 1
 
             except Exception as e:
-                results['errors'] += 1
-                results['details'][file_path] = {
-                    'status': 'error',
-                    'error': str(e)
-                }
+                results["errors"] += 1
+                results["details"][file_path] = {"status": "error", "error": str(e)}
 
         return results
 
@@ -331,16 +337,16 @@ class IntegrityTracker:
             Statistics about tracked files
         """
         if not self.records:
-            return {'total_files': 0}
+            return {"total_files": 0}
 
-        file_sizes = [record.get('file_size', 0) for record in self.records.values()]
+        file_sizes = [record.get("file_size", 0) for record in self.records.values()]
         total_size = sum(file_sizes)
 
         return {
-            'total_files': len(self.records),
-            'total_size_bytes': total_size,
-            'average_size_bytes': total_size / len(self.records) if self.records else 0,
-            'largest_file_bytes': max(file_sizes) if file_sizes else 0,
-            'smallest_file_bytes': min(file_sizes) if file_sizes else 0,
-            'tracker_file': self.tracker_file
+            "total_files": len(self.records),
+            "total_size_bytes": total_size,
+            "average_size_bytes": total_size / len(self.records) if self.records else 0,
+            "largest_file_bytes": max(file_sizes) if file_sizes else 0,
+            "smallest_file_bytes": min(file_sizes) if file_sizes else 0,
+            "tracker_file": self.tracker_file,
         }

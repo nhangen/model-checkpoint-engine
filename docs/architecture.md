@@ -72,26 +72,26 @@ ml-checkpoint-system/
 ### 1. Experiment Tracker
 ```python
 class ExperimentTracker:
-    def __init__(self, 
+    def __init__(self,
                  experiment_name: str,
                  project_name: str = None,
                  tags: List[str] = None,
                  config: Dict = None,
                  storage_backend: str = 'local'):
         pass
-    
+
     def log_metrics(self, metrics: Dict[str, float], step: int = None):
         """Log training metrics"""
         pass
-    
+
     def log_hyperparameters(self, params: Dict):
         """Log hyperparameters"""
         pass
-    
+
     def log_artifacts(self, artifacts: Dict[str, Any]):
         """Log model artifacts, plots, etc."""
         pass
-    
+
     def set_status(self, status: str):
         """Set experiment status (running, completed, failed)"""
         pass
@@ -100,15 +100,15 @@ class ExperimentTracker:
 ### 2. Checkpoint Manager
 ```python
 class CheckpointManager:
-    def __init__(self, 
+    def __init__(self,
                  tracker: ExperimentTracker,
                  save_best: bool = True,
                  save_last: bool = True,
                  save_frequency: int = 5,
                  max_checkpoints: int = 10):
         pass
-    
-    def save_checkpoint(self, 
+
+    def save_checkpoint(self,
                        model,
                        optimizer=None,
                        epoch: int = None,
@@ -116,15 +116,15 @@ class CheckpointManager:
                        metadata: Dict = None):
         """Save model checkpoint with metadata"""
         pass
-    
+
     def load_checkpoint(self, checkpoint_id: str = 'best'):
         """Load checkpoint by ID or 'best'/'last'"""
         pass
-    
+
     def list_checkpoints(self) -> List[CheckpointInfo]:
         """List available checkpoints"""
         pass
-    
+
     def cleanup_old_checkpoints(self):
         """Remove old checkpoints based on retention policy"""
         pass
@@ -189,20 +189,20 @@ CREATE TABLE artifacts (
 class ReportGenerator:
     def __init__(self, experiment_tracker: ExperimentTracker):
         pass
-    
-    def generate_training_report(self, 
+
+    def generate_training_report(self,
                                format: str = 'html',
                                include_plots: bool = True,
                                include_metrics: bool = True) -> str:
         """Generate comprehensive training report"""
         pass
-    
-    def generate_comparison_report(self, 
+
+    def generate_comparison_report(self,
                                  experiment_ids: List[str],
                                  format: str = 'html') -> str:
         """Compare multiple experiments"""
         pass
-    
+
     def generate_dashboard(self, project_name: str = None) -> str:
         """Generate live dashboard"""
         pass
@@ -238,7 +238,7 @@ checkpoint_mgr = CheckpointManager(
 for epoch in range(50):
     train_loss = train_epoch(model, train_loader)
     val_loss, val_metrics = validate(model, val_loader)
-    
+
     # Log metrics
     tracker.log_metrics({
         'train_loss': train_loss,
@@ -247,7 +247,7 @@ for epoch in range(50):
         'translation_error': val_metrics['translation_error'],
         'learning_rate': optimizer.param_groups[0]['lr']
     }, step=epoch)
-    
+
     # Save checkpoint
     checkpoint_mgr.save_checkpoint(
         model=model,
@@ -255,7 +255,7 @@ for epoch in range(50):
         epoch=epoch,
         metrics=val_metrics
     )
-    
+
     # Log plots
     if epoch % 10 == 0:
         plot_path = create_loss_plot(tracker.get_metrics())
@@ -296,11 +296,11 @@ class RotationErrorMetric:
     def __init__(self, tracker):
         self.tracker = tracker
         self.errors = []
-    
+
     def update(self, pred_rotation, true_rotation):
         error = calculate_rotation_error(pred_rotation, true_rotation)
         self.errors.append(error)
-    
+
     def compute_and_log(self, step):
         avg_error = np.mean(self.errors)
         self.tracker.log_metrics({'rotation_error': avg_error}, step)
@@ -317,7 +317,7 @@ trainer.add_callback(callback)
 ### Performance Analytics
 ```sql
 -- Get experiment performance trends
-SELECT 
+SELECT
     e.name,
     e.start_time,
     MIN(m.metric_value) as best_rotation_error,
@@ -329,15 +329,15 @@ GROUP BY e.id, e.name, e.start_time
 ORDER BY best_rotation_error;
 
 -- Find best hyperparameters
-SELECT 
+SELECT
     config->>'learning_rate' as lr,
     config->>'batch_size' as batch_size,
     MIN(final_metrics.rotation_error) as best_error
 FROM experiments e
 JOIN (
-    SELECT experiment_id, 
+    SELECT experiment_id,
            MIN(metric_value) as rotation_error
-    FROM metrics 
+    FROM metrics
     WHERE metric_name = 'rotation_error'
     GROUP BY experiment_id
 ) final_metrics ON e.id = final_metrics.experiment_id
@@ -366,7 +366,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
-  
+
   ml-checkpoint-web:
     image: ml-checkpoint-system:latest
     ports:

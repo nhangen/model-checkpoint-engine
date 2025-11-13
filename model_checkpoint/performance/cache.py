@@ -1,11 +1,11 @@
 """Intelligent caching system for checkpoint and experiment data"""
 
-import time
-import threading
-from typing import Dict, Any, Optional, Union, Callable, Tuple, List
-from collections import OrderedDict
-import pickle
 import hashlib
+import pickle
+import threading
+import time
+from collections import OrderedDict
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 
 class LRUCache:
@@ -131,12 +131,12 @@ class LRUCache:
             hit_rate = (self._hits / total_requests * 100) if total_requests > 0 else 0
 
             return {
-                'size': len(self._cache),
-                'max_size': self.max_size,
-                'hits': self._hits,
-                'misses': self._misses,
-                'hit_rate_percent': hit_rate,
-                'total_requests': total_requests
+                "size": len(self._cache),
+                "max_size": self.max_size,
+                "hits": self._hits,
+                "misses": self._misses,
+                "hit_rate_percent": hit_rate,
+                "total_requests": total_requests,
             }
 
     def size(self) -> int:
@@ -147,10 +147,14 @@ class LRUCache:
 class CheckpointCache:
     """Specialized cache for checkpoint metadata and lightweight data - optimized"""
 
-    def __init__(self, max_size: int = 500, metadata_ttl: float = 3600, data_ttl: float = 1800):
+    def __init__(
+        self, max_size: int = 500, metadata_ttl: float = 3600, data_ttl: float = 1800
+    ):
         """Initialize optimized checkpoint cache with efficient key prefixes"""
         # Optimized: pre-allocate caches with efficient sizing
-        self.metadata_cache = LRUCache(max_size >> 1, metadata_ttl)  # Bit shift instead of division
+        self.metadata_cache = LRUCache(
+            max_size >> 1, metadata_ttl
+        )  # Bit shift instead of division
         self.data_cache = LRUCache(max_size >> 1, data_ttl)
         self.query_cache = LRUCache(max_size >> 2, metadata_ttl)
 
@@ -162,7 +166,9 @@ class CheckpointCache:
         """Get cached checkpoint metadata - optimized key formatting"""
         return self.metadata_cache.get(self._metadata_prefix + checkpoint_id)
 
-    def set_checkpoint_metadata(self, checkpoint_id: str, metadata: Dict[str, Any]) -> None:
+    def set_checkpoint_metadata(
+        self, checkpoint_id: str, metadata: Dict[str, Any]
+    ) -> None:
         """Cache checkpoint metadata - optimized key formatting"""
         self.metadata_cache.set(self._metadata_prefix + checkpoint_id, metadata)
 
@@ -170,12 +176,14 @@ class CheckpointCache:
         """Get cached checkpoint data - optimized key formatting"""
         return self.data_cache.get(self._data_prefix + checkpoint_id)
 
-    def set_checkpoint_data(self, checkpoint_id: str, data: Dict[str, Any],
-                          max_size_mb: float = 50) -> bool:
+    def set_checkpoint_data(
+        self, checkpoint_id: str, data: Dict[str, Any], max_size_mb: float = 50
+    ) -> bool:
         """Cache checkpoint data if small enough - optimized size estimation"""
         try:
             # Optimized: estimate size without full serialization for large objects
             import sys
+
             estimated_size = sys.getsizeof(data)
 
             # Quick check: if estimated size is too large, skip expensive pickle
@@ -221,12 +229,14 @@ class CheckpointCache:
     def get_statistics(self) -> Dict[str, Any]:
         """Get comprehensive cache statistics"""
         return {
-            'metadata_cache': self.metadata_cache.get_stats(),
-            'data_cache': self.data_cache.get_stats(),
-            'query_cache': self.query_cache.get_stats(),
-            'total_items': (self.metadata_cache.size() +
-                          self.data_cache.size() +
-                          self.query_cache.size())
+            "metadata_cache": self.metadata_cache.get_stats(),
+            "data_cache": self.data_cache.get_stats(),
+            "query_cache": self.query_cache.get_stats(),
+            "total_items": (
+                self.metadata_cache.size()
+                + self.data_cache.size()
+                + self.query_cache.size()
+            ),
         }
 
 
@@ -247,17 +257,22 @@ class ExperimentCache:
         """Get cached experiment metadata"""
         return self.cache.get(f"exp_meta:{experiment_id}")
 
-    def set_experiment_metadata(self, experiment_id: str, metadata: Dict[str, Any]) -> None:
+    def set_experiment_metadata(
+        self, experiment_id: str, metadata: Dict[str, Any]
+    ) -> None:
         """Cache experiment metadata"""
         self.cache.set(f"exp_meta:{experiment_id}", metadata)
 
-    def get_metrics_data(self, experiment_id: str, metric_filter: str = "") -> Optional[List[Dict]]:
+    def get_metrics_data(
+        self, experiment_id: str, metric_filter: str = ""
+    ) -> Optional[List[Dict]]:
         """Get cached metrics data"""
         cache_key = f"metrics:{experiment_id}:{metric_filter}"
         return self.cache.get(cache_key)
 
-    def set_metrics_data(self, experiment_id: str, metrics: List[Dict],
-                        metric_filter: str = "") -> None:
+    def set_metrics_data(
+        self, experiment_id: str, metrics: List[Dict], metric_filter: str = ""
+    ) -> None:
         """Cache metrics data"""
         cache_key = f"metrics:{experiment_id}:{metric_filter}"
         self.cache.set(cache_key, metrics)
@@ -289,8 +304,9 @@ class ExperimentCache:
 class CacheManager:
     """Central cache management system"""
 
-    def __init__(self, checkpoint_cache_size: int = 500,
-                 experiment_cache_size: int = 1000):
+    def __init__(
+        self, checkpoint_cache_size: int = 500, experiment_cache_size: int = 1000
+    ):
         """
         Initialize cache manager
 
@@ -313,14 +329,13 @@ class CacheManager:
         checkpoint_stats = self.checkpoint_cache.get_statistics()
         experiment_stats = self.experiment_cache.get_cache_stats()
 
-        total_items = (checkpoint_stats['total_items'] +
-                      experiment_stats['size'])
+        total_items = checkpoint_stats["total_items"] + experiment_stats["size"]
 
         return {
-            'checkpoint_cache': checkpoint_stats,
-            'experiment_cache': experiment_stats,
-            'total_cached_items': total_items,
-            'memory_efficiency': self._estimate_memory_efficiency()
+            "checkpoint_cache": checkpoint_stats,
+            "experiment_cache": experiment_stats,
+            "total_cached_items": total_items,
+            "memory_efficiency": self._estimate_memory_efficiency(),
         }
 
     def _estimate_memory_efficiency(self) -> Dict[str, Any]:
@@ -329,21 +344,27 @@ class CacheManager:
         checkpoint_stats = self.checkpoint_cache.get_statistics()
         experiment_stats = self.experiment_cache.get_cache_stats()
 
-        total_requests = (checkpoint_stats['metadata_cache']['total_requests'] +
-                         checkpoint_stats['data_cache']['total_requests'] +
-                         checkpoint_stats['query_cache']['total_requests'] +
-                         experiment_stats['total_requests'])
+        total_requests = (
+            checkpoint_stats["metadata_cache"]["total_requests"]
+            + checkpoint_stats["data_cache"]["total_requests"]
+            + checkpoint_stats["query_cache"]["total_requests"]
+            + experiment_stats["total_requests"]
+        )
 
-        total_hits = (checkpoint_stats['metadata_cache']['hits'] +
-                     checkpoint_stats['data_cache']['hits'] +
-                     checkpoint_stats['query_cache']['hits'] +
-                     experiment_stats['hits'])
+        total_hits = (
+            checkpoint_stats["metadata_cache"]["hits"]
+            + checkpoint_stats["data_cache"]["hits"]
+            + checkpoint_stats["query_cache"]["hits"]
+            + experiment_stats["hits"]
+        )
 
-        overall_hit_rate = (total_hits / total_requests * 100) if total_requests > 0 else 0
+        overall_hit_rate = (
+            (total_hits / total_requests * 100) if total_requests > 0 else 0
+        )
 
         return {
-            'overall_hit_rate_percent': overall_hit_rate,
-            'total_requests': total_requests,
-            'total_hits': total_hits,
-            'estimated_db_queries_saved': total_hits
+            "overall_hit_rate_percent": overall_hit_rate,
+            "total_requests": total_requests,
+            "total_hits": total_hits,
+            "estimated_db_queries_saved": total_hits,
         }

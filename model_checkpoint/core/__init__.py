@@ -1,6 +1,6 @@
 """Core checkpoint and experiment tracking functionality"""
 
-from .experiment import ExperimentTracker
 from .checkpoint import CheckpointManager
+from .experiment import ExperimentTracker
 
 __all__ = ["ExperimentTracker", "CheckpointManager"]

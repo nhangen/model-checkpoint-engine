@@ -1,11 +1,11 @@
 """Optimized retention management - zero redundancy design"""
 
-import time
+import json
 import os
-from typing import Dict, List, Any, Optional, Union, Callable
+import time
 from dataclasses import dataclass, field
 from enum import Enum
-import json
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from ..utils.checksum import calculate_file_checksum
@@ -18,6 +18,7 @@ def _current_time() -> float:
 
 class RetentionCriteria(Enum):
     """Optimized retention criteria enum"""
+
     AGE_BASED = "age_based"
     COUNT_BASED = "count_based"
     SIZE_BASED = "size_based"
@@ -28,6 +29,7 @@ class RetentionCriteria(Enum):
 @dataclass
 class RetentionRule:
     """Optimized retention rule - using field defaults"""
+
     name: str
     criteria: RetentionCriteria
     max_age_days: Optional[float] = None
@@ -45,6 +47,7 @@ class RetentionRule:
 @dataclass
 class CleanupCandidate:
     """Optimized cleanup candidate"""
+
     checkpoint_id: str
     experiment_id: str
     file_path: str
@@ -60,8 +63,11 @@ class CleanupCandidate:
 class RetentionManager:
     """Optimized retention management with configurable policies"""
 
-    def __init__(self, db_connection: Optional[EnhancedDatabaseConnection] = None,
-                 storage_root: Optional[str] = None):
+    def __init__(
+        self,
+        db_connection: Optional[EnhancedDatabaseConnection] = None,
+        storage_root: Optional[str] = None,
+    ):
         """
         Initialize retention manager
 
@@ -74,40 +80,40 @@ class RetentionManager:
 
         # Optimized: Pre-defined common retention rules
         self._default_rules = {
-            'keep_recent_7_days': RetentionRule(
-                name='keep_recent_7_days',
+            "keep_recent_7_days": RetentionRule(
+                name="keep_recent_7_days",
                 criteria=RetentionCriteria.AGE_BASED,
                 max_age_days=7.0,
-                dry_run=False
+                dry_run=False,
             ),
-            'keep_best_10': RetentionRule(
-                name='keep_best_10',
+            "keep_best_10": RetentionRule(
+                name="keep_best_10",
                 criteria=RetentionCriteria.PERFORMANCE_BASED,
                 keep_best_n=10,
-                metric_name='accuracy',
-                dry_run=False
+                metric_name="accuracy",
+                dry_run=False,
             ),
-            'limit_size_1gb': RetentionRule(
-                name='limit_size_1gb',
+            "limit_size_1gb": RetentionRule(
+                name="limit_size_1gb",
                 criteria=RetentionCriteria.SIZE_BASED,
                 max_size_mb=1024.0,
-                dry_run=False
+                dry_run=False,
             ),
-            'keep_latest_100': RetentionRule(
-                name='keep_latest_100',
+            "keep_latest_100": RetentionRule(
+                name="keep_latest_100",
                 criteria=RetentionCriteria.COUNT_BASED,
                 max_count=100,
-                dry_run=False
-            )
+                dry_run=False,
+            ),
         }
 
         # Optimized: Runtime state
         self._active_rules: List[RetentionRule] = []
         self._cleanup_stats = {
-            'last_run': 0.0,
-            'files_cleaned': 0,
-            'space_freed_mb': 0.0,
-            'runs_completed': 0
+            "last_run": 0.0,
+            "files_cleaned": 0,
+            "space_freed_mb": 0.0,
+            "runs_completed": 0,
         }
 
     def add_retention_rule(self, rule: RetentionRule) -> None:
@@ -142,8 +148,9 @@ class RetentionManager:
             if name in self._default_rules:
                 self.add_retention_rule(self._default_rules[name])
 
-    def find_cleanup_candidates(self, experiment_id: Optional[str] = None,
-                              rules: Optional[List[str]] = None) -> List[CleanupCandidate]:
+    def find_cleanup_candidates(
+        self, experiment_id: Optional[str] = None, rules: Optional[List[str]] = None
+    ) -> List[CleanupCandidate]:
         """
         Find cleanup candidates based on retention rules - optimized query
 
@@ -179,7 +186,8 @@ class RetentionManager:
                 where_clause = "WHERE e.id = ?" if experiment_id else ""
                 params = [experiment_id] if experiment_id else []
 
-                cursor = conn.execute(f"""
+                cursor = conn.execute(
+                    f"""
                     SELECT
                         c.id, c.experiment_id, c.checkpoint_path, c.file_size,
                         c.timestamp, c.metrics, c.metadata, e.name as exp_name
@@ -187,12 +195,23 @@ class RetentionManager:
                     JOIN experiments e ON c.experiment_id = e.id
                     {where_clause}
                     ORDER BY c.timestamp DESC
-                """, params)
+                """,
+                    params,
+                )
 
                 # Optimized: Process all checkpoints in single pass
                 all_checkpoints = []
                 for row in cursor.fetchall():
-                    checkpoint_id, exp_id, file_path, file_size, timestamp, metrics_json, metadata_json, exp_name = row
+                    (
+                        checkpoint_id,
+                        exp_id,
+                        file_path,
+                        file_size,
+                        timestamp,
+                        metrics_json,
+                        metadata_json,
+                        exp_name,
+                    ) = row
 
                     # Parse JSON data
                     try:
@@ -205,21 +224,23 @@ class RetentionManager:
                     age_days = (current_time - timestamp) / (24 * 3600)
 
                     checkpoint_data = {
-                        'id': checkpoint_id,
-                        'experiment_id': exp_id,
-                        'file_path': file_path,
-                        'file_size': file_size or 0,
-                        'timestamp': timestamp,
-                        'age_days': age_days,
-                        'metrics': metrics,
-                        'metadata': metadata,
-                        'tags': metadata.get('tags', [])
+                        "id": checkpoint_id,
+                        "experiment_id": exp_id,
+                        "file_path": file_path,
+                        "file_size": file_size or 0,
+                        "timestamp": timestamp,
+                        "age_days": age_days,
+                        "metrics": metrics,
+                        "metadata": metadata,
+                        "tags": metadata.get("tags", []),
                     }
                     all_checkpoints.append(checkpoint_data)
 
                 # Optimized: Apply all rules to checkpoint list
                 for rule in active_rules:
-                    rule_candidates = self._apply_rule_to_checkpoints(rule, all_checkpoints)
+                    rule_candidates = self._apply_rule_to_checkpoints(
+                        rule, all_checkpoints
+                    )
                     candidates.extend(rule_candidates)
 
                 # Optimized: Remove duplicates while preserving order
@@ -236,8 +257,9 @@ class RetentionManager:
             print(f"Error finding cleanup candidates: {e}")
             return []
 
-    def _apply_rule_to_checkpoints(self, rule: RetentionRule,
-                                 checkpoints: List[Dict[str, Any]]) -> List[CleanupCandidate]:
+    def _apply_rule_to_checkpoints(
+        self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
+    ) -> List[CleanupCandidate]:
         """Apply single rule to checkpoint list - optimized application"""
         candidates = []
 
@@ -254,34 +276,38 @@ class RetentionManager:
 
         return candidates
 
-    def _apply_age_based_rule(self, rule: RetentionRule,
-                            checkpoints: List[Dict[str, Any]]) -> List[CleanupCandidate]:
+    def _apply_age_based_rule(
+        self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
+    ) -> List[CleanupCandidate]:
         """Apply age-based retention rule"""
         if not rule.max_age_days:
             return []
 
         candidates = []
         for checkpoint in checkpoints:
-            if checkpoint['age_days'] > rule.max_age_days:
+            if checkpoint["age_days"] > rule.max_age_days:
                 # Check preserve tags
-                if not any(tag in checkpoint['tags'] for tag in rule.preserve_tags):
-                    candidates.append(CleanupCandidate(
-                        checkpoint_id=checkpoint['id'],
-                        experiment_id=checkpoint['experiment_id'],
-                        file_path=checkpoint['file_path'],
-                        file_size=checkpoint['file_size'],
-                        age_days=checkpoint['age_days'],
-                        timestamp=checkpoint['timestamp'],
-                        metrics=checkpoint['metrics'],
-                        tags=checkpoint['tags'],
-                        metadata=checkpoint['metadata'],
-                        reason=f"Age-based: {checkpoint['age_days']:.1f} days > {rule.max_age_days} days"
-                    ))
+                if not any(tag in checkpoint["tags"] for tag in rule.preserve_tags):
+                    candidates.append(
+                        CleanupCandidate(
+                            checkpoint_id=checkpoint["id"],
+                            experiment_id=checkpoint["experiment_id"],
+                            file_path=checkpoint["file_path"],
+                            file_size=checkpoint["file_size"],
+                            age_days=checkpoint["age_days"],
+                            timestamp=checkpoint["timestamp"],
+                            metrics=checkpoint["metrics"],
+                            tags=checkpoint["tags"],
+                            metadata=checkpoint["metadata"],
+                            reason=f"Age-based: {checkpoint['age_days']:.1f} days > {rule.max_age_days} days",
+                        )
+                    )
 
         return candidates
 
-    def _apply_count_based_rule(self, rule: RetentionRule,
-                              checkpoints: List[Dict[str, Any]]) -> List[CleanupCandidate]:
+    def _apply_count_based_rule(
+        self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
+    ) -> List[CleanupCandidate]:
         """Apply count-based retention rule"""
         if not rule.max_count:
             return []
@@ -289,7 +315,7 @@ class RetentionManager:
         # Optimized: Group by experiment and apply count limit per experiment
         experiments = {}
         for checkpoint in checkpoints:
-            exp_id = checkpoint['experiment_id']
+            exp_id = checkpoint["experiment_id"]
             if exp_id not in experiments:
                 experiments[exp_id] = []
             experiments[exp_id].append(checkpoint)
@@ -297,30 +323,33 @@ class RetentionManager:
         candidates = []
         for exp_id, exp_checkpoints in experiments.items():
             # Sort by timestamp (most recent first)
-            exp_checkpoints.sort(key=lambda x: x['timestamp'], reverse=True)
+            exp_checkpoints.sort(key=lambda x: x["timestamp"], reverse=True)
 
             # Mark excess checkpoints for cleanup
             if len(exp_checkpoints) > rule.max_count:
-                excess_checkpoints = exp_checkpoints[rule.max_count:]
+                excess_checkpoints = exp_checkpoints[rule.max_count :]
                 for checkpoint in excess_checkpoints:
-                    if not any(tag in checkpoint['tags'] for tag in rule.preserve_tags):
-                        candidates.append(CleanupCandidate(
-                            checkpoint_id=checkpoint['id'],
-                            experiment_id=checkpoint['experiment_id'],
-                            file_path=checkpoint['file_path'],
-                            file_size=checkpoint['file_size'],
-                            age_days=checkpoint['age_days'],
-                            timestamp=checkpoint['timestamp'],
-                            metrics=checkpoint['metrics'],
-                            tags=checkpoint['tags'],
-                            metadata=checkpoint['metadata'],
-                            reason=f"Count-based: Keeping only {rule.max_count} most recent checkpoints"
-                        ))
+                    if not any(tag in checkpoint["tags"] for tag in rule.preserve_tags):
+                        candidates.append(
+                            CleanupCandidate(
+                                checkpoint_id=checkpoint["id"],
+                                experiment_id=checkpoint["experiment_id"],
+                                file_path=checkpoint["file_path"],
+                                file_size=checkpoint["file_size"],
+                                age_days=checkpoint["age_days"],
+                                timestamp=checkpoint["timestamp"],
+                                metrics=checkpoint["metrics"],
+                                tags=checkpoint["tags"],
+                                metadata=checkpoint["metadata"],
+                                reason=f"Count-based: Keeping only {rule.max_count} most recent checkpoints",
+                            )
+                        )
 
         return candidates
 
-    def _apply_size_based_rule(self, rule: RetentionRule,
-                             checkpoints: List[Dict[str, Any]]) -> List[CleanupCandidate]:
+    def _apply_size_based_rule(
+        self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
+    ) -> List[CleanupCandidate]:
         """Apply size-based retention rule"""
         if not rule.max_size_mb:
             return []
@@ -328,9 +357,9 @@ class RetentionManager:
         max_size_bytes = rule.max_size_mb * 1024 * 1024
 
         # Optimized: Sort by timestamp (oldest first for size-based cleanup)
-        sorted_checkpoints = sorted(checkpoints, key=lambda x: x['timestamp'])
+        sorted_checkpoints = sorted(checkpoints, key=lambda x: x["timestamp"])
 
-        total_size = sum(cp['file_size'] for cp in sorted_checkpoints)
+        total_size = sum(cp["file_size"] for cp in sorted_checkpoints)
         candidates = []
 
         # Remove oldest files until under size limit
@@ -338,25 +367,28 @@ class RetentionManager:
             if total_size <= max_size_bytes:
                 break
 
-            if not any(tag in checkpoint['tags'] for tag in rule.preserve_tags):
-                candidates.append(CleanupCandidate(
-                    checkpoint_id=checkpoint['id'],
-                    experiment_id=checkpoint['experiment_id'],
-                    file_path=checkpoint['file_path'],
-                    file_size=checkpoint['file_size'],
-                    age_days=checkpoint['age_days'],
-                    timestamp=checkpoint['timestamp'],
-                    metrics=checkpoint['metrics'],
-                    tags=checkpoint['tags'],
-                    metadata=checkpoint['metadata'],
-                    reason=f"Size-based: Total size {total_size/1024/1024:.1f}MB > {rule.max_size_mb}MB"
-                ))
-                total_size -= checkpoint['file_size']
+            if not any(tag in checkpoint["tags"] for tag in rule.preserve_tags):
+                candidates.append(
+                    CleanupCandidate(
+                        checkpoint_id=checkpoint["id"],
+                        experiment_id=checkpoint["experiment_id"],
+                        file_path=checkpoint["file_path"],
+                        file_size=checkpoint["file_size"],
+                        age_days=checkpoint["age_days"],
+                        timestamp=checkpoint["timestamp"],
+                        metrics=checkpoint["metrics"],
+                        tags=checkpoint["tags"],
+                        metadata=checkpoint["metadata"],
+                        reason=f"Size-based: Total size {total_size/1024/1024:.1f}MB > {rule.max_size_mb}MB",
+                    )
+                )
+                total_size -= checkpoint["file_size"]
 
         return candidates
 
-    def _apply_performance_based_rule(self, rule: RetentionRule,
-                                    checkpoints: List[Dict[str, Any]]) -> List[CleanupCandidate]:
+    def _apply_performance_based_rule(
+        self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
+    ) -> List[CleanupCandidate]:
         """Apply performance-based retention rule"""
         if not rule.keep_best_n or not rule.metric_name:
             return []
@@ -364,45 +396,49 @@ class RetentionManager:
         # Optimized: Filter checkpoints with the required metric
         metric_checkpoints = []
         for checkpoint in checkpoints:
-            if rule.metric_name in checkpoint['metrics']:
+            if rule.metric_name in checkpoint["metrics"]:
                 metric_checkpoints.append(checkpoint)
 
         if len(metric_checkpoints) <= rule.keep_best_n:
             return []
 
         # Determine if this is a metric to maximize or minimize
-        is_loss_metric = 'loss' in rule.metric_name.lower() or 'error' in rule.metric_name.lower()
+        is_loss_metric = (
+            "loss" in rule.metric_name.lower() or "error" in rule.metric_name.lower()
+        )
 
         # Sort by metric value
         metric_checkpoints.sort(
-            key=lambda x: x['metrics'][rule.metric_name],
-            reverse=not is_loss_metric
+            key=lambda x: x["metrics"][rule.metric_name], reverse=not is_loss_metric
         )
 
         # Mark worst performers for cleanup
         candidates = []
-        excess_checkpoints = metric_checkpoints[rule.keep_best_n:]
+        excess_checkpoints = metric_checkpoints[rule.keep_best_n :]
 
         for checkpoint in excess_checkpoints:
-            if not any(tag in checkpoint['tags'] for tag in rule.preserve_tags):
-                metric_value = checkpoint['metrics'][rule.metric_name]
-                candidates.append(CleanupCandidate(
-                    checkpoint_id=checkpoint['id'],
-                    experiment_id=checkpoint['experiment_id'],
-                    file_path=checkpoint['file_path'],
-                    file_size=checkpoint['file_size'],
-                    age_days=checkpoint['age_days'],
-                    timestamp=checkpoint['timestamp'],
-                    metrics=checkpoint['metrics'],
-                    tags=checkpoint['tags'],
-                    metadata=checkpoint['metadata'],
-                    reason=f"Performance-based: {rule.metric_name}={metric_value:.4f}, keeping best {rule.keep_best_n}"
-                ))
+            if not any(tag in checkpoint["tags"] for tag in rule.preserve_tags):
+                metric_value = checkpoint["metrics"][rule.metric_name]
+                candidates.append(
+                    CleanupCandidate(
+                        checkpoint_id=checkpoint["id"],
+                        experiment_id=checkpoint["experiment_id"],
+                        file_path=checkpoint["file_path"],
+                        file_size=checkpoint["file_size"],
+                        age_days=checkpoint["age_days"],
+                        timestamp=checkpoint["timestamp"],
+                        metrics=checkpoint["metrics"],
+                        tags=checkpoint["tags"],
+                        metadata=checkpoint["metadata"],
+                        reason=f"Performance-based: {rule.metric_name}={metric_value:.4f}, keeping best {rule.keep_best_n}",
+                    )
+                )
 
         return candidates
 
-    def _apply_custom_rule(self, rule: RetentionRule,
-                         checkpoints: List[Dict[str, Any]]) -> List[CleanupCandidate]:
+    def _apply_custom_rule(
+        self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
+    ) -> List[CleanupCandidate]:
         """Apply custom retention rule"""
         if not rule.custom_function:
             return []
@@ -411,18 +447,20 @@ class RetentionManager:
             # Convert checkpoint data to CleanupCandidate objects
             candidate_objects = []
             for checkpoint in checkpoints:
-                candidate_objects.append(CleanupCandidate(
-                    checkpoint_id=checkpoint['id'],
-                    experiment_id=checkpoint['experiment_id'],
-                    file_path=checkpoint['file_path'],
-                    file_size=checkpoint['file_size'],
-                    age_days=checkpoint['age_days'],
-                    timestamp=checkpoint['timestamp'],
-                    metrics=checkpoint['metrics'],
-                    tags=checkpoint['tags'],
-                    metadata=checkpoint['metadata'],
-                    reason="Custom rule evaluation"
-                ))
+                candidate_objects.append(
+                    CleanupCandidate(
+                        checkpoint_id=checkpoint["id"],
+                        experiment_id=checkpoint["experiment_id"],
+                        file_path=checkpoint["file_path"],
+                        file_size=checkpoint["file_size"],
+                        age_days=checkpoint["age_days"],
+                        timestamp=checkpoint["timestamp"],
+                        metrics=checkpoint["metrics"],
+                        tags=checkpoint["tags"],
+                        metadata=checkpoint["metadata"],
+                        reason="Custom rule evaluation",
+                    )
+                )
 
             # Apply custom function
             return rule.custom_function(candidate_objects)
@@ -431,8 +469,9 @@ class RetentionManager:
             print(f"Custom rule '{rule.name}' failed: {e}")
             return []
 
-    def execute_cleanup(self, candidates: List[CleanupCandidate],
-                       dry_run: bool = True) -> Dict[str, Any]:
+    def execute_cleanup(
+        self, candidates: List[CleanupCandidate], dry_run: bool = True
+    ) -> Dict[str, Any]:
         """
         Execute cleanup of candidates - optimized batch processing
 
@@ -444,14 +483,14 @@ class RetentionManager:
             Cleanup execution results
         """
         results = {
-            'dry_run': dry_run,
-            'total_candidates': len(candidates),
-            'processed': 0,
-            'successful_deletions': 0,
-            'failed_deletions': 0,
-            'space_freed_mb': 0.0,
-            'errors': [],
-            'deleted_files': []
+            "dry_run": dry_run,
+            "total_candidates": len(candidates),
+            "processed": 0,
+            "successful_deletions": 0,
+            "failed_deletions": 0,
+            "space_freed_mb": 0.0,
+            "errors": [],
+            "deleted_files": [],
         }
 
         if not candidates:
@@ -459,42 +498,46 @@ class RetentionManager:
 
         try:
             for candidate in candidates:
-                results['processed'] += 1
+                results["processed"] += 1
 
                 if dry_run:
                     # Dry run - just validate file exists
                     if os.path.exists(candidate.file_path):
-                        results['space_freed_mb'] += candidate.file_size / (1024 * 1024)
-                        results['deleted_files'].append({
-                            'checkpoint_id': candidate.checkpoint_id,
-                            'file_path': candidate.file_path,
-                            'size_mb': candidate.file_size / (1024 * 1024),
-                            'reason': candidate.reason
-                        })
+                        results["space_freed_mb"] += candidate.file_size / (1024 * 1024)
+                        results["deleted_files"].append(
+                            {
+                                "checkpoint_id": candidate.checkpoint_id,
+                                "file_path": candidate.file_path,
+                                "size_mb": candidate.file_size / (1024 * 1024),
+                                "reason": candidate.reason,
+                            }
+                        )
                 else:
                     # Actual deletion
                     success = self._delete_checkpoint(candidate)
                     if success:
-                        results['successful_deletions'] += 1
-                        results['space_freed_mb'] += candidate.file_size / (1024 * 1024)
-                        results['deleted_files'].append({
-                            'checkpoint_id': candidate.checkpoint_id,
-                            'file_path': candidate.file_path,
-                            'size_mb': candidate.file_size / (1024 * 1024),
-                            'reason': candidate.reason
-                        })
+                        results["successful_deletions"] += 1
+                        results["space_freed_mb"] += candidate.file_size / (1024 * 1024)
+                        results["deleted_files"].append(
+                            {
+                                "checkpoint_id": candidate.checkpoint_id,
+                                "file_path": candidate.file_path,
+                                "size_mb": candidate.file_size / (1024 * 1024),
+                                "reason": candidate.reason,
+                            }
+                        )
                     else:
-                        results['failed_deletions'] += 1
+                        results["failed_deletions"] += 1
 
             # Update cleanup statistics
             if not dry_run:
-                self._cleanup_stats['last_run'] = _current_time()
-                self._cleanup_stats['files_cleaned'] += results['successful_deletions']
-                self._cleanup_stats['space_freed_mb'] += results['space_freed_mb']
-                self._cleanup_stats['runs_completed'] += 1
+                self._cleanup_stats["last_run"] = _current_time()
+                self._cleanup_stats["files_cleaned"] += results["successful_deletions"]
+                self._cleanup_stats["space_freed_mb"] += results["space_freed_mb"]
+                self._cleanup_stats["runs_completed"] += 1
 
         except Exception as e:
-            results['errors'].append(f"Cleanup execution error: {e}")
+            results["errors"].append(f"Cleanup execution error: {e}")
 
         return results
 
@@ -508,7 +551,10 @@ class RetentionManager:
             # Remove database entry
             if self.db_connection:
                 with self.db_connection.get_connection() as conn:
-                    conn.execute("DELETE FROM checkpoints WHERE id = ?", (candidate.checkpoint_id,))
+                    conn.execute(
+                        "DELETE FROM checkpoints WHERE id = ?",
+                        (candidate.checkpoint_id,),
+                    )
                     conn.commit()
 
             return True
@@ -533,7 +579,8 @@ class RetentionManager:
         try:
             with self.db_connection.get_connection() as conn:
                 if experiment_id:
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         SELECT
                             COUNT(*) as total_checkpoints,
                             SUM(file_size) as total_size,
@@ -542,9 +589,12 @@ class RetentionManager:
                             MAX(timestamp) as newest
                         FROM checkpoints
                         WHERE experiment_id = ?
-                    """, (experiment_id,))
+                    """,
+                        (experiment_id,),
+                    )
                 else:
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         SELECT
                             COUNT(*) as total_checkpoints,
                             SUM(file_size) as total_size,
@@ -552,7 +602,8 @@ class RetentionManager:
                             MIN(timestamp) as oldest,
                             MAX(timestamp) as newest
                         FROM checkpoints
-                    """)
+                    """
+                    )
 
                 row = cursor.fetchone()
                 if not row:
@@ -561,19 +612,25 @@ class RetentionManager:
                 total_checkpoints, total_size, avg_size, oldest, newest = row
 
                 return {
-                    'total_checkpoints': total_checkpoints or 0,
-                    'total_size_mb': (total_size or 0) / (1024 * 1024),
-                    'average_size_mb': (avg_size or 0) / (1024 * 1024),
-                    'oldest_checkpoint_age_days': ((_current_time() - oldest) / (24 * 3600)) if oldest else 0,
-                    'newest_checkpoint_age_days': ((_current_time() - newest) / (24 * 3600)) if newest else 0,
-                    'cleanup_stats': self._cleanup_stats.copy()
+                    "total_checkpoints": total_checkpoints or 0,
+                    "total_size_mb": (total_size or 0) / (1024 * 1024),
+                    "average_size_mb": (avg_size or 0) / (1024 * 1024),
+                    "oldest_checkpoint_age_days": (
+                        ((_current_time() - oldest) / (24 * 3600)) if oldest else 0
+                    ),
+                    "newest_checkpoint_age_days": (
+                        ((_current_time() - newest) / (24 * 3600)) if newest else 0
+                    ),
+                    "cleanup_stats": self._cleanup_stats.copy(),
                 }
 
         except Exception as e:
             print(f"Error getting storage usage: {e}")
             return {}
 
-    def simulate_cleanup(self, rule_names: Optional[List[str]] = None) -> Dict[str, Any]:
+    def simulate_cleanup(
+        self, rule_names: Optional[List[str]] = None
+    ) -> Dict[str, Any]:
         """
         Simulate cleanup without actually deleting files
 
@@ -586,31 +643,34 @@ class RetentionManager:
         candidates = self.find_cleanup_candidates(rules=rule_names)
         return self.execute_cleanup(candidates, dry_run=True)
 
-    def export_cleanup_report(self, format_type: str = 'json') -> Union[str, Dict[str, Any]]:
+    def export_cleanup_report(
+        self, format_type: str = "json"
+    ) -> Union[str, Dict[str, Any]]:
         """Export comprehensive cleanup report"""
         # Get candidates for all active rules
         candidates = self.find_cleanup_candidates()
         storage_usage = self.get_storage_usage()
 
         report_data = {
-            'timestamp': _current_time(),
-            'active_rules': [
+            "timestamp": _current_time(),
+            "active_rules": [
                 {
-                    'name': rule.name,
-                    'criteria': rule.criteria.value,
-                    'enabled': rule.enabled,
-                    'dry_run': rule.dry_run,
-                    'priority': rule.priority
+                    "name": rule.name,
+                    "criteria": rule.criteria.value,
+                    "enabled": rule.enabled,
+                    "dry_run": rule.dry_run,
+                    "priority": rule.priority,
                 }
                 for rule in self._active_rules
             ],
-            'cleanup_candidates': len(candidates),
-            'potential_space_freed_mb': sum(c.file_size for c in candidates) / (1024 * 1024),
-            'storage_usage': storage_usage,
-            'cleanup_statistics': self._cleanup_stats.copy()
+            "cleanup_candidates": len(candidates),
+            "potential_space_freed_mb": sum(c.file_size for c in candidates)
+            / (1024 * 1024),
+            "storage_usage": storage_usage,
+            "cleanup_statistics": self._cleanup_stats.copy(),
         }
 
-        if format_type == 'json':
+        if format_type == "json":
             return json.dumps(report_data, indent=2, default=str)
         else:
             return report_data

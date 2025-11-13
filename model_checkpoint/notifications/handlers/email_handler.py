@@ -2,19 +2,20 @@
 
 import smtplib
 import ssl
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Any, Dict, List, Optional
 
-from .base_handler import BaseNotificationHandler, HandlerConfig
 from ..notification_manager import NotificationEvent
+from .base_handler import BaseNotificationHandler, HandlerConfig
 
 
 @dataclass
 class EmailConfig(HandlerConfig):
     """Optimized email-specific configuration"""
+
     smtp_server: str = ""
     smtp_port: int = 587
     username: str = ""
@@ -122,31 +123,31 @@ class EmailHandler(BaseNotificationHandler):
             Email message object
         """
         # Create multipart message
-        msg = MIMEMultipart('alternative')
+        msg = MIMEMultipart("alternative")
 
         # Set headers
-        msg['From'] = self.email_config.from_email
-        msg['To'] = ', '.join(self.email_config.to_emails)
+        msg["From"] = self.email_config.from_email
+        msg["To"] = ", ".join(self.email_config.to_emails)
         if self.email_config.cc_emails:
-            msg['Cc'] = ', '.join(self.email_config.cc_emails)
+            msg["Cc"] = ", ".join(self.email_config.cc_emails)
 
         # Format subject
         subject = self.email_config.subject_template.format(
             title=event.title,
             priority=event.priority.name,
             event_type=event.event_type.value,
-            experiment_id=event.experiment_id or 'N/A'
+            experiment_id=event.experiment_id or "N/A",
         )
-        msg['Subject'] = subject
+        msg["Subject"] = subject
 
         # Create plain text version
         text_content = self.format_event_message(event)
-        text_part = MIMEText(text_content, 'plain')
+        text_part = MIMEText(text_content, "plain")
         msg.attach(text_part)
 
         # Create HTML version
         html_content = self._create_html_content(event)
-        html_part = MIMEText(html_content, 'html')
+        html_part = MIMEText(html_content, "html")
         msg.attach(html_part)
 
         return msg
@@ -167,9 +168,13 @@ class EmailHandler(BaseNotificationHandler):
         # Prepare experiment info section
         experiment_info = ""
         if event.experiment_id:
-            experiment_info += f"<p><strong>Experiment:</strong> {event.experiment_id}</p>"
+            experiment_info += (
+                f"<p><strong>Experiment:</strong> {event.experiment_id}</p>"
+            )
         if event.checkpoint_id:
-            experiment_info += f"<p><strong>Checkpoint:</strong> {event.checkpoint_id}</p>"
+            experiment_info += (
+                f"<p><strong>Checkpoint:</strong> {event.checkpoint_id}</p>"
+            )
 
         # Prepare metadata section
         metadata_section = ""
@@ -177,30 +182,32 @@ class EmailHandler(BaseNotificationHandler):
             metadata_section = '<div class="metadata"><h3>Metadata:</h3><ul>'
             for key, value in event.metadata.items():
                 metadata_section += f"<li><strong>{key}:</strong> {value}</li>"
-            metadata_section += '</ul></div>'
+            metadata_section += "</ul></div>"
 
         # Tags section
         if event.tags:
-            tags_str = ', '.join(event.tags)
-            metadata_section += f'<p><strong>Tags:</strong> {tags_str}</p>'
+            tags_str = ", ".join(event.tags)
+            metadata_section += f"<p><strong>Tags:</strong> {tags_str}</p>"
 
         # Format timestamp
-        formatted_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(event.timestamp))
+        formatted_time = time.strftime(
+            "%Y-%m-%d %H:%M:%S", time.localtime(event.timestamp)
+        )
 
         # Substitute values in template
         try:
             html_content = template.format(
                 title=event.title,
-                message=event.message.replace('\n', '<br>'),
+                message=event.message.replace("\n", "<br>"),
                 priority=event.priority.name,
                 priority_lower=event.priority.name.lower(),
-                event_type=event.event_type.value.replace('_', ' ').title(),
-                experiment_id=event.experiment_id or 'N/A',
-                checkpoint_id=event.checkpoint_id or 'N/A',
+                event_type=event.event_type.value.replace("_", " ").title(),
+                experiment_id=event.experiment_id or "N/A",
+                checkpoint_id=event.checkpoint_id or "N/A",
                 timestamp=formatted_time,
                 experiment_info=experiment_info,
                 metadata_section=metadata_section,
-                handler_name=self.config.name
+                handler_name=self.config.name,
             )
 
             return html_content
@@ -208,7 +215,7 @@ class EmailHandler(BaseNotificationHandler):
         except (KeyError, ValueError) as e:
             print(f"HTML template formatting error: {e}")
             # Fallback to simple HTML
-            message_html = event.message.replace('\n', '<br>')
+            message_html = event.message.replace("\n", "<br>")
             return f"""
             <html>
             <body>
@@ -241,14 +248,14 @@ class EmailHandler(BaseNotificationHandler):
                 self.email_config.smtp_server,
                 self.email_config.smtp_port,
                 context=context,
-                timeout=self.config.timeout
+                timeout=self.config.timeout,
             )
         else:
             # Use regular SMTP with optional TLS
             server = smtplib.SMTP(
                 self.email_config.smtp_server,
                 self.email_config.smtp_port,
-                timeout=self.config.timeout
+                timeout=self.config.timeout,
             )
 
             if self.email_config.use_tls:
@@ -275,16 +282,16 @@ class EmailHandler(BaseNotificationHandler):
         """
         if not self.email_config.smtp_server:
             return {
-                'success': False,
-                'error': 'No SMTP server configured',
-                'handler_name': self.config.name
+                "success": False,
+                "error": "No SMTP server configured",
+                "handler_name": self.config.name,
             }
 
         if not self.email_config.to_emails:
             return {
-                'success': False,
-                'error': 'No recipient emails configured',
-                'handler_name': self.config.name
+                "success": False,
+                "error": "No recipient emails configured",
+                "handler_name": self.config.name,
             }
 
         try:
@@ -297,13 +304,13 @@ class EmailHandler(BaseNotificationHandler):
                     self.email_config.smtp_server,
                     self.email_config.smtp_port,
                     context=context,
-                    timeout=self.config.timeout
+                    timeout=self.config.timeout,
                 )
             else:
                 server = smtplib.SMTP(
                     self.email_config.smtp_server,
                     self.email_config.smtp_port,
-                    timeout=self.config.timeout
+                    timeout=self.config.timeout,
                 )
 
                 if self.email_config.use_tls:
@@ -318,22 +325,18 @@ class EmailHandler(BaseNotificationHandler):
                 response_time = time.time() - start_time
 
                 return {
-                    'success': True,
-                    'response_time_ms': response_time * 1000,
-                    'smtp_server': self.email_config.smtp_server,
-                    'smtp_port': self.email_config.smtp_port,
-                    'handler_name': self.config.name
+                    "success": True,
+                    "response_time_ms": response_time * 1000,
+                    "smtp_server": self.email_config.smtp_server,
+                    "smtp_port": self.email_config.smtp_port,
+                    "handler_name": self.config.name,
                 }
 
             finally:
                 server.quit()
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'handler_name': self.config.name
-            }
+            return {"success": False, "error": str(e), "handler_name": self.config.name}
 
     def send_test_email(self) -> Dict[str, Any]:
         """
@@ -343,22 +346,22 @@ class EmailHandler(BaseNotificationHandler):
             Test results
         """
         try:
-            from ..notification_manager import NotificationEvent, EventType, Priority
+            from ..notification_manager import EventType, NotificationEvent, Priority
 
             # Create test event
             test_event = NotificationEvent(
                 event_type=EventType.CUSTOM,
                 title="Email Handler Test",
                 message="This is a test email notification from the ML Checkpoint Engine.\n\n"
-                       "If you received this email, your email handler is configured correctly.",
+                "If you received this email, your email handler is configured correctly.",
                 priority=Priority.NORMAL,
                 experiment_id="test_experiment_123",
                 metadata={
-                    'test': True,
-                    'handler': self.config.name,
-                    'smtp_server': self.email_config.smtp_server
+                    "test": True,
+                    "handler": self.config.name,
+                    "smtp_server": self.email_config.smtp_server,
                 },
-                tags=['test', 'email']
+                tags=["test", "email"],
             )
 
             start_time = time.time()
@@ -366,18 +369,14 @@ class EmailHandler(BaseNotificationHandler):
             send_time = time.time() - start_time
 
             return {
-                'success': success,
-                'send_time_ms': send_time * 1000,
-                'recipients': len(self.email_config.to_emails),
-                'handler_name': self.config.name
+                "success": success,
+                "send_time_ms": send_time * 1000,
+                "recipients": len(self.email_config.to_emails),
+                "handler_name": self.config.name,
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'handler_name': self.config.name
-            }
+            return {"success": False, "error": str(e), "handler_name": self.config.name}
 
     def get_email_info(self) -> Dict[str, Any]:
         """
@@ -387,18 +386,20 @@ class EmailHandler(BaseNotificationHandler):
             Email info dictionary
         """
         return {
-            'handler_name': self.config.name,
-            'smtp_server': self.email_config.smtp_server,
-            'smtp_port': self.email_config.smtp_port,
-            'from_email': self.email_config.from_email,
-            'to_emails_count': len(self.email_config.to_emails),
-            'cc_emails_count': len(self.email_config.cc_emails),
-            'use_tls': self.email_config.use_tls,
-            'use_ssl': self.email_config.use_ssl,
-            'has_authentication': bool(self.email_config.username and self.email_config.password),
-            'timeout': self.config.timeout,
-            'retry_count': self.config.retry_count,
-            'enabled': self.config.enabled
+            "handler_name": self.config.name,
+            "smtp_server": self.email_config.smtp_server,
+            "smtp_port": self.email_config.smtp_port,
+            "from_email": self.email_config.from_email,
+            "to_emails_count": len(self.email_config.to_emails),
+            "cc_emails_count": len(self.email_config.cc_emails),
+            "use_tls": self.email_config.use_tls,
+            "use_ssl": self.email_config.use_ssl,
+            "has_authentication": bool(
+                self.email_config.username and self.email_config.password
+            ),
+            "timeout": self.config.timeout,
+            "retry_count": self.config.retry_count,
+            "enabled": self.config.enabled,
         }
 
     def add_recipient(self, email: str, is_cc: bool = False) -> bool:
@@ -414,7 +415,7 @@ class EmailHandler(BaseNotificationHandler):
         """
         try:
             # Basic email validation
-            if '@' not in email or '.' not in email.split('@')[1]:
+            if "@" not in email or "." not in email.split("@")[1]:
                 return False
 
             if is_cc:
