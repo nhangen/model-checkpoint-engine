@@ -93,8 +93,8 @@ security:  ## Run security checks with bandit
 	@echo "✅ Security checks passed!"
 
 deps-check:  ## Check dependencies for security vulnerabilities
-	@echo "Checking dependencies with safety..."
-	safety check --file requirements.txt
+	@echo "Checking dependencies with pip-audit..."
+	pip-audit
 	@echo "✅ Dependencies are secure!"
 
 all-checks:  ## Run all checks including security

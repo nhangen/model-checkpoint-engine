@@ -91,7 +91,8 @@ repos:
         additional_dependencies:
           - types-setuptools
           - types-requests
-        exclude: ^(tests/|examples/)
+        exclude: ^tests/
+        stages: [push]  # Run on push to avoid slowing down commits
 
   # Python security linting
   - repo: https://github.com/PyCQA/bandit
@@ -102,14 +103,11 @@ repos:
         args: [-c, pyproject.toml]
         additional_dependencies: ["bandit[toml]"]
         exclude: ^tests/
+        stages: [push]  # Run on push to avoid slowing down commits
 
-  # Check for common security issues
-  - repo: https://github.com/Lucas-C/pre-commit-hooks-safety
-    rev: v1.3.3
-    hooks:
-      - id: python-safety-dependencies-check
-        name: Check dependencies for security issues
-        files: requirements.*\.txt$
+  # Dependency security scanning removed - use pip-audit in Makefile instead
+  # This project uses setup.py install_requires, not requirements.txt
+  # Run: make deps-check
 
   # Validate requirements.txt
   - repo: https://github.com/pre-commit/pre-commit-hooks

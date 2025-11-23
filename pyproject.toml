@@ -76,6 +76,7 @@ addopts = [
     "--strict-config",
     "--showlocals",
     "--tb=short",
+    "-n", "auto",  # Parallel test execution with pytest-xdist
 ]
 markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",

@@ -46,6 +46,7 @@ setup(
             # Testing
             "pytest>=6.2.0",
             "pytest-cov>=2.12.0",
+            "pytest-xdist>=2.0.0",  # Parallel test execution
             # Code formatting and linting
             "black>=21.0.0",
             "flake8>=3.9.0",
@@ -58,7 +59,7 @@ setup(
             "types-setuptools>=57.0.0",
             # Security
             "bandit>=1.7.0",
-            "safety>=2.0.0",
+            "pip-audit>=2.0.0",
             # Documentation
             "pydocstyle>=6.1.0",
             # Pre-commit framework
