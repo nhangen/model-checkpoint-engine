@@ -2,14 +2,8 @@
 -- Version: 002
 -- Created: 2025-09-20
 
--- Add file metadata columns to checkpoints table
-ALTER TABLE checkpoints ADD COLUMN step INTEGER DEFAULT 0;
-ALTER TABLE checkpoints ADD COLUMN file_size INTEGER;
-ALTER TABLE checkpoints ADD COLUMN checksum TEXT;
-ALTER TABLE checkpoints ADD COLUMN model_name TEXT;
-ALTER TABLE checkpoints ADD COLUMN loss REAL;
-ALTER TABLE checkpoints ADD COLUMN val_loss REAL;
-ALTER TABLE checkpoints ADD COLUMN notes TEXT;
+-- Note: Columns (step, file_size, checksum, model_name, loss, val_loss, notes)
+-- already exist in base schema - no ALTER TABLE needed
 
 -- Add indices for enhanced checkpoint querying
 CREATE INDEX IF NOT EXISTS idx_checkpoints_step ON checkpoints(step);

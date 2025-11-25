@@ -61,14 +61,16 @@ class ConfigSection:
 class ConfigManager:
     """Optimized configuration manager with zero redundancy"""
 
-    def __init__(self, config_dir: Optional[str] = None):
+    def __init__(self, config_dir: Optional[str] = None, config_file: Optional[str] = None):
         """
         Initialize configuration manager
 
         Args:
             config_dir: Directory containing configuration files
+            config_file: Single configuration file to load (takes precedence over config_dir)
         """
         self.config_dir = config_dir or os.path.join(os.getcwd(), "config")
+        self.config_file = config_file
 
         # Optimized: Configuration storage
         self._sections: Dict[str, ConfigSection] = {}
@@ -90,6 +92,10 @@ class ConfigManager:
 
         # Initialize default configuration
         self._initialize_defaults()
+
+        # Load config file if specified
+        if self.config_file:
+            self.load_config_file(self.config_file)
 
     def _initialize_defaults(self) -> None:
         """Initialize default configuration - optimized defaults"""
@@ -297,7 +303,7 @@ class ConfigManager:
         Args:
             file_path: Path to configuration file
             format_type: Configuration format (auto-detected if None)
-            section_name: Target section name (filename if None)
+            section_name: Target section name (if None, merges top-level keys into existing sections)
 
         Returns:
             True if successful
@@ -316,21 +322,39 @@ class ConfigManager:
             if content is None:
                 return False
 
-            # Determine section name
-            if section_name is None:
-                section_name = os.path.splitext(os.path.basename(file_path))[0]
+            # If content is a dict with top-level sections, merge into existing sections
+            if section_name is None and isinstance(content, dict):
+                for key, value in content.items():
+                    if isinstance(value, dict):
+                        # This is a section
+                        if key not in self._sections:
+                            self.register_section(key)
+                        self._process_config_content(
+                            value, key, format_type, ConfigSource.FILE
+                        )
+                    else:
+                        # This is a top-level config value
+                        # Use filename as section
+                        filename_section = os.path.splitext(os.path.basename(file_path))[0]
+                        if filename_section not in self._sections:
+                            self.register_section(filename_section)
+                        self._process_config_content(
+                            {key: value}, filename_section, format_type, ConfigSource.FILE
+                        )
+            else:
+                # Traditional loading with specific section name
+                if section_name is None:
+                    section_name = os.path.splitext(os.path.basename(file_path))[0]
 
-            # Register section if not exists
-            if section_name not in self._sections:
-                self.register_section(section_name)
+                if section_name not in self._sections:
+                    self.register_section(section_name)
 
-            # Process content
-            self._process_config_content(
-                content, section_name, format_type, ConfigSource.FILE
-            )
+                self._process_config_content(
+                    content, section_name, format_type, ConfigSource.FILE
+                )
 
             # Track loaded file
-            self._config_files[section_name] = file_path
+            self._config_files[file_path] = file_path
 
             return True
 
@@ -529,18 +553,45 @@ class ConfigManager:
 
                 section.entries[config_key] = entry
 
+    def get_config(self) -> Dict[str, Any]:
+        """
+        Get entire configuration as a dictionary
+
+        Returns:
+            Complete configuration dictionary
+        """
+        config = {}
+        for section_name, config_section in self._sections.items():
+            section_data = {}
+            for key, entry in config_section.entries.items():
+                section_data[key] = entry.value
+            if section_data:
+                config[section_name] = section_data
+        return config
+
     def get(self, key: str, default: Any = None, section: str = "default") -> Any:
         """
         Get configuration value - optimized retrieval with caching
+        Supports dot notation for nested keys (e.g., "storage.backend")
+        Returns entire section if key is a section name with no dot
 
         Args:
-            key: Configuration key
+            key: Configuration key (supports dot notation) or section name
             default: Default value if not found
-            section: Configuration section
+            section: Configuration section (ignored if key uses dot notation)
 
         Returns:
-            Configuration value or default
+            Configuration value, section dict, or default
         """
+        # Handle dot notation
+        if "." in key and section == "default":
+            parts = key.split(".", 1)
+            section = parts[0]
+            key = parts[1]
+        # Return entire section if key matches a section name
+        elif key in self._sections and section == "default":
+            return self.get_section(key)
+
         cache_key = f"{section}.{key}"
 
         # Check cache
@@ -579,14 +630,21 @@ class ConfigManager:
     ) -> None:
         """
         Set configuration value - optimized setting
+        Supports dot notation for nested keys (e.g., "storage.compression")
 
         Args:
-            key: Configuration key
+            key: Configuration key (supports dot notation)
             value: Configuration value
-            section: Configuration section
+            section: Configuration section (ignored if key uses dot notation)
             description: Value description
             is_secret: Whether value is sensitive
         """
+        # Handle dot notation
+        if "." in key and section == "runtime":
+            parts = key.split(".", 1)
+            section = parts[0]
+            key = parts[1]
+
         if section not in self._sections:
             self.register_section(section)
 
@@ -623,6 +681,31 @@ class ConfigManager:
                 result[key] = entry.value
 
         return result
+
+    def validate(self, config: Dict[str, Any]) -> bool:
+        """
+        Validate configuration structure and types
+
+        Args:
+            config: Configuration dictionary to validate
+
+        Returns:
+            True if valid, False otherwise
+        """
+        try:
+            # Basic structure validation
+            if not isinstance(config, dict):
+                return False
+
+            # Validate each section
+            for section_name, section_data in config.items():
+                # Each section should be a dict
+                if not isinstance(section_data, dict):
+                    return False
+
+            return True
+        except Exception:
+            return False
 
     def get_all_sections(
         self, include_secrets: bool = False
