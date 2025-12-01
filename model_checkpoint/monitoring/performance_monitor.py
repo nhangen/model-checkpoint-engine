@@ -1,13 +1,13 @@
 """Optimized performance monitoring system - zero redundancy design"""
 
-import time
-import threading
-from typing import Dict, List, Any, Optional, Callable, Union
-from dataclasses import dataclass, field
-from collections import defaultdict, deque
-from enum import Enum
 import json
 import statistics
+import threading
+import time
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 def _current_time() -> float:
@@ -17,6 +17,7 @@ def _current_time() -> float:
 
 class MetricType(Enum):
     """Optimized metric type enum"""
+
     COUNTER = "counter"
     GAUGE = "gauge"
     HISTOGRAM = "histogram"
@@ -26,6 +27,7 @@ class MetricType(Enum):
 @dataclass
 class PerformanceMetric:
     """Optimized performance metric"""
+
     name: str
     metric_type: MetricType
     value: Union[int, float] = 0.0
@@ -37,6 +39,7 @@ class PerformanceMetric:
 @dataclass
 class TimingRecord:
     """Optimized timing record"""
+
     operation: str
     start_time: float
     end_time: float
@@ -76,9 +79,9 @@ class PerformanceMonitor:
 
         # Optimized: Performance thresholds
         self._thresholds = {
-            'slow_operation_ms': 1000.0,
-            'memory_warning_mb': 512.0,
-            'cpu_warning_percent': 80.0
+            "slow_operation_ms": 1000.0,
+            "memory_warning_mb": 512.0,
+            "cpu_warning_percent": 80.0,
         }
 
     def start_timer(self, operation: str, tags: Optional[Dict[str, str]] = None) -> str:
@@ -103,9 +106,14 @@ class PerformanceMonitor:
 
         return timer_id
 
-    def stop_timer(self, timer_id: str, operation: str,
-                  success: bool = True, error_message: Optional[str] = None,
-                  tags: Optional[Dict[str, str]] = None) -> float:
+    def stop_timer(
+        self,
+        timer_id: str,
+        operation: str,
+        success: bool = True,
+        error_message: Optional[str] = None,
+        tags: Optional[Dict[str, str]] = None,
+    ) -> float:
         """
         Stop operation timer - optimized timing capture
 
@@ -137,7 +145,7 @@ class PerformanceMonitor:
             duration_ms=duration_ms,
             success=success,
             error_message=error_message,
-            tags=tags or {}
+            tags=tags or {},
         )
 
         with self._lock:
@@ -150,6 +158,7 @@ class PerformanceMonitor:
 
     def timer_context(self, operation: str, tags: Optional[Dict[str, str]] = None):
         """Context manager for timing operations - optimized context"""
+
         class TimerContext:
             def __init__(self, monitor, operation, tags):
                 self.monitor = monitor
@@ -164,12 +173,15 @@ class PerformanceMonitor:
             def __exit__(self, exc_type, exc_val, exc_tb):
                 success = exc_type is None
                 error_message = str(exc_val) if exc_val else None
-                self.monitor.stop_timer(self.timer_id, self.operation, success, error_message, self.tags)
+                self.monitor.stop_timer(
+                    self.timer_id, self.operation, success, error_message, self.tags
+                )
 
         return TimerContext(self, operation, tags)
 
-    def increment_counter(self, name: str, value: int = 1,
-                         tags: Optional[Dict[str, str]] = None) -> None:
+    def increment_counter(
+        self, name: str, value: int = 1, tags: Optional[Dict[str, str]] = None
+    ) -> None:
         """Increment counter metric - optimized counting"""
         with self._lock:
             self._counters[name] += value
@@ -177,13 +189,15 @@ class PerformanceMonitor:
         # Update metric
         self._update_metric(name, MetricType.COUNTER, self._counters[name], tags)
 
-    def set_gauge(self, name: str, value: Union[int, float],
-                 tags: Optional[Dict[str, str]] = None) -> None:
+    def set_gauge(
+        self, name: str, value: Union[int, float], tags: Optional[Dict[str, str]] = None
+    ) -> None:
         """Set gauge metric - optimized gauge setting"""
         self._update_metric(name, MetricType.GAUGE, value, tags)
 
-    def record_histogram(self, name: str, value: Union[int, float],
-                        tags: Optional[Dict[str, str]] = None) -> None:
+    def record_histogram(
+        self, name: str, value: Union[int, float], tags: Optional[Dict[str, str]] = None
+    ) -> None:
         """Record histogram value - optimized histogram recording"""
         # Store in timing history for aggregation
         with self._lock:
@@ -192,20 +206,22 @@ class PerformanceMonitor:
                     operation=f"histogram_{name}",
                     start_time=_current_time(),
                     end_time=_current_time(),
-                    duration_ms=float(value)
+                    duration_ms=float(value),
                 )
             )
 
         self._update_metric(name, MetricType.HISTOGRAM, value, tags)
 
-    def _update_metric(self, name: str, metric_type: MetricType,
-                      value: Union[int, float], tags: Optional[Dict[str, str]] = None) -> None:
+    def _update_metric(
+        self,
+        name: str,
+        metric_type: MetricType,
+        value: Union[int, float],
+        tags: Optional[Dict[str, str]] = None,
+    ) -> None:
         """Update performance metric - optimized update"""
         metric = PerformanceMetric(
-            name=name,
-            metric_type=metric_type,
-            value=value,
-            tags=tags or {}
+            name=name, metric_type=metric_type, value=value, tags=tags or {}
         )
 
         with self._lock:
@@ -214,7 +230,9 @@ class PerformanceMonitor:
         # Invalidate cache
         self._invalidate_cache(name)
 
-    def _update_timer_metrics(self, operation: str, duration_ms: float, success: bool) -> None:
+    def _update_timer_metrics(
+        self, operation: str, duration_ms: float, success: bool
+    ) -> None:
         """Update timer-related metrics - optimized timer metrics"""
         # Update timing metrics
         self._update_metric(f"{operation}_duration_ms", MetricType.TIMER, duration_ms)
@@ -226,7 +244,7 @@ class PerformanceMonitor:
             self.increment_counter(f"{operation}_failure")
 
         # Check for slow operations
-        if duration_ms > self._thresholds['slow_operation_ms']:
+        if duration_ms > self._thresholds["slow_operation_ms"]:
             self.increment_counter(f"{operation}_slow")
 
     def get_metric(self, name: str) -> Optional[PerformanceMetric]:
@@ -253,8 +271,11 @@ class PerformanceMonitor:
         cache_key = f"stats_{operation}"
 
         # Check cache
-        if (cache_key in self._aggregated_cache and
-            current_time - self._cache_timestamps.get(cache_key, 0) < self._cache_ttl):
+        if (
+            cache_key in self._aggregated_cache
+            and current_time - self._cache_timestamps.get(cache_key, 0)
+            < self._cache_ttl
+        ):
             return self._aggregated_cache[cache_key]
 
         with self._lock:
@@ -269,21 +290,29 @@ class PerformanceMonitor:
         failures = len(timing_records) - successes
 
         stats = {
-            'operation': operation,
-            'total_calls': len(timing_records),
-            'successful_calls': successes,
-            'failed_calls': failures,
-            'success_rate': (successes / len(timing_records)) * 100,
-            'duration_stats': {
-                'min_ms': min(durations),
-                'max_ms': max(durations),
-                'mean_ms': statistics.mean(durations),
-                'median_ms': statistics.median(durations),
-                'p95_ms': self._calculate_percentile(durations, 95),
-                'p99_ms': self._calculate_percentile(durations, 99)
+            "operation": operation,
+            "total_calls": len(timing_records),
+            "successful_calls": successes,
+            "failed_calls": failures,
+            "success_rate": (successes / len(timing_records)) * 100,
+            "duration_stats": {
+                "min_ms": min(durations),
+                "max_ms": max(durations),
+                "mean_ms": statistics.mean(durations),
+                "median_ms": statistics.median(durations),
+                "p95_ms": self._calculate_percentile(durations, 95),
+                "p99_ms": self._calculate_percentile(durations, 99),
             },
-            'recent_calls': len([r for r in timing_records if r.end_time > current_time - 300]),  # Last 5 minutes
-            'slow_calls': len([r for r in timing_records if r.duration_ms > self._thresholds['slow_operation_ms']])
+            "recent_calls": len(
+                [r for r in timing_records if r.end_time > current_time - 300]
+            ),  # Last 5 minutes
+            "slow_calls": len(
+                [
+                    r
+                    for r in timing_records
+                    if r.duration_ms > self._thresholds["slow_operation_ms"]
+                ]
+            ),
         }
 
         # Cache results
@@ -310,7 +339,10 @@ class PerformanceMonitor:
             if upper_index >= len(sorted_values):
                 return sorted_values[lower_index]
 
-            return sorted_values[lower_index] * (1 - weight) + sorted_values[upper_index] * weight
+            return (
+                sorted_values[lower_index] * (1 - weight)
+                + sorted_values[upper_index] * weight
+            )
 
     def get_system_overview(self) -> Dict[str, Any]:
         """Get system performance overview - optimized overview"""
@@ -322,29 +354,33 @@ class PerformanceMonitor:
         total_failures = 0
 
         for operation in self._timing_history.keys():
-            if not operation.startswith('histogram_'):
+            if not operation.startswith("histogram_"):
                 stats = self.get_operation_stats(operation)
                 if stats:
                     operations_stats[operation] = stats
-                    total_calls += stats['total_calls']
-                    total_failures += stats['failed_calls']
+                    total_calls += stats["total_calls"]
+                    total_failures += stats["failed_calls"]
 
         # Calculate system-wide metrics
         overview = {
-            'timestamp': current_time,
-            'total_operations': len(operations_stats),
-            'total_calls': total_calls,
-            'total_failures': total_failures,
-            'system_success_rate': ((total_calls - total_failures) / max(total_calls, 1)) * 100,
-            'active_timers': len(self._active_timers),
-            'tracked_metrics': len(self._metrics),
-            'operations': operations_stats
+            "timestamp": current_time,
+            "total_operations": len(operations_stats),
+            "total_calls": total_calls,
+            "total_failures": total_failures,
+            "system_success_rate": (
+                (total_calls - total_failures) / max(total_calls, 1)
+            )
+            * 100,
+            "active_timers": len(self._active_timers),
+            "tracked_metrics": len(self._metrics),
+            "operations": operations_stats,
         }
 
         return overview
 
-    def get_slow_operations(self, threshold_ms: Optional[float] = None,
-                          limit: int = 10) -> List[Dict[str, Any]]:
+    def get_slow_operations(
+        self, threshold_ms: Optional[float] = None, limit: int = 10
+    ) -> List[Dict[str, Any]]:
         """
         Get slow operations - optimized slow operation detection
 
@@ -356,13 +392,13 @@ class PerformanceMonitor:
             List of slow operations
         """
         if threshold_ms is None:
-            threshold_ms = self._thresholds['slow_operation_ms']
+            threshold_ms = self._thresholds["slow_operation_ms"]
 
         slow_operations = []
 
         with self._lock:
             for operation, records in self._timing_history.items():
-                if operation.startswith('histogram_'):
+                if operation.startswith("histogram_"):
                     continue
 
                 # Find slow calls
@@ -371,18 +407,26 @@ class PerformanceMonitor:
                 if slow_calls:
                     # Calculate statistics for slow calls
                     durations = [r.duration_ms for r in slow_calls]
-                    slow_operations.append({
-                        'operation': operation,
-                        'slow_calls_count': len(slow_calls),
-                        'total_calls': len(records),
-                        'slow_percentage': (len(slow_calls) / len(records)) * 100,
-                        'average_slow_duration_ms': statistics.mean(durations),
-                        'max_slow_duration_ms': max(durations),
-                        'recent_slow_calls': len([r for r in slow_calls if r.end_time > _current_time() - 300])
-                    })
+                    slow_operations.append(
+                        {
+                            "operation": operation,
+                            "slow_calls_count": len(slow_calls),
+                            "total_calls": len(records),
+                            "slow_percentage": (len(slow_calls) / len(records)) * 100,
+                            "average_slow_duration_ms": statistics.mean(durations),
+                            "max_slow_duration_ms": max(durations),
+                            "recent_slow_calls": len(
+                                [
+                                    r
+                                    for r in slow_calls
+                                    if r.end_time > _current_time() - 300
+                                ]
+                            ),
+                        }
+                    )
 
         # Sort by slow percentage and limit results
-        slow_operations.sort(key=lambda x: x['slow_percentage'], reverse=True)
+        slow_operations.sort(key=lambda x: x["slow_percentage"], reverse=True)
         return slow_operations[:limit]
 
     def set_threshold(self, threshold_name: str, value: float) -> None:
@@ -399,13 +443,16 @@ class PerformanceMonitor:
             self._cache_timestamps.clear()
         else:
             # Clear specific pattern
-            keys_to_remove = [key for key in self._aggregated_cache.keys() if pattern in key]
+            keys_to_remove = [
+                key for key in self._aggregated_cache.keys() if pattern in key
+            ]
             for key in keys_to_remove:
                 self._aggregated_cache.pop(key, None)
                 self._cache_timestamps.pop(key, None)
 
-    def export_metrics(self, format_type: str = 'json',
-                      include_raw_data: bool = False) -> Union[str, Dict[str, Any]]:
+    def export_metrics(
+        self, format_type: str = "json", include_raw_data: bool = False
+    ) -> Union[str, Dict[str, Any]]:
         """
         Export performance metrics - optimized export
 
@@ -417,40 +464,43 @@ class PerformanceMonitor:
             Exported metrics data
         """
         export_data = {
-            'metadata': {
-                'exported_at': _current_time(),
-                'monitoring_enabled': self.enable_profiling,
-                'thresholds': self._thresholds
+            "metadata": {
+                "exported_at": _current_time(),
+                "monitoring_enabled": self.enable_profiling,
+                "thresholds": self._thresholds,
             },
-            'system_overview': self.get_system_overview(),
-            'slow_operations': self.get_slow_operations(),
-            'metrics': {name: {
-                'type': metric.metric_type.value,
-                'value': metric.value,
-                'timestamp': metric.timestamp,
-                'tags': metric.tags
-            } for name, metric in self._metrics.items()}
+            "system_overview": self.get_system_overview(),
+            "slow_operations": self.get_slow_operations(),
+            "metrics": {
+                name: {
+                    "type": metric.metric_type.value,
+                    "value": metric.value,
+                    "timestamp": metric.timestamp,
+                    "tags": metric.tags,
+                }
+                for name, metric in self._metrics.items()
+            },
         }
 
         if include_raw_data:
-            export_data['raw_timing_data'] = {
+            export_data["raw_timing_data"] = {
                 operation: [
                     {
-                        'start_time': r.start_time,
-                        'end_time': r.end_time,
-                        'duration_ms': r.duration_ms,
-                        'success': r.success,
-                        'error_message': r.error_message,
-                        'tags': r.tags
+                        "start_time": r.start_time,
+                        "end_time": r.end_time,
+                        "duration_ms": r.duration_ms,
+                        "success": r.success,
+                        "error_message": r.error_message,
+                        "tags": r.tags,
                     }
                     for r in records
                 ]
                 for operation, records in self._timing_history.items()
             }
 
-        if format_type == 'json':
+        if format_type == "json":
             return json.dumps(export_data, indent=2, default=str)
-        elif format_type == 'prometheus':
+        elif format_type == "prometheus":
             return self._export_prometheus_format(export_data)
         else:
             return export_data
@@ -463,8 +513,12 @@ class PerformanceMonitor:
         for name, metric in self._metrics.items():
             if metric.metric_type in [MetricType.COUNTER, MetricType.GAUGE]:
                 # Add help comment
-                lines.append(f"# HELP checkpoint_engine_{name} {metric.metric_type.value} metric")
-                lines.append(f"# TYPE checkpoint_engine_{name} {metric.metric_type.value}")
+                lines.append(
+                    f"# HELP checkpoint_engine_{name} {metric.metric_type.value} metric"
+                )
+                lines.append(
+                    f"# TYPE checkpoint_engine_{name} {metric.metric_type.value}"
+                )
 
                 # Add tags
                 tags_str = ""

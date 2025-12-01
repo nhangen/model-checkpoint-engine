@@ -1,16 +1,16 @@
 """Central hook management system with event-driven architecture"""
 
-import logging
-import traceback
-from typing import Dict, List, Callable, Any, Optional, Set
-from enum import Enum, auto
-from dataclasses import dataclass, field
-from collections import defaultdict
 import asyncio
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
+import logging
 import time
+import traceback
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from dataclasses import dataclass, field
+from enum import Enum, auto
+from typing import Any, Callable, Dict, List, Optional, Set
 
-from .base_hook import HookContext, HookResult, BaseHook
+from .base_hook import BaseHook, HookContext, HookResult
 
 
 class HookEvent(Enum):
@@ -109,7 +109,8 @@ class HookEvent(Enum):
 
 class HookPriority(Enum):
     """Hook execution priority levels"""
-    CRITICAL = 0    # Executed first, can block operations
+
+    CRITICAL = 0  # Executed first, can block operations
     HIGH = 10
     NORMAL = 50
     LOW = 90
@@ -119,6 +120,7 @@ class HookPriority(Enum):
 @dataclass
 class HookRegistration:
     """Registration information for a hook"""
+
     name: str
     handler: Callable
     events: Set[HookEvent]
@@ -155,7 +157,9 @@ class HookManager:
         self._hooks: Dict[HookEvent, List[HookRegistration]] = defaultdict(list)
         self._hook_registry: Dict[str, HookRegistration] = {}
         self._performance_stats: Dict[str, Dict[str, Any]] = defaultdict(dict)
-        self._executor = ThreadPoolExecutor(max_workers=max_workers) if enable_async else None
+        self._executor = (
+            ThreadPoolExecutor(max_workers=max_workers) if enable_async else None
+        )
         self._enable_async = enable_async
         self._global_enabled = True
 
@@ -168,7 +172,7 @@ class HookManager:
         timeout: Optional[float] = None,
         async_execution: bool = False,
         error_handler: Optional[Callable] = None,
-        **metadata
+        **metadata,
     ) -> None:
         """
         Register a hook for one or more events.
@@ -194,7 +198,7 @@ class HookManager:
             timeout=timeout,
             async_execution=async_execution and self._enable_async,
             error_handler=error_handler,
-            metadata=metadata
+            metadata=metadata,
         )
 
         self._hook_registry[name] = registration
@@ -205,7 +209,9 @@ class HookManager:
             # Sort by priority
             self._hooks[event].sort(key=lambda r: r.priority.value)
 
-        self.logger.info(f"Registered hook '{name}' for events: {[e.name for e in events]}")
+        self.logger.info(
+            f"Registered hook '{name}' for events: {[e.name for e in events]}"
+        )
 
     def register_object_hooks(self, hook_object: BaseHook) -> None:
         """
@@ -221,7 +227,7 @@ class HookManager:
             self.register_hook(
                 name=f"{hook_object.__class__.__name__}.{method_name}",
                 handler=handler,
-                **config
+                **config,
             )
 
     def unregister_hook(self, name: str) -> None:
@@ -254,10 +260,7 @@ class HookManager:
             self._hook_registry[name].enabled = False
 
     def fire_hook(
-        self,
-        event: HookEvent,
-        context: Optional[HookContext] = None,
-        **kwargs
+        self, event: HookEvent, context: Optional[HookContext] = None, **kwargs
     ) -> HookResult:
         """
         Fire hooks for a specific event.
@@ -292,14 +295,14 @@ class HookManager:
             results.add_result(hook.name, result)
 
             # Check if we should continue
-            if not result.get('continue', True):
+            if not result.get("continue", True):
                 results.success = False
                 results.stopped_by = hook.name
                 break
 
             # Update context with any modifications
-            if 'context_updates' in result:
-                context.data.update(result['context_updates'])
+            if "context_updates" in result:
+                context.data.update(result["context_updates"])
 
         # Execute async hooks in parallel (if not stopped)
         if results.success and async_hooks and self._executor:
@@ -314,13 +317,17 @@ class HookManager:
                     result = future.result(timeout=5.0)
                     results.add_result(hook_name, result)
                 except TimeoutError:
-                    results.add_result(hook_name, {'error': 'Timeout', 'success': False})
+                    results.add_result(
+                        hook_name, {"error": "Timeout", "success": False}
+                    )
                 except Exception as e:
-                    results.add_result(hook_name, {'error': str(e), 'success': False})
+                    results.add_result(hook_name, {"error": str(e), "success": False})
 
         return results
 
-    def _execute_hook(self, registration: HookRegistration, context: HookContext) -> Dict[str, Any]:
+    def _execute_hook(
+        self, registration: HookRegistration, context: HookContext
+    ) -> Dict[str, Any]:
         """
         Execute a single hook with error handling and performance tracking.
 
@@ -332,7 +339,7 @@ class HookManager:
             Dict with execution results
         """
         start_time = time.time()
-        result = {'success': True, 'continue': True}
+        result = {"success": True, "continue": True}
 
         try:
             # Execute with timeout if specified
@@ -357,51 +364,57 @@ class HookManager:
                 if isinstance(hook_result, dict):
                     result.update(hook_result)
                 elif isinstance(hook_result, bool):
-                    result['continue'] = hook_result
+                    result["continue"] = hook_result
                 else:
-                    result['data'] = hook_result
+                    result["data"] = hook_result
 
         except Exception as e:
-            result['success'] = False
-            result['error'] = str(e)
-            result['traceback'] = traceback.format_exc()
+            result["success"] = False
+            result["error"] = str(e)
+            result["traceback"] = traceback.format_exc()
 
             # Use custom error handler if provided
             if registration.error_handler:
                 try:
                     registration.error_handler(e, context)
                 except Exception as handler_error:
-                    self.logger.error(f"Error in error handler for '{registration.name}': {handler_error}")
+                    self.logger.error(
+                        f"Error in error handler for '{registration.name}': {handler_error}"
+                    )
             else:
                 self.logger.error(f"Hook '{registration.name}' failed: {e}")
 
         finally:
             # Track performance
             execution_time = time.time() - start_time
-            self._track_performance(registration.name, execution_time, result['success'])
-            result['execution_time'] = execution_time
+            self._track_performance(
+                registration.name, execution_time, result["success"]
+            )
+            result["execution_time"] = execution_time
 
         return result
 
-    def _track_performance(self, hook_name: str, execution_time: float, success: bool) -> None:
+    def _track_performance(
+        self, hook_name: str, execution_time: float, success: bool
+    ) -> None:
         """Track hook performance statistics"""
         stats = self._performance_stats[hook_name]
 
-        if 'total_calls' not in stats:
-            stats['total_calls'] = 0
-            stats['successful_calls'] = 0
-            stats['failed_calls'] = 0
-            stats['total_time'] = 0
-            stats['min_time'] = float('inf')
-            stats['max_time'] = 0
+        if "total_calls" not in stats:
+            stats["total_calls"] = 0
+            stats["successful_calls"] = 0
+            stats["failed_calls"] = 0
+            stats["total_time"] = 0
+            stats["min_time"] = float("inf")
+            stats["max_time"] = 0
 
-        stats['total_calls'] += 1
-        stats['successful_calls'] += 1 if success else 0
-        stats['failed_calls'] += 0 if success else 1
-        stats['total_time'] += execution_time
-        stats['min_time'] = min(stats['min_time'], execution_time)
-        stats['max_time'] = max(stats['max_time'], execution_time)
-        stats['avg_time'] = stats['total_time'] / stats['total_calls']
+        stats["total_calls"] += 1
+        stats["successful_calls"] += 1 if success else 0
+        stats["failed_calls"] += 0 if success else 1
+        stats["total_time"] += execution_time
+        stats["min_time"] = min(stats["min_time"], execution_time)
+        stats["max_time"] = max(stats["max_time"], execution_time)
+        stats["avg_time"] = stats["total_time"] / stats["total_calls"]
 
     def get_performance_stats(self, hook_name: Optional[str] = None) -> Dict[str, Any]:
         """Get performance statistics for hooks"""
@@ -415,23 +428,23 @@ class HookManager:
             hooks = self._hooks.get(event, [])
             return [
                 {
-                    'name': h.name,
-                    'priority': h.priority.name,
-                    'async': h.async_execution,
-                    'enabled': h.enabled,
-                    'metadata': h.metadata
+                    "name": h.name,
+                    "priority": h.priority.name,
+                    "async": h.async_execution,
+                    "enabled": h.enabled,
+                    "metadata": h.metadata,
                 }
                 for h in hooks
             ]
 
         return [
             {
-                'name': r.name,
-                'events': [e.name for e in r.events],
-                'priority': r.priority.name,
-                'async': r.async_execution,
-                'enabled': r.enabled,
-                'metadata': r.metadata
+                "name": r.name,
+                "events": [e.name for e in r.events],
+                "priority": r.priority.name,
+                "async": r.async_execution,
+                "enabled": r.enabled,
+                "metadata": r.metadata,
             }
             for r in self._hook_registry.values()
         ]

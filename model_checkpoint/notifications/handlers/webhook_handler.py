@@ -1,17 +1,18 @@
 """Optimized webhook notification handler - zero redundancy design"""
 
 import json
-from typing import Dict, Any, Optional, List
-from dataclasses import dataclass
 import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
 
-from .base_handler import BaseNotificationHandler, HandlerConfig
 from ..notification_manager import NotificationEvent
+from .base_handler import BaseNotificationHandler, HandlerConfig
 
 
 @dataclass
 class WebhookConfig(HandlerConfig):
     """Optimized webhook-specific configuration"""
+
     webhook_url: str = ""
     headers: Dict[str, str] = None
     secret_token: Optional[str] = None
@@ -21,7 +22,7 @@ class WebhookConfig(HandlerConfig):
 
     def __post_init__(self):
         if self.headers is None:
-            self.headers = {'Content-Type': 'application/json'}
+            self.headers = {"Content-Type": "application/json"}
         if self.custom_fields is None:
             self.custom_fields = {}
 
@@ -48,7 +49,7 @@ class WebhookHandler(BaseNotificationHandler):
             "timestamp": "{timestamp}",
             "experiment_id": "{experiment_id}",
             "checkpoint_id": "{checkpoint_id}",
-            "metadata": "{metadata}"
+            "metadata": "{metadata}",
         }
 
     def _send_notification_impl(self, event: NotificationEvent) -> bool:
@@ -65,7 +66,9 @@ class WebhookHandler(BaseNotificationHandler):
             # Optional import for HTTP requests
             import requests
         except ImportError:
-            print("requests library required for webhook handler. Install with: pip install requests")
+            print(
+                "requests library required for webhook handler. Install with: pip install requests"
+            )
             return False
 
         try:
@@ -77,10 +80,10 @@ class WebhookHandler(BaseNotificationHandler):
 
             # Add authentication header if secret token provided
             if self.webhook_config.secret_token:
-                headers['Authorization'] = f"Bearer {self.webhook_config.secret_token}"
+                headers["Authorization"] = f"Bearer {self.webhook_config.secret_token}"
 
             # Add timestamp for webhook security
-            headers['X-Timestamp'] = str(int(time.time()))
+            headers["X-Timestamp"] = str(int(time.time()))
 
             # Send webhook request
             response = requests.post(
@@ -88,7 +91,7 @@ class WebhookHandler(BaseNotificationHandler):
                 json=payload,
                 headers=headers,
                 timeout=self.config.timeout,
-                verify=self.webhook_config.verify_ssl
+                verify=self.webhook_config.verify_ssl,
             )
 
             # Check response status
@@ -122,15 +125,15 @@ class WebhookHandler(BaseNotificationHandler):
 
         # Optimized: Prepare substitution values
         substitution_values = {
-            'event_type': event.event_type.value,
-            'title': event.title,
-            'message': event.message,
-            'priority': event.priority.name,
-            'timestamp': int(event.timestamp),
-            'experiment_id': event.experiment_id or '',
-            'checkpoint_id': event.checkpoint_id or '',
-            'metadata': json.dumps(event.metadata),
-            'tags': json.dumps(event.tags)
+            "event_type": event.event_type.value,
+            "title": event.title,
+            "message": event.message,
+            "priority": event.priority.name,
+            "timestamp": int(event.timestamp),
+            "experiment_id": event.experiment_id or "",
+            "checkpoint_id": event.checkpoint_id or "",
+            "metadata": json.dumps(event.metadata),
+            "tags": json.dumps(event.tags),
         }
 
         # Add custom fields
@@ -140,10 +143,10 @@ class WebhookHandler(BaseNotificationHandler):
         formatted_payload = self._substitute_values(payload, substitution_values)
 
         # Add webhook metadata
-        formatted_payload['webhook_metadata'] = {
-            'handler_name': self.config.name,
-            'sent_at': time.time(),
-            'version': '1.0'
+        formatted_payload["webhook_metadata"] = {
+            "handler_name": self.config.name,
+            "sent_at": time.time(),
+            "version": "1.0",
         }
 
         return formatted_payload
@@ -160,7 +163,10 @@ class WebhookHandler(BaseNotificationHandler):
             Object with substituted values
         """
         if isinstance(obj, dict):
-            return {key: self._substitute_values(value, values) for key, value in obj.items()}
+            return {
+                key: self._substitute_values(value, values)
+                for key, value in obj.items()
+            }
         elif isinstance(obj, list):
             return [self._substitute_values(item, values) for item in obj]
         elif isinstance(obj, str):
@@ -182,30 +188,30 @@ class WebhookHandler(BaseNotificationHandler):
             import requests
         except ImportError:
             return {
-                'success': False,
-                'error': 'requests library not available',
-                'handler_name': self.config.name
+                "success": False,
+                "error": "requests library not available",
+                "handler_name": self.config.name,
             }
 
         if not self.webhook_config.webhook_url:
             return {
-                'success': False,
-                'error': 'No webhook URL configured',
-                'handler_name': self.config.name
+                "success": False,
+                "error": "No webhook URL configured",
+                "handler_name": self.config.name,
             }
 
         try:
             # Send test payload
             test_payload = {
-                'test': True,
-                'message': 'Connection test from model checkpoint engine',
-                'timestamp': time.time(),
-                'handler': self.config.name
+                "test": True,
+                "message": "Connection test from model checkpoint engine",
+                "timestamp": time.time(),
+                "handler": self.config.name,
             }
 
             headers = self.webhook_config.headers.copy()
             if self.webhook_config.secret_token:
-                headers['Authorization'] = f"Bearer {self.webhook_config.secret_token}"
+                headers["Authorization"] = f"Bearer {self.webhook_config.secret_token}"
 
             start_time = time.time()
 
@@ -214,7 +220,7 @@ class WebhookHandler(BaseNotificationHandler):
                 json=test_payload,
                 headers=headers,
                 timeout=self.config.timeout,
-                verify=self.webhook_config.verify_ssl
+                verify=self.webhook_config.verify_ssl,
             )
 
             response_time = time.time() - start_time
@@ -222,18 +228,14 @@ class WebhookHandler(BaseNotificationHandler):
             response.raise_for_status()
 
             return {
-                'success': True,
-                'response_time_ms': response_time * 1000,
-                'status_code': response.status_code,
-                'handler_name': self.config.name
+                "success": True,
+                "response_time_ms": response_time * 1000,
+                "status_code": response.status_code,
+                "handler_name": self.config.name,
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'handler_name': self.config.name
-            }
+            return {"success": False, "error": str(e), "handler_name": self.config.name}
 
     def verify_webhook_signature(self, payload: str, signature: str) -> bool:
         """
@@ -250,14 +252,14 @@ class WebhookHandler(BaseNotificationHandler):
             return True  # No verification required
 
         try:
-            import hmac
             import hashlib
+            import hmac
 
             # Calculate expected signature
             expected_signature = hmac.new(
                 self.webhook_config.secret_token.encode(),
                 payload.encode(),
-                hashlib.sha256
+                hashlib.sha256,
             ).hexdigest()
 
             # Compare signatures (constant time comparison)
@@ -273,7 +275,7 @@ class WebhookHandler(BaseNotificationHandler):
         Returns:
             Test payload dictionary
         """
-        from ..notification_manager import NotificationEvent, EventType, Priority
+        from ..notification_manager import EventType, NotificationEvent, Priority
 
         test_event = NotificationEvent(
             event_type=EventType.CUSTOM,
@@ -281,11 +283,8 @@ class WebhookHandler(BaseNotificationHandler):
             message="This is a test webhook notification.",
             priority=Priority.NORMAL,
             experiment_id="test_experiment_123",
-            metadata={
-                'test': True,
-                'source': 'webhook_handler_test'
-            },
-            tags=['test', 'webhook']
+            metadata={"test": True, "source": "webhook_handler_test"},
+            tags=["test", "webhook"],
         )
 
         return self._prepare_payload(test_event)
@@ -298,12 +297,16 @@ class WebhookHandler(BaseNotificationHandler):
             Webhook info dictionary
         """
         return {
-            'handler_name': self.config.name,
-            'webhook_url': self.webhook_config.webhook_url,
-            'headers': {k: v for k, v in self.webhook_config.headers.items() if 'auth' not in k.lower()},
-            'verify_ssl': self.webhook_config.verify_ssl,
-            'has_secret_token': bool(self.webhook_config.secret_token),
-            'timeout': self.config.timeout,
-            'retry_count': self.config.retry_count,
-            'enabled': self.config.enabled
+            "handler_name": self.config.name,
+            "webhook_url": self.webhook_config.webhook_url,
+            "headers": {
+                k: v
+                for k, v in self.webhook_config.headers.items()
+                if "auth" not in k.lower()
+            },
+            "verify_ssl": self.webhook_config.verify_ssl,
+            "has_secret_token": bool(self.webhook_config.secret_token),
+            "timeout": self.config.timeout,
+            "retry_count": self.config.retry_count,
+            "enabled": self.config.enabled,
         }

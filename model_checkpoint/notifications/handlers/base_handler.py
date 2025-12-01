@@ -1,9 +1,9 @@
 """Optimized base notification handler - zero redundancy design"""
 
-from abc import ABC, abstractmethod
-from typing import Dict, Any, Optional
-from dataclasses import dataclass, field
 import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from typing import Any, Dict, Optional
 
 from ..notification_manager import NotificationEvent
 
@@ -16,6 +16,7 @@ def _current_time() -> float:
 @dataclass
 class HandlerConfig:
     """Optimized handler configuration"""
+
     name: str
     enabled: bool = True
     retry_count: int = 3
@@ -43,11 +44,11 @@ class BaseNotificationHandler(ABC):
 
         # Optimized: Statistics
         self._stats = {
-            'total_sent': 0,
-            'total_failed': 0,
-            'last_success': 0.0,
-            'last_failure': 0.0,
-            'consecutive_failures': 0
+            "total_sent": 0,
+            "total_failed": 0,
+            "last_success": 0.0,
+            "last_failure": 0.0,
+            "consecutive_failures": 0,
         }
 
     @abstractmethod
@@ -107,7 +108,9 @@ class BaseNotificationHandler(ABC):
 
         # Remove old timestamps outside the window
         cutoff_time = current_time - self._rate_limit_window
-        self._request_timestamps = [ts for ts in self._request_timestamps if ts > cutoff_time]
+        self._request_timestamps = [
+            ts for ts in self._request_timestamps if ts > cutoff_time
+        ]
 
         # Check if we're under the rate limit
         if len(self._request_timestamps) >= self.config.rate_limit_per_minute:
@@ -119,34 +122,36 @@ class BaseNotificationHandler(ABC):
 
     def _record_success(self) -> None:
         """Record successful notification"""
-        self._stats['total_sent'] += 1
-        self._stats['last_success'] = _current_time()
-        self._stats['consecutive_failures'] = 0
+        self._stats["total_sent"] += 1
+        self._stats["last_success"] = _current_time()
+        self._stats["consecutive_failures"] = 0
 
     def _record_failure(self) -> None:
         """Record failed notification"""
-        self._stats['total_failed'] += 1
-        self._stats['last_failure'] = _current_time()
-        self._stats['consecutive_failures'] += 1
+        self._stats["total_failed"] += 1
+        self._stats["last_failure"] = _current_time()
+        self._stats["consecutive_failures"] += 1
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get handler statistics"""
         stats = self._stats.copy()
-        stats.update({
-            'handler_name': self.config.name,
-            'enabled': self.config.enabled,
-            'success_rate': self._calculate_success_rate(),
-            'current_rate_limit_usage': len(self._request_timestamps),
-            'rate_limit_per_minute': self.config.rate_limit_per_minute
-        })
+        stats.update(
+            {
+                "handler_name": self.config.name,
+                "enabled": self.config.enabled,
+                "success_rate": self._calculate_success_rate(),
+                "current_rate_limit_usage": len(self._request_timestamps),
+                "rate_limit_per_minute": self.config.rate_limit_per_minute,
+            }
+        )
         return stats
 
     def _calculate_success_rate(self) -> float:
         """Calculate success rate percentage"""
-        total = self._stats['total_sent'] + self._stats['total_failed']
+        total = self._stats["total_sent"] + self._stats["total_failed"]
         if total == 0:
             return 100.0
-        return (self._stats['total_sent'] / total) * 100.0
+        return (self._stats["total_sent"] / total) * 100.0
 
     def test_connection(self) -> Dict[str, Any]:
         """
@@ -161,7 +166,7 @@ class BaseNotificationHandler(ABC):
                 event_type="custom",
                 title="Connection Test",
                 message="This is a test message to verify handler connectivity.",
-                priority="normal"
+                priority="normal",
             )
 
             start_time = _current_time()
@@ -169,26 +174,22 @@ class BaseNotificationHandler(ABC):
             response_time = _current_time() - start_time
 
             return {
-                'success': success,
-                'response_time_ms': response_time * 1000,
-                'handler_name': self.config.name
+                "success": success,
+                "response_time_ms": response_time * 1000,
+                "handler_name": self.config.name,
             }
 
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e),
-                'handler_name': self.config.name
-            }
+            return {"success": False, "error": str(e), "handler_name": self.config.name}
 
     def reset_statistics(self) -> None:
         """Reset handler statistics"""
         self._stats = {
-            'total_sent': 0,
-            'total_failed': 0,
-            'last_success': 0.0,
-            'last_failure': 0.0,
-            'consecutive_failures': 0
+            "total_sent": 0,
+            "total_failed": 0,
+            "last_success": 0.0,
+            "last_failure": 0.0,
+            "consecutive_failures": 0,
         }
         self._request_timestamps.clear()
 
@@ -206,11 +207,11 @@ class BaseNotificationHandler(ABC):
         if not self.config.enabled:
             return False
 
-        if self._stats['consecutive_failures'] > 5:
+        if self._stats["consecutive_failures"] > 5:
             return False
 
         success_rate = self._calculate_success_rate()
-        total_notifications = self._stats['total_sent'] + self._stats['total_failed']
+        total_notifications = self._stats["total_sent"] + self._stats["total_failed"]
 
         # If no notifications sent yet, consider healthy
         if total_notifications == 0:
@@ -218,8 +219,9 @@ class BaseNotificationHandler(ABC):
 
         return success_rate > 80.0
 
-    def format_event_message(self, event: NotificationEvent,
-                           template: Optional[str] = None) -> str:
+    def format_event_message(
+        self, event: NotificationEvent, template: Optional[str] = None
+    ) -> str:
         """
         Format event message using template
 
@@ -241,9 +243,11 @@ class BaseNotificationHandler(ABC):
                 message=event.message,
                 priority=event.priority.name,
                 event_type=event.event_type.value,
-                experiment_id=event.experiment_id or 'N/A',
-                checkpoint_id=event.checkpoint_id or 'N/A',
-                timestamp=time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(event.timestamp))
+                experiment_id=event.experiment_id or "N/A",
+                checkpoint_id=event.checkpoint_id or "N/A",
+                timestamp=time.strftime(
+                    "%Y-%m-%d %H:%M:%S", time.localtime(event.timestamp)
+                ),
             )
         except (KeyError, ValueError):
             # Fallback to default format if template fails

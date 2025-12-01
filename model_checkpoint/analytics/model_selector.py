@@ -1,10 +1,10 @@
 """Optimized automatic best model detection - zero redundancy design"""
 
+import json
 import time
-from typing import Dict, List, Any, Optional, Union, Callable, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
-import json
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from .metrics_collector import MetricsCollector
@@ -12,6 +12,7 @@ from .metrics_collector import MetricsCollector
 
 class SelectionCriteria(Enum):
     """Optimized enum for selection criteria"""
+
     SINGLE_METRIC = "single_metric"
     COMPOSITE_SCORE = "composite_score"
     CUSTOM_FUNCTION = "custom_function"
@@ -26,6 +27,7 @@ def _current_time() -> float:
 @dataclass
 class ModelCandidate:
     """Optimized model candidate - using field defaults"""
+
     checkpoint_id: str
     experiment_id: str
     metrics: Dict[str, float] = field(default_factory=dict)
@@ -41,6 +43,7 @@ class ModelCandidate:
 @dataclass
 class SelectionConfig:
     """Optimized selection configuration"""
+
     criteria: SelectionCriteria
     primary_metric: Optional[str] = None
     metric_weights: Dict[str, float] = field(default_factory=dict)
@@ -56,8 +59,11 @@ class SelectionConfig:
 class BestModelSelector:
     """Optimized best model detection with configurable criteria"""
 
-    def __init__(self, db_connection: Optional[EnhancedDatabaseConnection] = None,
-                 metrics_collector: Optional[MetricsCollector] = None):
+    def __init__(
+        self,
+        db_connection: Optional[EnhancedDatabaseConnection] = None,
+        metrics_collector: Optional[MetricsCollector] = None,
+    ):
         """
         Initialize best model selector
 
@@ -70,21 +76,21 @@ class BestModelSelector:
 
         # Optimized: Pre-computed configurations
         self._default_configs = {
-            'accuracy_based': SelectionConfig(
+            "accuracy_based": SelectionConfig(
                 criteria=SelectionCriteria.SINGLE_METRIC,
-                primary_metric='accuracy',
-                minimum_epochs=5
+                primary_metric="accuracy",
+                minimum_epochs=5,
             ),
-            'loss_based': SelectionConfig(
+            "loss_based": SelectionConfig(
                 criteria=SelectionCriteria.SINGLE_METRIC,
-                primary_metric='loss',
-                minimum_epochs=5
+                primary_metric="loss",
+                minimum_epochs=5,
             ),
-            'composite': SelectionConfig(
+            "composite": SelectionConfig(
                 criteria=SelectionCriteria.COMPOSITE_SCORE,
-                metric_weights={'accuracy': 0.7, 'loss': -0.3},
-                minimum_epochs=5
-            )
+                metric_weights={"accuracy": 0.7, "loss": -0.3},
+                minimum_epochs=5,
+            ),
         }
 
         # Optimized: Caching for performance
@@ -96,9 +102,12 @@ class BestModelSelector:
         """Register a custom selection configuration"""
         self._default_configs[name] = config
 
-    def get_candidates(self, experiment_id: str,
-                      config: Union[str, SelectionConfig],
-                      force_refresh: bool = False) -> List[ModelCandidate]:
+    def get_candidates(
+        self,
+        experiment_id: str,
+        config: Union[str, SelectionConfig],
+        force_refresh: bool = False,
+    ) -> List[ModelCandidate]:
         """
         Get model candidates for selection - optimized with caching
 
@@ -122,18 +131,26 @@ class BestModelSelector:
         cache_key = f"{experiment_id}:{hash(str(selection_config.__dict__))}"
         current_time = _current_time()
 
-        if (not force_refresh and cache_key in self._candidate_cache and
-            current_time - self._cache_timestamps.get(cache_key, 0) < self._cache_ttl):
+        if (
+            not force_refresh
+            and cache_key in self._candidate_cache
+            and current_time - self._cache_timestamps.get(cache_key, 0)
+            < self._cache_ttl
+        ):
             return self._candidate_cache[cache_key]
 
         # Optimized: Single database query for all checkpoint data
         candidates = []
         if self.db_connection:
-            candidates.extend(self._load_candidates_from_db(experiment_id, selection_config))
+            candidates.extend(
+                self._load_candidates_from_db(experiment_id, selection_config)
+            )
 
         # Add real-time candidates from metrics collector
         if self.metrics_collector:
-            candidates.extend(self._load_candidates_from_metrics(experiment_id, selection_config))
+            candidates.extend(
+                self._load_candidates_from_metrics(experiment_id, selection_config)
+            )
 
         # Optimized: Apply filters in single pass
         filtered_candidates = self._apply_filters(candidates, selection_config)
@@ -144,8 +161,9 @@ class BestModelSelector:
 
         return filtered_candidates
 
-    def select_best_model(self, experiment_id: str,
-                         config: Union[str, SelectionConfig]) -> Optional[ModelCandidate]:
+    def select_best_model(
+        self, experiment_id: str, config: Union[str, SelectionConfig]
+    ) -> Optional[ModelCandidate]:
         """
         Select the best model based on criteria - optimized single-pass selection
 
@@ -178,15 +196,17 @@ class BestModelSelector:
         else:
             return candidates[0]  # Default to first candidate
 
-    def _load_candidates_from_db(self, experiment_id: str,
-                                config: SelectionConfig) -> List[ModelCandidate]:
+    def _load_candidates_from_db(
+        self, experiment_id: str, config: SelectionConfig
+    ) -> List[ModelCandidate]:
         """Load candidates from database - optimized query"""
         candidates = []
 
         try:
             with self.db_connection.get_connection() as conn:
                 # Optimized: Single query with all required data
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT
                         c.id, c.checkpoint_path, c.step, c.epoch, c.timestamp, c.file_size,
                         c.metadata, c.metrics,
@@ -196,11 +216,27 @@ class BestModelSelector:
                     WHERE e.id = ? OR e.name = ?
                     AND c.step >= ? AND c.epoch >= ?
                     ORDER BY c.timestamp DESC
-                """, (experiment_id, experiment_id, config.minimum_steps, config.minimum_epochs))
+                """,
+                    (
+                        experiment_id,
+                        experiment_id,
+                        config.minimum_steps,
+                        config.minimum_epochs,
+                    ),
+                )
 
                 # Optimized: Process all rows in single loop
                 for row in cursor.fetchall():
-                    checkpoint_id, file_path, step, epoch, timestamp, file_size, metadata_json, metrics_json = row[:8]
+                    (
+                        checkpoint_id,
+                        file_path,
+                        step,
+                        epoch,
+                        timestamp,
+                        file_size,
+                        metadata_json,
+                        metrics_json,
+                    ) = row[:8]
 
                     # Optimized: Parse JSON once
                     try:
@@ -219,7 +255,7 @@ class BestModelSelector:
                         timestamp=timestamp,
                         file_path=file_path,
                         file_size=file_size,
-                        metadata=metadata
+                        metadata=metadata,
                     )
 
                     candidates.append(candidate)
@@ -229,8 +265,9 @@ class BestModelSelector:
 
         return candidates
 
-    def _load_candidates_from_metrics(self, experiment_id: str,
-                                    config: SelectionConfig) -> List[ModelCandidate]:
+    def _load_candidates_from_metrics(
+        self, experiment_id: str, config: SelectionConfig
+    ) -> List[ModelCandidate]:
         """Load candidates from metrics collector - optimized"""
         candidates = []
 
@@ -244,10 +281,10 @@ class BestModelSelector:
             latest_epoch = None
 
             for name, metric_data in aggregated_metrics.items():
-                current_metrics[name] = metric_data['value']
+                current_metrics[name] = metric_data["value"]
                 if latest_step is None:
-                    latest_step = metric_data.get('latest_step')
-                    latest_epoch = metric_data.get('latest_epoch')
+                    latest_step = metric_data.get("latest_step")
+                    latest_epoch = metric_data.get("latest_epoch")
 
             if current_metrics:
                 candidate = ModelCandidate(
@@ -257,7 +294,7 @@ class BestModelSelector:
                     step=latest_step,
                     epoch=latest_epoch,
                     timestamp=_current_time(),
-                    metadata={'source': 'metrics_collector'}
+                    metadata={"source": "metrics_collector"},
                 )
                 candidates.append(candidate)
 
@@ -266,8 +303,9 @@ class BestModelSelector:
 
         return candidates
 
-    def _apply_filters(self, candidates: List[ModelCandidate],
-                      config: SelectionConfig) -> List[ModelCandidate]:
+    def _apply_filters(
+        self, candidates: List[ModelCandidate], config: SelectionConfig
+    ) -> List[ModelCandidate]:
         """Apply filters to candidates - optimized single pass"""
         filtered = []
 
@@ -280,7 +318,9 @@ class BestModelSelector:
 
             # Validation requirement filter
             if config.require_validation:
-                has_val_metric = any(metric.startswith('val_') for metric in candidate.metrics)
+                has_val_metric = any(
+                    metric.startswith("val_") for metric in candidate.metrics
+                )
                 if not has_val_metric:
                     continue
 
@@ -297,8 +337,9 @@ class BestModelSelector:
 
         return filtered
 
-    def _select_by_single_metric(self, candidates: List[ModelCandidate],
-                               config: SelectionConfig) -> Optional[ModelCandidate]:
+    def _select_by_single_metric(
+        self, candidates: List[ModelCandidate], config: SelectionConfig
+    ) -> Optional[ModelCandidate]:
         """Select by single metric - optimized comparison"""
         if not config.primary_metric:
             return None
@@ -318,8 +359,8 @@ class BestModelSelector:
                 best_value = value
             else:
                 # Optimized: Determine direction from metric name
-                is_loss_metric = 'loss' in config.primary_metric.lower()
-                is_error_metric = 'error' in config.primary_metric.lower()
+                is_loss_metric = "loss" in config.primary_metric.lower()
+                is_error_metric = "error" in config.primary_metric.lower()
 
                 if is_loss_metric or is_error_metric:
                     # Minimize
@@ -334,8 +375,9 @@ class BestModelSelector:
 
         return best_candidate
 
-    def _select_by_composite_score(self, candidates: List[ModelCandidate],
-                                 config: SelectionConfig) -> Optional[ModelCandidate]:
+    def _select_by_composite_score(
+        self, candidates: List[ModelCandidate], config: SelectionConfig
+    ) -> Optional[ModelCandidate]:
         """Select by composite score - optimized calculation"""
         if not config.metric_weights:
             return None
@@ -371,8 +413,9 @@ class BestModelSelector:
 
         return best_candidate
 
-    def _select_by_custom_function(self, candidates: List[ModelCandidate],
-                                 config: SelectionConfig) -> Optional[ModelCandidate]:
+    def _select_by_custom_function(
+        self, candidates: List[ModelCandidate], config: SelectionConfig
+    ) -> Optional[ModelCandidate]:
         """Select using custom function"""
         if not config.custom_function:
             return None
@@ -383,8 +426,9 @@ class BestModelSelector:
             print(f"Custom selection function failed: {e}")
             return None
 
-    def _select_by_multi_objective(self, candidates: List[ModelCandidate],
-                                 config: SelectionConfig) -> Optional[ModelCandidate]:
+    def _select_by_multi_objective(
+        self, candidates: List[ModelCandidate], config: SelectionConfig
+    ) -> Optional[ModelCandidate]:
         """Select using Pareto optimality - simplified efficient implementation"""
         if not config.metric_weights:
             return self._select_by_single_metric(candidates, config)
@@ -392,9 +436,12 @@ class BestModelSelector:
         # Optimized: Use composite score as fallback for multi-objective
         return self._select_by_composite_score(candidates, config)
 
-    def track_best_models(self, experiment_id: str,
-                         configs: List[Union[str, SelectionConfig]],
-                         persist: bool = True) -> Dict[str, Optional[ModelCandidate]]:
+    def track_best_models(
+        self,
+        experiment_id: str,
+        configs: List[Union[str, SelectionConfig]],
+        persist: bool = True,
+    ) -> Dict[str, Optional[ModelCandidate]]:
         """
         Track best models for multiple configurations - optimized batch processing
 
@@ -428,7 +475,9 @@ class BestModelSelector:
 
                 filtered = self._apply_filters(all_candidates, selection_config)
                 if isinstance(config, str):
-                    best_model = self._select_by_single_metric(filtered, selection_config)
+                    best_model = self._select_by_single_metric(
+                        filtered, selection_config
+                    )
                 else:
                     best_model = self.select_best_model(experiment_id, config)
 
@@ -440,36 +489,43 @@ class BestModelSelector:
 
         return results
 
-    def _persist_best_model(self, experiment_id: str, config_name: str,
-                          model: ModelCandidate) -> None:
+    def _persist_best_model(
+        self, experiment_id: str, config_name: str, model: ModelCandidate
+    ) -> None:
         """Persist best model selection - optimized single operation"""
         try:
             with self.db_connection.get_connection() as conn:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT OR REPLACE INTO best_models
                     (experiment_id, config_name, checkpoint_id, selected_at,
                      composite_score, selection_metadata)
                     VALUES (?, ?, ?, ?, ?, ?)
-                """, (
-                    experiment_id,
-                    config_name,
-                    model.checkpoint_id,
-                    _current_time(),
-                    model.composite_score,
-                    json.dumps({
-                        'metrics': model.metrics,
-                        'step': model.step,
-                        'epoch': model.epoch,
-                        'metadata': model.metadata
-                    })
-                ))
+                """,
+                    (
+                        experiment_id,
+                        config_name,
+                        model.checkpoint_id,
+                        _current_time(),
+                        model.composite_score,
+                        json.dumps(
+                            {
+                                "metrics": model.metrics,
+                                "step": model.step,
+                                "epoch": model.epoch,
+                                "metadata": model.metadata,
+                            }
+                        ),
+                    ),
+                )
                 conn.commit()
 
         except Exception as e:
             print(f"Failed to persist best model: {e}")
 
-    def get_selection_history(self, experiment_id: str,
-                            config_name: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_selection_history(
+        self, experiment_id: str, config_name: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Get history of best model selections - optimized query"""
         if not self.db_connection:
             return []
@@ -477,36 +533,50 @@ class BestModelSelector:
         try:
             with self.db_connection.get_connection() as conn:
                 if config_name:
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         SELECT config_name, checkpoint_id, selected_at, composite_score, selection_metadata
                         FROM best_models
                         WHERE experiment_id = ? AND config_name = ?
                         ORDER BY selected_at DESC
-                    """, (experiment_id, config_name))
+                    """,
+                        (experiment_id, config_name),
+                    )
                 else:
-                    cursor = conn.execute("""
+                    cursor = conn.execute(
+                        """
                         SELECT config_name, checkpoint_id, selected_at, composite_score, selection_metadata
                         FROM best_models
                         WHERE experiment_id = ?
                         ORDER BY selected_at DESC
-                    """, (experiment_id,))
+                    """,
+                        (experiment_id,),
+                    )
 
                 # Optimized: Process all results in single loop
                 history = []
                 for row in cursor.fetchall():
-                    config_name, checkpoint_id, selected_at, composite_score, metadata_json = row
+                    (
+                        config_name,
+                        checkpoint_id,
+                        selected_at,
+                        composite_score,
+                        metadata_json,
+                    ) = row
                     try:
                         metadata = json.loads(metadata_json) if metadata_json else {}
                     except json.JSONDecodeError:
                         metadata = {}
 
-                    history.append({
-                        'config_name': config_name,
-                        'checkpoint_id': checkpoint_id,
-                        'selected_at': selected_at,
-                        'composite_score': composite_score,
-                        'metadata': metadata
-                    })
+                    history.append(
+                        {
+                            "config_name": config_name,
+                            "checkpoint_id": checkpoint_id,
+                            "selected_at": selected_at,
+                            "composite_score": composite_score,
+                            "metadata": metadata,
+                        }
+                    )
 
                 return history
 

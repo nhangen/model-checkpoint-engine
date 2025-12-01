@@ -1,15 +1,15 @@
 """Optimized migration manager - zero redundancy design"""
 
-import time
+import json
 import os
-from typing import Dict, List, Any, Optional, Union, Callable, Tuple
+import shutil
+import time
 from dataclasses import dataclass, field
 from enum import Enum
-import json
-import shutil
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from ..database.enhanced_connection import EnhancedDatabaseConnection
 from ..checkpoint.enhanced_manager import EnhancedCheckpointManager
+from ..database.enhanced_connection import EnhancedDatabaseConnection
 from ..utils.checksum import calculate_file_checksum
 
 
@@ -20,6 +20,7 @@ def _current_time() -> float:
 
 class LegacyFormat(Enum):
     """Optimized legacy format enum"""
+
     PYTORCH = "pytorch"
     TENSORFLOW = "tensorflow"
     KERAS = "keras"
@@ -32,6 +33,7 @@ class LegacyFormat(Enum):
 
 class MigrationStatus(Enum):
     """Optimized migration status enum"""
+
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
@@ -42,6 +44,7 @@ class MigrationStatus(Enum):
 @dataclass
 class LegacyCheckpoint:
     """Optimized legacy checkpoint representation"""
+
     file_path: str
     format_type: LegacyFormat
     original_size: int = 0
@@ -56,6 +59,7 @@ class LegacyCheckpoint:
 @dataclass
 class MigrationResult:
     """Optimized migration result"""
+
     source_path: str
     target_checkpoint_id: str
     status: MigrationStatus
@@ -70,8 +74,11 @@ class MigrationResult:
 class MigrationManager:
     """Optimized migration manager with zero redundancy"""
 
-    def __init__(self, checkpoint_manager: EnhancedCheckpointManager,
-                 db_connection: Optional[EnhancedDatabaseConnection] = None):
+    def __init__(
+        self,
+        checkpoint_manager: EnhancedCheckpointManager,
+        db_connection: Optional[EnhancedDatabaseConnection] = None,
+    ):
         """
         Initialize migration manager
 
@@ -94,10 +101,10 @@ class MigrationManager:
 
         # Optimized: Statistics
         self._stats = {
-            'total_migrated': 0,
-            'total_failed': 0,
-            'total_size_migrated': 0,
-            'migration_start_time': 0.0
+            "total_migrated": 0,
+            "total_failed": 0,
+            "total_size_migrated": 0,
+            "migration_start_time": 0.0,
         }
 
     def register_adapter(self, format_type: LegacyFormat, adapter: Any) -> bool:
@@ -113,7 +120,7 @@ class MigrationManager:
         """
         try:
             # Validate adapter has required methods
-            required_methods = ['can_handle', 'extract_metadata', 'convert_to_enhanced']
+            required_methods = ["can_handle", "extract_metadata", "convert_to_enhanced"]
             for method in required_methods:
                 if not hasattr(adapter, method):
                     raise ValueError(f"Adapter must implement {method} method")
@@ -125,10 +132,13 @@ class MigrationManager:
             print(f"Failed to register adapter for {format_type}: {e}")
             return False
 
-    def discover_legacy_checkpoints(self, root_path: str,
-                                  recursive: bool = True,
-                                  include_patterns: Optional[List[str]] = None,
-                                  exclude_patterns: Optional[List[str]] = None) -> List[LegacyCheckpoint]:
+    def discover_legacy_checkpoints(
+        self,
+        root_path: str,
+        recursive: bool = True,
+        include_patterns: Optional[List[str]] = None,
+        exclude_patterns: Optional[List[str]] = None,
+    ) -> List[LegacyCheckpoint]:
         """
         Discover legacy checkpoints - optimized scanning
 
@@ -147,10 +157,18 @@ class MigrationManager:
 
         # Default patterns
         if include_patterns is None:
-            include_patterns = ['*.pth', '*.pt', '*.h5', '*.pkl', '*.npz', '*.onnx', '*.safetensors']
+            include_patterns = [
+                "*.pth",
+                "*.pt",
+                "*.h5",
+                "*.pkl",
+                "*.npz",
+                "*.onnx",
+                "*.safetensors",
+            ]
 
         if exclude_patterns is None:
-            exclude_patterns = ['*temp*', '*tmp*', '*cache*']
+            exclude_patterns = ["*temp*", "*tmp*", "*cache*"]
 
         discovered = []
 
@@ -199,7 +217,7 @@ class MigrationManager:
                         creation_time=creation_time,
                         metadata=metadata,
                         experiment_name=self._extract_experiment_name(file_path),
-                        model_name=self._extract_model_name(file_path)
+                        model_name=self._extract_model_name(file_path),
                     )
 
                     discovered.append(checkpoint)
@@ -216,7 +234,10 @@ class MigrationManager:
     def _matches_patterns(self, filename: str, patterns: List[str]) -> bool:
         """Check if filename matches any pattern - optimized matching"""
         import fnmatch
-        return any(fnmatch.fnmatch(filename.lower(), pattern.lower()) for pattern in patterns)
+
+        return any(
+            fnmatch.fnmatch(filename.lower(), pattern.lower()) for pattern in patterns
+        )
 
     def _detect_format(self, file_path: str) -> LegacyFormat:
         """Detect checkpoint format - optimized detection"""
@@ -224,16 +245,16 @@ class MigrationManager:
 
         # Optimized: Direct extension mapping
         extension_map = {
-            '.pth': LegacyFormat.PYTORCH,
-            '.pt': LegacyFormat.PYTORCH,
-            '.h5': LegacyFormat.KERAS,
-            '.hdf5': LegacyFormat.KERAS,
-            '.pkl': LegacyFormat.PICKLE,
-            '.pickle': LegacyFormat.PICKLE,
-            '.npz': LegacyFormat.NUMPY,
-            '.npy': LegacyFormat.NUMPY,
-            '.onnx': LegacyFormat.ONNX,
-            '.safetensors': LegacyFormat.SAFETENSORS
+            ".pth": LegacyFormat.PYTORCH,
+            ".pt": LegacyFormat.PYTORCH,
+            ".h5": LegacyFormat.KERAS,
+            ".hdf5": LegacyFormat.KERAS,
+            ".pkl": LegacyFormat.PICKLE,
+            ".pickle": LegacyFormat.PICKLE,
+            ".npz": LegacyFormat.NUMPY,
+            ".npy": LegacyFormat.NUMPY,
+            ".onnx": LegacyFormat.ONNX,
+            ".safetensors": LegacyFormat.SAFETENSORS,
         }
 
         return extension_map.get(file_ext, LegacyFormat.CUSTOM)
@@ -245,11 +266,18 @@ class MigrationManager:
 
         for part in reversed(path_parts[:-1]):  # Exclude filename
             # Look for common experiment folder patterns
-            if any(keyword in part.lower() for keyword in ['exp', 'experiment', 'run', 'trial']):
+            if any(
+                keyword in part.lower()
+                for keyword in ["exp", "experiment", "run", "trial"]
+            ):
                 return part
 
         # Fallback to parent directory name
-        return os.path.basename(os.path.dirname(file_path)) if len(path_parts) > 1 else None
+        return (
+            os.path.basename(os.path.dirname(file_path))
+            if len(path_parts) > 1
+            else None
+        )
 
     def _extract_model_name(self, file_path: str) -> Optional[str]:
         """Extract model name from filename - optimized extraction"""
@@ -257,16 +285,26 @@ class MigrationManager:
         name_without_ext = os.path.splitext(filename)[0]
 
         # Remove common suffixes
-        common_suffixes = ['_checkpoint', '_model', '_weights', '_state', '_best', '_final']
+        common_suffixes = [
+            "_checkpoint",
+            "_model",
+            "_weights",
+            "_state",
+            "_best",
+            "_final",
+        ]
         for suffix in common_suffixes:
             if name_without_ext.endswith(suffix):
-                name_without_ext = name_without_ext[:-len(suffix)]
+                name_without_ext = name_without_ext[: -len(suffix)]
 
         return name_without_ext if name_without_ext else None
 
-    def migrate_checkpoint(self, legacy_checkpoint: LegacyCheckpoint,
-                         experiment_id: Optional[str] = None,
-                         create_backup: bool = True) -> MigrationResult:
+    def migrate_checkpoint(
+        self,
+        legacy_checkpoint: LegacyCheckpoint,
+        experiment_id: Optional[str] = None,
+        create_backup: bool = True,
+    ) -> MigrationResult:
         """
         Migrate single checkpoint - optimized migration
 
@@ -284,13 +322,15 @@ class MigrationManager:
             source_path=legacy_checkpoint.file_path,
             target_checkpoint_id="",
             status=MigrationStatus.PENDING,
-            original_size=legacy_checkpoint.original_size
+            original_size=legacy_checkpoint.original_size,
         )
 
         try:
             # Validate source file exists
             if not os.path.exists(legacy_checkpoint.file_path):
-                raise FileNotFoundError(f"Source file not found: {legacy_checkpoint.file_path}")
+                raise FileNotFoundError(
+                    f"Source file not found: {legacy_checkpoint.file_path}"
+                )
 
             # Get or create experiment
             if experiment_id is None:
@@ -306,26 +346,28 @@ class MigrationManager:
             # Get appropriate adapter
             adapter = self._adapters.get(legacy_checkpoint.format_type)
             if not adapter:
-                raise ValueError(f"No adapter available for format: {legacy_checkpoint.format_type}")
+                raise ValueError(
+                    f"No adapter available for format: {legacy_checkpoint.format_type}"
+                )
 
             # Convert checkpoint
             converted_data = adapter.convert_to_enhanced(legacy_checkpoint)
 
             # Save to enhanced checkpoint system
             checkpoint_id = self.checkpoint_manager.save_checkpoint(
-                model_state=converted_data.get('model_state', {}),
+                model_state=converted_data.get("model_state", {}),
                 experiment_id=experiment_id,
-                step=converted_data.get('step'),
-                epoch=converted_data.get('epoch'),
-                metrics=converted_data.get('metrics', {}),
+                step=converted_data.get("step"),
+                epoch=converted_data.get("epoch"),
+                metrics=converted_data.get("metrics", {}),
                 metadata={
-                    'migrated_from': legacy_checkpoint.file_path,
-                    'original_format': legacy_checkpoint.format_type.value,
-                    'migration_time': start_time,
-                    'backup_path': backup_path,
+                    "migrated_from": legacy_checkpoint.file_path,
+                    "original_format": legacy_checkpoint.format_type.value,
+                    "migration_time": start_time,
+                    "backup_path": backup_path,
                     **legacy_checkpoint.metadata,
-                    **converted_data.get('metadata', {})
-                }
+                    **converted_data.get("metadata", {}),
+                },
             )
 
             # Update result
@@ -336,23 +378,25 @@ class MigrationManager:
             # Get new checkpoint size
             checkpoint_info = self.checkpoint_manager.get_checkpoint_info(checkpoint_id)
             if checkpoint_info:
-                result.new_size = checkpoint_info.get('file_size', 0)
+                result.new_size = checkpoint_info.get("file_size", 0)
 
             # Validate if enabled
             if self._validation_enabled:
-                result.validation_passed = self._validate_migration(legacy_checkpoint, checkpoint_id)
+                result.validation_passed = self._validate_migration(
+                    legacy_checkpoint, checkpoint_id
+                )
                 if result.validation_passed:
                     result.status = MigrationStatus.VALIDATED
 
             # Update statistics
-            self._stats['total_migrated'] += 1
-            self._stats['total_size_migrated'] += result.original_size
+            self._stats["total_migrated"] += 1
+            self._stats["total_size_migrated"] += result.original_size
 
         except Exception as e:
             result.status = MigrationStatus.FAILED
             result.error_message = str(e)
             result.migration_time = _current_time() - start_time
-            self._stats['total_failed'] += 1
+            self._stats["total_failed"] += 1
 
             print(f"Migration failed for {legacy_checkpoint.file_path}: {e}")
 
@@ -365,9 +409,12 @@ class MigrationManager:
 
         return result
 
-    def migrate_batch(self, legacy_checkpoints: List[LegacyCheckpoint],
-                     experiment_mapping: Optional[Dict[str, str]] = None,
-                     parallel: bool = True) -> List[MigrationResult]:
+    def migrate_batch(
+        self,
+        legacy_checkpoints: List[LegacyCheckpoint],
+        experiment_mapping: Optional[Dict[str, str]] = None,
+        parallel: bool = True,
+    ) -> List[MigrationResult]:
         """
         Migrate batch of checkpoints - optimized batch processing
 
@@ -382,7 +429,7 @@ class MigrationManager:
         if not legacy_checkpoints:
             return []
 
-        self._stats['migration_start_time'] = _current_time()
+        self._stats["migration_start_time"] = _current_time()
         results = []
 
         if parallel and len(legacy_checkpoints) > 1:
@@ -390,7 +437,9 @@ class MigrationManager:
             try:
                 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-                with ThreadPoolExecutor(max_workers=self._parallel_migrations) as executor:
+                with ThreadPoolExecutor(
+                    max_workers=self._parallel_migrations
+                ) as executor:
                     # Submit migration tasks
                     future_to_checkpoint = {}
                     for checkpoint in legacy_checkpoints:
@@ -398,7 +447,9 @@ class MigrationManager:
                         if experiment_mapping:
                             experiment_id = experiment_mapping.get(checkpoint.file_path)
 
-                        future = executor.submit(self.migrate_checkpoint, checkpoint, experiment_id)
+                        future = executor.submit(
+                            self.migrate_checkpoint, checkpoint, experiment_id
+                        )
                         future_to_checkpoint[future] = checkpoint
 
                     # Collect results
@@ -412,7 +463,7 @@ class MigrationManager:
                                 source_path=checkpoint.file_path,
                                 target_checkpoint_id="",
                                 status=MigrationStatus.FAILED,
-                                error_message=str(e)
+                                error_message=str(e),
                             )
                             results.append(error_result)
 
@@ -434,30 +485,32 @@ class MigrationManager:
 
     def _get_or_create_experiment(self, legacy_checkpoint: LegacyCheckpoint) -> str:
         """Get or create experiment for checkpoint - optimized lookup"""
-        experiment_name = (legacy_checkpoint.experiment_name or
-                          legacy_checkpoint.model_name or
-                          f"migrated_exp_{int(_current_time())}")
+        experiment_name = (
+            legacy_checkpoint.experiment_name
+            or legacy_checkpoint.model_name
+            or f"migrated_exp_{int(_current_time())}"
+        )
 
         # Try to find existing experiment
         experiments = self.checkpoint_manager.list_experiments()
         for exp in experiments:
-            if exp.get('name') == experiment_name:
-                return exp['id']
+            if exp.get("name") == experiment_name:
+                return exp["id"]
 
         # Create new experiment
         return self.checkpoint_manager.create_experiment(
             name=experiment_name,
             description=f"Migrated from {legacy_checkpoint.format_type.value} checkpoint",
             metadata={
-                'migrated': True,
-                'original_format': legacy_checkpoint.format_type.value,
-                'source_path': os.path.dirname(legacy_checkpoint.file_path)
-            }
+                "migrated": True,
+                "original_format": legacy_checkpoint.format_type.value,
+                "source_path": os.path.dirname(legacy_checkpoint.file_path),
+            },
         )
 
     def _create_backup(self, file_path: str) -> str:
         """Create backup of original file - optimized backup"""
-        backup_dir = os.path.join(os.path.dirname(file_path), '.migration_backups')
+        backup_dir = os.path.join(os.path.dirname(file_path), ".migration_backups")
         os.makedirs(backup_dir, exist_ok=True)
 
         filename = os.path.basename(file_path)
@@ -468,28 +521,31 @@ class MigrationManager:
         shutil.copy2(file_path, backup_path)
         return backup_path
 
-    def _validate_migration(self, legacy_checkpoint: LegacyCheckpoint,
-                          new_checkpoint_id: str) -> bool:
+    def _validate_migration(
+        self, legacy_checkpoint: LegacyCheckpoint, new_checkpoint_id: str
+    ) -> bool:
         """Validate migration integrity - optimized validation"""
         try:
             # Get new checkpoint info
-            checkpoint_info = self.checkpoint_manager.get_checkpoint_info(new_checkpoint_id)
+            checkpoint_info = self.checkpoint_manager.get_checkpoint_info(
+                new_checkpoint_id
+            )
             if not checkpoint_info:
                 return False
 
             # Basic size check (new checkpoint should be reasonable size)
-            new_size = checkpoint_info.get('file_size', 0)
+            new_size = checkpoint_info.get("file_size", 0)
             if new_size == 0:
                 return False
 
             # Check if metadata was preserved
-            metadata = checkpoint_info.get('metadata', {})
-            if 'migrated_from' not in metadata:
+            metadata = checkpoint_info.get("metadata", {})
+            if "migrated_from" not in metadata:
                 return False
 
             # Adapter-specific validation
             adapter = self._adapters.get(legacy_checkpoint.format_type)
-            if adapter and hasattr(adapter, 'validate_migration'):
+            if adapter and hasattr(adapter, "validate_migration"):
                 return adapter.validate_migration(legacy_checkpoint, checkpoint_info)
 
             return True
@@ -502,22 +558,25 @@ class MigrationManager:
         """Persist migration record to database - optimized storage"""
         try:
             with self.db_connection.get_connection() as conn:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT OR REPLACE INTO migration_history
                     (source_path, target_checkpoint_id, status, error_message,
                      migration_time, original_size, new_size, validation_passed, metadata)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    result.source_path,
-                    result.target_checkpoint_id,
-                    result.status.value,
-                    result.error_message,
-                    result.migration_time,
-                    result.original_size,
-                    result.new_size,
-                    result.validation_passed,
-                    json.dumps(result.metadata)
-                ))
+                """,
+                    (
+                        result.source_path,
+                        result.target_checkpoint_id,
+                        result.status.value,
+                        result.error_message,
+                        result.migration_time,
+                        result.original_size,
+                        result.new_size,
+                        result.validation_passed,
+                        json.dumps(result.metadata),
+                    ),
+                )
                 conn.commit()
 
         except Exception as e:
@@ -526,56 +585,73 @@ class MigrationManager:
     def get_migration_statistics(self) -> Dict[str, Any]:
         """Get migration statistics - optimized reporting"""
         current_time = _current_time()
-        total_duration = (current_time - self._stats['migration_start_time']
-                         if self._stats['migration_start_time'] > 0 else 0)
+        total_duration = (
+            current_time - self._stats["migration_start_time"]
+            if self._stats["migration_start_time"] > 0
+            else 0
+        )
 
-        successful_migrations = [r for r in self._migration_history if r.status == MigrationStatus.COMPLETED]
-        failed_migrations = [r for r in self._migration_history if r.status == MigrationStatus.FAILED]
+        successful_migrations = [
+            r for r in self._migration_history if r.status == MigrationStatus.COMPLETED
+        ]
+        failed_migrations = [
+            r for r in self._migration_history if r.status == MigrationStatus.FAILED
+        ]
 
         return {
-            'total_discovered': len(self._migration_history),
-            'total_migrated': len(successful_migrations),
-            'total_failed': len(failed_migrations),
-            'success_rate': (len(successful_migrations) / max(len(self._migration_history), 1)) * 100,
-            'total_size_migrated_mb': self._stats['total_size_migrated'] / (1024 * 1024),
-            'average_migration_time': (
-                sum(r.migration_time for r in successful_migrations) / max(len(successful_migrations), 1)
+            "total_discovered": len(self._migration_history),
+            "total_migrated": len(successful_migrations),
+            "total_failed": len(failed_migrations),
+            "success_rate": (
+                len(successful_migrations) / max(len(self._migration_history), 1)
+            )
+            * 100,
+            "total_size_migrated_mb": self._stats["total_size_migrated"]
+            / (1024 * 1024),
+            "average_migration_time": (
+                sum(r.migration_time for r in successful_migrations)
+                / max(len(successful_migrations), 1)
             ),
-            'total_duration_seconds': total_duration,
-            'migrations_per_minute': (
-                len(successful_migrations) / max(total_duration / 60, 1) if total_duration > 0 else 0
+            "total_duration_seconds": total_duration,
+            "migrations_per_minute": (
+                len(successful_migrations) / max(total_duration / 60, 1)
+                if total_duration > 0
+                else 0
             ),
-            'registered_adapters': list(self._adapters.keys()),
-            'validation_enabled': self._validation_enabled,
-            'backup_enabled': self._backup_enabled
+            "registered_adapters": list(self._adapters.keys()),
+            "validation_enabled": self._validation_enabled,
+            "backup_enabled": self._backup_enabled,
         }
 
-    def export_migration_report(self, format_type: str = 'json') -> Union[str, Dict[str, Any]]:
+    def export_migration_report(
+        self, format_type: str = "json"
+    ) -> Union[str, Dict[str, Any]]:
         """Export comprehensive migration report - optimized export"""
         report_data = {
-            'migration_summary': self.get_migration_statistics(),
-            'migration_history': [
+            "migration_summary": self.get_migration_statistics(),
+            "migration_history": [
                 {
-                    'source_path': r.source_path,
-                    'target_checkpoint_id': r.target_checkpoint_id,
-                    'status': r.status.value,
-                    'error_message': r.error_message,
-                    'migration_time': r.migration_time,
-                    'original_size_mb': r.original_size / (1024 * 1024),
-                    'new_size_mb': r.new_size / (1024 * 1024),
-                    'size_reduction_percent': (
+                    "source_path": r.source_path,
+                    "target_checkpoint_id": r.target_checkpoint_id,
+                    "status": r.status.value,
+                    "error_message": r.error_message,
+                    "migration_time": r.migration_time,
+                    "original_size_mb": r.original_size / (1024 * 1024),
+                    "new_size_mb": r.new_size / (1024 * 1024),
+                    "size_reduction_percent": (
                         ((r.original_size - r.new_size) / max(r.original_size, 1)) * 100
-                        if r.new_size > 0 else 0
+                        if r.new_size > 0
+                        else 0
                     ),
-                    'validation_passed': r.validation_passed
+                    "validation_passed": r.validation_passed,
                 }
                 for r in self._migration_history
             ],
-            'format_breakdown': self._get_format_breakdown(),
-            'recommendations': self._generate_recommendations()
+            "format_breakdown": self._get_format_breakdown(),
+            "recommendations": self._generate_recommendations(),
         }
 
-        if format_type == 'json':
+        if format_type == "json":
             return json.dumps(report_data, indent=2, default=str)
         else:
             return report_data
@@ -587,23 +663,25 @@ class MigrationManager:
         for result in self._migration_history:
             # Extract format from metadata or filename
             source_ext = os.path.splitext(result.source_path)[1].lower()
-            format_key = source_ext or 'unknown'
+            format_key = source_ext or "unknown"
 
             if format_key not in format_stats:
                 format_stats[format_key] = {
-                    'count': 0,
-                    'successful': 0,
-                    'failed': 0,
-                    'total_size_mb': 0
+                    "count": 0,
+                    "successful": 0,
+                    "failed": 0,
+                    "total_size_mb": 0,
                 }
 
-            format_stats[format_key]['count'] += 1
-            format_stats[format_key]['total_size_mb'] += result.original_size / (1024 * 1024)
+            format_stats[format_key]["count"] += 1
+            format_stats[format_key]["total_size_mb"] += result.original_size / (
+                1024 * 1024
+            )
 
             if result.status == MigrationStatus.COMPLETED:
-                format_stats[format_key]['successful'] += 1
+                format_stats[format_key]["successful"] += 1
             elif result.status == MigrationStatus.FAILED:
-                format_stats[format_key]['failed'] += 1
+                format_stats[format_key]["failed"] += 1
 
         return format_stats
 
@@ -613,23 +691,31 @@ class MigrationManager:
 
         # Analyze success rate
         stats = self.get_migration_statistics()
-        if stats['success_rate'] < 90:
-            recommendations.append("Consider enabling validation to identify migration issues")
+        if stats["success_rate"] < 90:
+            recommendations.append(
+                "Consider enabling validation to identify migration issues"
+            )
 
         # Analyze failed migrations
-        failed_migrations = [r for r in self._migration_history if r.status == MigrationStatus.FAILED]
+        failed_migrations = [
+            r for r in self._migration_history if r.status == MigrationStatus.FAILED
+        ]
         if failed_migrations:
             common_errors = {}
             for result in failed_migrations:
-                error = result.error_message or 'Unknown error'
+                error = result.error_message or "Unknown error"
                 common_errors[error] = common_errors.get(error, 0) + 1
 
             most_common_error = max(common_errors.items(), key=lambda x: x[1])
-            recommendations.append(f"Most common error: {most_common_error[0]} ({most_common_error[1]} occurrences)")
+            recommendations.append(
+                f"Most common error: {most_common_error[0]} ({most_common_error[1]} occurrences)"
+            )
 
         # Performance recommendations
-        if stats['average_migration_time'] > 30:
-            recommendations.append("Consider enabling parallel processing to improve migration speed")
+        if stats["average_migration_time"] > 30:
+            recommendations.append(
+                "Consider enabling parallel processing to improve migration speed"
+            )
 
         return recommendations
 
@@ -640,10 +726,10 @@ class MigrationManager:
 
         # Reset statistics
         self._stats = {
-            'total_migrated': 0,
-            'total_failed': 0,
-            'total_size_migrated': 0,
-            'migration_start_time': 0.0
+            "total_migrated": 0,
+            "total_failed": 0,
+            "total_size_migrated": 0,
+            "migration_start_time": 0.0,
         }
 
         return cleared_count

@@ -1,12 +1,12 @@
 """Optimized base cloud provider - zero redundancy design"""
 
-import time
-from typing import Dict, List, Any, Optional, Union, BinaryIO
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
-from enum import Enum
 import hashlib
 import os
+import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, BinaryIO, Dict, List, Optional, Union
 
 
 def _current_time() -> float:
@@ -16,6 +16,7 @@ def _current_time() -> float:
 
 class CloudProvider(Enum):
     """Optimized cloud provider enum"""
+
     S3 = "s3"
     GCS = "gcs"
     AZURE = "azure"
@@ -24,6 +25,7 @@ class CloudProvider(Enum):
 @dataclass
 class CloudCredentials:
     """Optimized cloud credentials - using field defaults"""
+
     provider: CloudProvider
     access_key: Optional[str] = None
     secret_key: Optional[str] = None
@@ -41,6 +43,7 @@ class CloudCredentials:
 @dataclass
 class CloudObject:
     """Optimized cloud object metadata"""
+
     key: str
     size: int = 0
     last_modified: float = field(default_factory=_current_time)
@@ -53,6 +56,7 @@ class CloudObject:
 @dataclass
 class UploadResult:
     """Optimized upload result"""
+
     success: bool
     key: str
     size: int = 0
@@ -65,6 +69,7 @@ class UploadResult:
 @dataclass
 class DownloadResult:
     """Optimized download result"""
+
     success: bool
     key: str
     local_path: Optional[str] = None
@@ -104,8 +109,9 @@ class BaseCloudProvider(ABC):
         pass
 
     @abstractmethod
-    def _upload_file_impl(self, local_path: str, cloud_key: str,
-                         metadata: Optional[Dict[str, Any]] = None) -> UploadResult:
+    def _upload_file_impl(
+        self, local_path: str, cloud_key: str, metadata: Optional[Dict[str, Any]] = None
+    ) -> UploadResult:
         """Provider-specific file upload implementation"""
         pass
 
@@ -115,7 +121,9 @@ class BaseCloudProvider(ABC):
         pass
 
     @abstractmethod
-    def _list_objects_impl(self, prefix: str = "", max_keys: int = 1000) -> List[CloudObject]:
+    def _list_objects_impl(
+        self, prefix: str = "", max_keys: int = 1000
+    ) -> List[CloudObject]:
         """Provider-specific object listing implementation"""
         pass
 
@@ -133,15 +141,21 @@ class BaseCloudProvider(ABC):
         """Get or create client with connection management"""
         current_time = _current_time()
 
-        if (self._client is None or
-            current_time - self._last_connection_time > self._connection_timeout):
+        if (
+            self._client is None
+            or current_time - self._last_connection_time > self._connection_timeout
+        ):
             self._client = self._create_client()
             self._last_connection_time = current_time
 
         return self._client
 
-    def upload_file(self, local_path: str, cloud_key: Optional[str] = None,
-                   metadata: Optional[Dict[str, Any]] = None) -> UploadResult:
+    def upload_file(
+        self,
+        local_path: str,
+        cloud_key: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> UploadResult:
         """
         Upload file to cloud storage - optimized with validation
 
@@ -158,7 +172,7 @@ class BaseCloudProvider(ABC):
             return UploadResult(
                 success=False,
                 key=cloud_key or "",
-                error=f"Local file not found: {local_path}"
+                error=f"Local file not found: {local_path}",
             )
 
         if cloud_key is None:
@@ -169,20 +183,20 @@ class BaseCloudProvider(ABC):
             file_size = os.path.getsize(local_path)
         except OSError as e:
             return UploadResult(
-                success=False,
-                key=cloud_key,
-                error=f"Failed to get file size: {e}"
+                success=False, key=cloud_key, error=f"Failed to get file size: {e}"
             )
 
         # Optimized: Add standard metadata
         if metadata is None:
             metadata = {}
 
-        metadata.update({
-            'original_filename': os.path.basename(local_path),
-            'upload_timestamp': str(_current_time()),
-            'file_size': str(file_size)
-        })
+        metadata.update(
+            {
+                "original_filename": os.path.basename(local_path),
+                "upload_timestamp": str(_current_time()),
+                "file_size": str(file_size),
+            }
+        )
 
         try:
             result = self._upload_file_impl(local_path, cloud_key, metadata)
@@ -194,10 +208,12 @@ class BaseCloudProvider(ABC):
                 success=False,
                 key=cloud_key,
                 size=file_size,
-                error=f"Upload failed: {e}"
+                error=f"Upload failed: {e}",
             )
 
-    def download_file(self, cloud_key: str, local_path: Optional[str] = None) -> DownloadResult:
+    def download_file(
+        self, cloud_key: str, local_path: Optional[str] = None
+    ) -> DownloadResult:
         """
         Download file from cloud storage - optimized with validation
 
@@ -221,7 +237,7 @@ class BaseCloudProvider(ABC):
                     success=False,
                     key=cloud_key,
                     local_path=local_path,
-                    error=f"Failed to create directory: {e}"
+                    error=f"Failed to create directory: {e}",
                 )
 
         try:
@@ -239,7 +255,7 @@ class BaseCloudProvider(ABC):
                 success=False,
                 key=cloud_key,
                 local_path=local_path,
-                error=f"Download failed: {e}"
+                error=f"Download failed: {e}",
             )
 
     def list_objects(self, prefix: str = "", max_keys: int = 1000) -> List[CloudObject]:
@@ -291,8 +307,12 @@ class BaseCloudProvider(ABC):
             print(f"Failed to check object existence '{cloud_key}': {e}")
             return False
 
-    def upload_directory(self, local_dir: str, cloud_prefix: str = "",
-                        max_concurrency: Optional[int] = None) -> Dict[str, UploadResult]:
+    def upload_directory(
+        self,
+        local_dir: str,
+        cloud_prefix: str = "",
+        max_concurrency: Optional[int] = None,
+    ) -> Dict[str, UploadResult]:
         """
         Upload entire directory to cloud storage - optimized batch upload
 
@@ -316,7 +336,7 @@ class BaseCloudProvider(ABC):
             for file in files:
                 local_path = os.path.join(root, file)
                 relative_path = os.path.relpath(local_path, local_dir)
-                cloud_key = os.path.join(cloud_prefix, relative_path).replace('\\', '/')
+                cloud_key = os.path.join(cloud_prefix, relative_path).replace("\\", "/")
                 files_to_upload.append((local_path, cloud_key))
 
         # Optimized: Upload files (sequential for now, could be parallelized)
@@ -326,8 +346,9 @@ class BaseCloudProvider(ABC):
 
         return results
 
-    def download_directory(self, cloud_prefix: str, local_dir: str,
-                          max_concurrency: Optional[int] = None) -> Dict[str, DownloadResult]:
+    def download_directory(
+        self, cloud_prefix: str, local_dir: str, max_concurrency: Optional[int] = None
+    ) -> Dict[str, DownloadResult]:
         """
         Download all objects with prefix to local directory - optimized batch download
 
@@ -350,7 +371,7 @@ class BaseCloudProvider(ABC):
 
         # Download each object
         for obj in objects:
-            relative_path = obj.key[len(cloud_prefix):].lstrip('/')
+            relative_path = obj.key[len(cloud_prefix) :].lstrip("/")
             local_path = os.path.join(local_dir, relative_path)
 
             result = self.download_file(obj.key, local_path)
@@ -358,8 +379,9 @@ class BaseCloudProvider(ABC):
 
         return results
 
-    def calculate_local_checksum(self, local_path: str,
-                                algorithm: str = 'md5') -> Optional[str]:
+    def calculate_local_checksum(
+        self, local_path: str, algorithm: str = "md5"
+    ) -> Optional[str]:
         """
         Calculate checksum of local file - optimized calculation
 
@@ -372,17 +394,17 @@ class BaseCloudProvider(ABC):
         """
         try:
             # Optimized: Use appropriate hash algorithm
-            if algorithm == 'md5':
+            if algorithm == "md5":
                 hasher = hashlib.md5()
-            elif algorithm == 'sha1':
+            elif algorithm == "sha1":
                 hasher = hashlib.sha1()
-            elif algorithm == 'sha256':
+            elif algorithm == "sha256":
                 hasher = hashlib.sha256()
             else:
                 return None
 
             # Optimized: Read file in chunks
-            with open(local_path, 'rb') as f:
+            with open(local_path, "rb") as f:
                 while chunk := f.read(self._chunk_size):
                     hasher.update(chunk)
 
@@ -431,26 +453,28 @@ class BaseCloudProvider(ABC):
 
         # Optimized: Calculate statistics in single pass
         size_distribution = {
-            'small_files': 0,    # < 1MB
-            'medium_files': 0,   # 1MB - 100MB
-            'large_files': 0     # > 100MB
+            "small_files": 0,  # < 1MB
+            "medium_files": 0,  # 1MB - 100MB
+            "large_files": 0,  # > 100MB
         }
 
         for obj in objects:
             if obj.size < 1024 * 1024:
-                size_distribution['small_files'] += 1
+                size_distribution["small_files"] += 1
             elif obj.size < 100 * 1024 * 1024:
-                size_distribution['medium_files'] += 1
+                size_distribution["medium_files"] += 1
             else:
-                size_distribution['large_files'] += 1
+                size_distribution["large_files"] += 1
 
         return {
-            'total_objects': total_count,
-            'total_size_mb': total_size / (1024 * 1024),
-            'average_size_mb': (total_size / total_count / (1024 * 1024)) if total_count > 0 else 0,
-            'size_distribution': size_distribution,
-            'provider': self.provider_type.value,
-            'bucket': self.bucket_name
+            "total_objects": total_count,
+            "total_size_mb": total_size / (1024 * 1024),
+            "average_size_mb": (
+                (total_size / total_count / (1024 * 1024)) if total_count > 0 else 0
+            ),
+            "size_distribution": size_distribution,
+            "provider": self.provider_type.value,
+            "bucket": self.bucket_name,
         }
 
     def cleanup_failed_uploads(self) -> int:

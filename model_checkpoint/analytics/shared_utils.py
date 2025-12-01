@@ -1,8 +1,9 @@
 """Shared analytics utilities - zero redundancy optimization"""
 
-import time
 import statistics
-from typing import List, Optional, Dict, Any, Union
+import time
+from typing import Any, Dict, List, Optional, Union
+
 
 # Shared time function used across all analytics modules
 def current_time() -> float:
@@ -13,11 +14,12 @@ def current_time() -> float:
 # Shared metric evaluation functions
 def is_loss_metric(metric_name: str) -> bool:
     """Determine if metric should be minimized - shared logic"""
-    return 'loss' in metric_name.lower() or 'error' in metric_name.lower()
+    return "loss" in metric_name.lower() or "error" in metric_name.lower()
 
 
-def calculate_improvement(current_value: float, previous_value: float,
-                         metric_name: str) -> float:
+def calculate_improvement(
+    current_value: float, previous_value: float, metric_name: str
+) -> float:
     """Calculate improvement percentage - shared across analytics"""
     if previous_value == 0:
         return 0.0
@@ -65,10 +67,10 @@ def calculate_statistics(values: List[float]) -> Dict[str, float]:
         return {}
 
     return {
-        'min': min(values),
-        'max': max(values),
-        'mean': statistics.mean(values),
-        'median': statistics.median(values) if len(values) > 1 else values[0],
-        'std': statistics.stdev(values) if len(values) > 1 else 0.0,
-        'range': max(values) - min(values)
+        "min": min(values),
+        "max": max(values),
+        "mean": statistics.mean(values),
+        "median": statistics.median(values) if len(values) > 1 else values[0],
+        "std": statistics.stdev(values) if len(values) > 1 else 0.0,
+        "range": max(values) - min(values),
     }

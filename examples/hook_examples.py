@@ -1,12 +1,16 @@
 """Example hooks for the checkpoint engine pipeline"""
 
-import logging
 import json
+import logging
 import time
-from typing import Dict, Any
+from typing import Any, Dict
 
 from model_checkpoint.hooks import BaseHook, HookContext, HookEvent, HookPriority
-from model_checkpoint.hooks.decorators import hook_handler, conditional_hook, benchmark_hook
+from model_checkpoint.hooks.decorators import (
+    benchmark_hook,
+    conditional_hook,
+    hook_handler,
+)
 
 
 class ValidationHook(BaseHook):
@@ -18,38 +22,38 @@ class ValidationHook(BaseHook):
     @hook_handler([HookEvent.BEFORE_CHECKPOINT_SAVE], priority=HookPriority.HIGH)
     def validate_model_state(self, context: HookContext):
         """Validate model state before saving"""
-        model = context.get('model')
+        model = context.get("model")
 
         if model is None:
-            return {'success': False, 'error': 'No model provided'}
+            return {"success": False, "error": "No model provided"}
 
         # Check if model has required attributes
-        if not hasattr(model, 'state_dict'):
+        if not hasattr(model, "state_dict"):
             self.logger.warning("Model does not have state_dict method")
 
         # Validate metrics
-        metrics = context.get('metrics', {})
+        metrics = context.get("metrics", {})
         for key, value in metrics.items():
             if not isinstance(value, (int, float)):
                 return {
-                    'success': False,
-                    'error': f'Invalid metric type for {key}: {type(value)}'
+                    "success": False,
+                    "error": f"Invalid metric type for {key}: {type(value)}",
                 }
 
         self.logger.info(f"Validation passed for checkpoint {context.checkpoint_id}")
-        return {'success': True}
+        return {"success": True}
 
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def verify_save_integrity(self, context: HookContext):
         """Verify checkpoint was saved correctly"""
-        file_path = context.get('file_path')
-        checksum = context.get('checksum')
+        file_path = context.get("file_path")
+        checksum = context.get("checksum")
 
         if file_path and checksum:
             # Could add additional integrity checks here
             self.logger.info(f"Checkpoint saved successfully: {file_path}")
 
-        return {'success': True}
+        return {"success": True}
 
 
 class NotificationHook(BaseHook):
@@ -62,13 +66,13 @@ class NotificationHook(BaseHook):
     def on_init(self):
         self.logger = logging.getLogger(__name__)
 
-    @conditional_hook(lambda ctx: ctx.get('is_best_loss', False))
+    @conditional_hook(lambda ctx: ctx.get("is_best_loss", False))
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def notify_best_model(self, context: HookContext):
         """Send notification when a new best model is saved"""
         experiment_id = context.experiment_id
-        loss = context.get('loss')
-        epoch = context.get('epoch')
+        loss = context.get("loss")
+        epoch = context.get("epoch")
 
         message = f"🎉 New best model! Experiment: {experiment_id}, Loss: {loss:.4f}, Epoch: {epoch}"
 
@@ -79,7 +83,7 @@ class NotificationHook(BaseHook):
             self._send_email(message)
 
         self.logger.info(message)
-        return {'success': True}
+        return {"success": True}
 
     def _send_webhook(self, message: str):
         """Send webhook notification (placeholder)"""
@@ -104,16 +108,16 @@ class MetricsTrackingHook(BaseHook):
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def track_metrics(self, context: HookContext):
         """Track metrics for trend analysis"""
-        metrics = context.get('metrics', {})
-        epoch = context.get('epoch')
-        loss = context.get('loss')
+        metrics = context.get("metrics", {})
+        epoch = context.get("epoch")
+        loss = context.get("loss")
 
         metrics_entry = {
-            'epoch': epoch,
-            'loss': loss,
-            'metrics': metrics,
-            'timestamp': time.time(),
-            'experiment_id': context.experiment_id
+            "epoch": epoch,
+            "loss": loss,
+            "metrics": metrics,
+            "timestamp": time.time(),
+            "experiment_id": context.experiment_id,
         }
 
         self.metrics_history.append(metrics_entry)
@@ -122,27 +126,31 @@ class MetricsTrackingHook(BaseHook):
         if len(self.metrics_history) >= 5:
             self._analyze_trends()
 
-        return {'success': True}
+        return {"success": True}
 
     def _analyze_trends(self):
         """Analyze metric trends and detect patterns"""
-        recent_losses = [entry['loss'] for entry in self.metrics_history[-5:]]
+        recent_losses = [entry["loss"] for entry in self.metrics_history[-5:]]
 
         # Check for overfitting (loss increasing)
         if len(recent_losses) >= 3:
             increasing_trend = all(
-                recent_losses[i] <= recent_losses[i+1]
-                for i in range(len(recent_losses)-1)
+                recent_losses[i] <= recent_losses[i + 1]
+                for i in range(len(recent_losses) - 1)
             )
 
             if increasing_trend:
-                self.logger.warning("Potential overfitting detected - loss increasing trend")
+                self.logger.warning(
+                    "Potential overfitting detected - loss increasing trend"
+                )
 
         # Check for plateau (loss not improving)
         if len(recent_losses) >= 5:
             loss_range = max(recent_losses) - min(recent_losses)
             if loss_range < 0.001:  # Very small improvement
-                self.logger.info("Training may have plateaued - consider adjusting learning rate")
+                self.logger.info(
+                    "Training may have plateaued - consider adjusting learning rate"
+                )
 
 
 class CloudBackupHook(BaseHook):
@@ -155,14 +163,16 @@ class CloudBackupHook(BaseHook):
     def on_init(self):
         self.logger = logging.getLogger(__name__)
 
-    @conditional_hook(lambda ctx: ctx.get('is_best_loss', False) or ctx.get('is_best_val_loss', False))
+    @conditional_hook(
+        lambda ctx: ctx.get("is_best_loss", False) or ctx.get("is_best_val_loss", False)
+    )
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE], async_execution=True)
     def backup_to_cloud(self, context: HookContext):
         """Backup best checkpoints to cloud storage"""
         if not self.cloud_provider:
-            return {'success': True, 'skipped': True}
+            return {"success": True, "skipped": True}
 
-        file_path = context.get('file_path')
+        file_path = context.get("file_path")
         experiment_id = context.experiment_id
         checkpoint_id = context.checkpoint_id
 
@@ -174,11 +184,11 @@ class CloudBackupHook(BaseHook):
             self.logger.info(f"Uploading {file_path} to cloud storage at {cloud_path}")
             # self.cloud_provider.upload(file_path, cloud_path)
 
-            return {'success': True, 'cloud_path': cloud_path}
+            return {"success": True, "cloud_path": cloud_path}
 
         except Exception as e:
             self.logger.error(f"Cloud backup failed: {e}")
-            return {'success': False, 'error': str(e)}
+            return {"success": False, "error": str(e)}
 
 
 class PerformanceMonitoringHook(BaseHook):
@@ -194,19 +204,19 @@ class PerformanceMonitoringHook(BaseHook):
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def monitor_save_performance(self, context: HookContext):
         """Monitor checkpoint save performance"""
-        save_time = context.get('save_time', 0)
-        file_size = context.get('file_size', 0)
+        save_time = context.get("save_time", 0)
+        file_size = context.get("file_size", 0)
 
         # Calculate performance metrics
         if save_time > 0 and file_size > 0:
             throughput_mbps = (file_size / (1024 * 1024)) / save_time
 
             perf_entry = {
-                'timestamp': time.time(),
-                'save_time': save_time,
-                'file_size': file_size,
-                'throughput_mbps': throughput_mbps,
-                'experiment_id': context.experiment_id
+                "timestamp": time.time(),
+                "save_time": save_time,
+                "file_size": file_size,
+                "throughput_mbps": throughput_mbps,
+                "experiment_id": context.experiment_id,
             }
 
             self.performance_data.append(perf_entry)
@@ -217,27 +227,29 @@ class PerformanceMonitoringHook(BaseHook):
 
             # Alert on large files
             if file_size > 1024 * 1024 * 1024:  # More than 1GB
-                self.logger.warning(f"Large checkpoint file: {file_size / (1024**3):.2f}GB")
+                self.logger.warning(
+                    f"Large checkpoint file: {file_size / (1024**3):.2f}GB"
+                )
 
             self.logger.debug(f"Save performance: {throughput_mbps:.2f} MB/s")
 
-        return {'success': True}
+        return {"success": True}
 
     def get_performance_stats(self) -> Dict[str, Any]:
         """Get performance statistics"""
         if not self.performance_data:
             return {}
 
-        save_times = [entry['save_time'] for entry in self.performance_data]
-        throughputs = [entry['throughput_mbps'] for entry in self.performance_data]
+        save_times = [entry["save_time"] for entry in self.performance_data]
+        throughputs = [entry["throughput_mbps"] for entry in self.performance_data]
 
         return {
-            'total_saves': len(self.performance_data),
-            'avg_save_time': sum(save_times) / len(save_times),
-            'max_save_time': max(save_times),
-            'min_save_time': min(save_times),
-            'avg_throughput_mbps': sum(throughputs) / len(throughputs),
-            'recent_saves': self.performance_data[-10:]  # Last 10 saves
+            "total_saves": len(self.performance_data),
+            "avg_save_time": sum(save_times) / len(save_times),
+            "max_save_time": max(save_times),
+            "min_save_time": min(save_times),
+            "avg_throughput_mbps": sum(throughputs) / len(throughputs),
+            "recent_saves": self.performance_data[-10:],  # Last 10 saves
         }
 
 
@@ -260,8 +272,7 @@ def setup_comprehensive_hooks(checkpoint_manager):
 
     # Notifications for important events
     notification_hook = NotificationHook(
-        webhook_url="https://hooks.slack.com/...",
-        email="researcher@example.com"
+        webhook_url="https://hooks.slack.com/...", email="researcher@example.com"
     )
     checkpoint_manager.hook_manager.register_object_hooks(notification_hook)
 
@@ -277,15 +288,15 @@ def setup_comprehensive_hooks(checkpoint_manager):
     @hook_handler([HookEvent.BEFORE_CHECKPOINT_SAVE])
     def log_training_progress(context: HookContext):
         """Simple hook to log training progress"""
-        epoch = context.get('epoch')
-        loss = context.get('loss')
+        epoch = context.get("epoch")
+        loss = context.get("loss")
         print(f"💾 Saving checkpoint - Epoch: {epoch}, Loss: {loss:.4f}")
         return True
 
     checkpoint_manager.register_hook(
         "training_progress_logger",
         log_training_progress,
-        [HookEvent.BEFORE_CHECKPOINT_SAVE]
+        [HookEvent.BEFORE_CHECKPOINT_SAVE],
     )
 
 

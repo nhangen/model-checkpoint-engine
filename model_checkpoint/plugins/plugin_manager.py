@@ -1,14 +1,14 @@
 """Optimized plugin management system - zero redundancy design"""
 
-import time
-import os
 import importlib.util
-from typing import Dict, List, Any, Optional, Type, Callable, Union
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
-from enum import Enum
 import json
+import os
 import threading
+import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 
 def _current_time() -> float:
@@ -18,6 +18,7 @@ def _current_time() -> float:
 
 class PluginType(Enum):
     """Optimized plugin type enum"""
+
     STORAGE_BACKEND = "storage_backend"
     NOTIFICATION_HANDLER = "notification_handler"
     CLOUD_PROVIDER = "cloud_provider"
@@ -30,6 +31,7 @@ class PluginType(Enum):
 
 class PluginStatus(Enum):
     """Optimized plugin status enum"""
+
     LOADED = "loaded"
     ACTIVE = "active"
     INACTIVE = "inactive"
@@ -40,6 +42,7 @@ class PluginStatus(Enum):
 @dataclass
 class PluginMetadata:
     """Optimized plugin metadata"""
+
     name: str
     version: str
     plugin_type: PluginType
@@ -56,6 +59,7 @@ class PluginMetadata:
 @dataclass
 class PluginInfo:
     """Optimized plugin information"""
+
     metadata: PluginMetadata
     file_path: str
     status: PluginStatus = PluginStatus.LOADED
@@ -99,17 +103,17 @@ class BasePlugin(ABC):
 
     def get_status(self) -> Dict[str, Any]:
         """Get plugin status information"""
-        return {
-            'active': self.is_active,
-            'config_keys': list(self.config.keys())
-        }
+        return {"active": self.is_active, "config_keys": list(self.config.keys())}
 
 
 class PluginManager:
     """Optimized plugin manager with zero redundancy"""
 
-    def __init__(self, plugin_directories: Optional[List[str]] = None,
-                 engine_version: str = "1.0.0"):
+    def __init__(
+        self,
+        plugin_directories: Optional[List[str]] = None,
+        engine_version: str = "1.0.0",
+    ):
         """
         Initialize plugin manager
 
@@ -118,7 +122,7 @@ class PluginManager:
             engine_version: Current engine version
         """
         self.engine_version = engine_version
-        self.plugin_directories = plugin_directories or ['./plugins']
+        self.plugin_directories = plugin_directories or ["./plugins"]
 
         # Optimized: Plugin storage
         self._plugins: Dict[str, PluginInfo] = {}
@@ -160,13 +164,13 @@ class PluginManager:
                     item_path = os.path.join(plugin_dir, item)
 
                     # Check Python files
-                    if item.endswith('.py') and not item.startswith('_'):
+                    if item.endswith(".py") and not item.startswith("_"):
                         if self._discover_plugin_file(item_path):
                             discovered_count += 1
 
                     # Check Python packages
                     elif os.path.isdir(item_path):
-                        init_file = os.path.join(item_path, '__init__.py')
+                        init_file = os.path.join(item_path, "__init__.py")
                         if os.path.exists(init_file):
                             if self._discover_plugin_file(init_file):
                                 discovered_count += 1
@@ -196,9 +200,11 @@ class PluginManager:
                 attr = getattr(module, attr_name)
 
                 # Check if it's a plugin class
-                if (isinstance(attr, type) and
-                    issubclass(attr, BasePlugin) and
-                    attr != BasePlugin):
+                if (
+                    isinstance(attr, type)
+                    and issubclass(attr, BasePlugin)
+                    and attr != BasePlugin
+                ):
 
                     # Create plugin instance to get metadata
                     try:
@@ -213,12 +219,14 @@ class PluginManager:
                         plugin_info = PluginInfo(
                             metadata=metadata,
                             file_path=file_path,
-                            status=PluginStatus.LOADED
+                            status=PluginStatus.LOADED,
                         )
 
                         with self._lock:
                             self._plugins[metadata.name] = plugin_info
-                            self._plugins_by_type[metadata.plugin_type].append(metadata.name)
+                            self._plugins_by_type[metadata.plugin_type].append(
+                                metadata.name
+                            )
 
                         return True
 
@@ -234,12 +242,16 @@ class PluginManager:
     def _is_compatible_plugin(self, metadata: PluginMetadata) -> bool:
         """Check plugin compatibility - optimized compatibility check"""
         # Check minimum version
-        if not self._version_satisfies(self.engine_version, metadata.min_engine_version, '>='):
+        if not self._version_satisfies(
+            self.engine_version, metadata.min_engine_version, ">="
+        ):
             return False
 
         # Check maximum version
         if metadata.max_engine_version:
-            if not self._version_satisfies(self.engine_version, metadata.max_engine_version, '<='):
+            if not self._version_satisfies(
+                self.engine_version, metadata.max_engine_version, "<="
+            ):
                 return False
 
         return True
@@ -248,19 +260,19 @@ class PluginManager:
         """Check version satisfaction - optimized version comparison"""
         try:
             # Simple version comparison (assumes semantic versioning)
-            v_parts = [int(x) for x in version.split('.')]
-            r_parts = [int(x) for x in requirement.split('.')]
+            v_parts = [int(x) for x in version.split(".")]
+            r_parts = [int(x) for x in requirement.split(".")]
 
             # Pad shorter version with zeros
             max_len = max(len(v_parts), len(r_parts))
             v_parts.extend([0] * (max_len - len(v_parts)))
             r_parts.extend([0] * (max_len - len(r_parts)))
 
-            if operator == '>=':
+            if operator == ">=":
                 return v_parts >= r_parts
-            elif operator == '<=':
+            elif operator == "<=":
                 return v_parts <= r_parts
-            elif operator == '==':
+            elif operator == "==":
                 return v_parts == r_parts
             else:
                 return True
@@ -268,7 +280,9 @@ class PluginManager:
         except Exception:
             return True  # Default to compatible if version parsing fails
 
-    def load_plugin(self, plugin_name: str, config: Optional[Dict[str, Any]] = None) -> bool:
+    def load_plugin(
+        self, plugin_name: str, config: Optional[Dict[str, Any]] = None
+    ) -> bool:
         """
         Load and initialize plugin - optimized loading
 
@@ -292,8 +306,7 @@ class PluginManager:
         try:
             # Load plugin module
             spec = importlib.util.spec_from_file_location(
-                f"plugin_{plugin_name}",
-                plugin_info.file_path
+                f"plugin_{plugin_name}", plugin_info.file_path
             )
 
             if not spec or not spec.loader:
@@ -306,9 +319,11 @@ class PluginManager:
             plugin_class = None
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
-                if (isinstance(attr, type) and
-                    issubclass(attr, BasePlugin) and
-                    attr != BasePlugin):
+                if (
+                    isinstance(attr, type)
+                    and issubclass(attr, BasePlugin)
+                    and attr != BasePlugin
+                ):
 
                     temp_instance = attr()
                     if temp_instance.get_metadata().name == plugin_name:
@@ -325,7 +340,9 @@ class PluginManager:
             # Validate configuration
             validation_errors = plugin_instance.validate_config(plugin_config)
             if validation_errors:
-                raise ValueError(f"Configuration validation failed: {validation_errors}")
+                raise ValueError(
+                    f"Configuration validation failed: {validation_errors}"
+                )
 
             # Initialize plugin
             if not plugin_instance.initialize():
@@ -407,7 +424,9 @@ class PluginManager:
 
         return plugins
 
-    def list_plugins(self, status_filter: Optional[PluginStatus] = None) -> List[Dict[str, Any]]:
+    def list_plugins(
+        self, status_filter: Optional[PluginStatus] = None
+    ) -> List[Dict[str, Any]]:
         """
         List all plugins - optimized listing
 
@@ -425,16 +444,16 @@ class PluginManager:
                     continue
 
                 plugin_data = {
-                    'name': plugin_name,
-                    'version': plugin_info.metadata.version,
-                    'type': plugin_info.metadata.plugin_type.value,
-                    'description': plugin_info.metadata.description,
-                    'author': plugin_info.metadata.author,
-                    'status': plugin_info.status.value,
-                    'load_time': plugin_info.load_time,
-                    'file_path': plugin_info.file_path,
-                    'error_message': plugin_info.error_message,
-                    'has_config': bool(plugin_info.config)
+                    "name": plugin_name,
+                    "version": plugin_info.metadata.version,
+                    "type": plugin_info.metadata.plugin_type.value,
+                    "description": plugin_info.metadata.description,
+                    "author": plugin_info.metadata.author,
+                    "status": plugin_info.status.value,
+                    "load_time": plugin_info.load_time,
+                    "file_path": plugin_info.file_path,
+                    "error_message": plugin_info.error_message,
+                    "has_config": bool(plugin_info.config),
                 }
 
                 plugins_list.append(plugin_data)
@@ -550,13 +569,18 @@ class PluginManager:
                 if plugin_info.status != PluginStatus.LOADED:
                     continue
 
-                if plugin_types and plugin_info.metadata.plugin_type not in plugin_types:
+                if (
+                    plugin_types
+                    and plugin_info.metadata.plugin_type not in plugin_types
+                ):
                     continue
 
                 plugins_to_load.append(plugin_name)
 
         # Sort by load priority
-        plugins_to_load.sort(key=lambda name: self._plugins[name].metadata.load_priority)
+        plugins_to_load.sort(
+            key=lambda name: self._plugins[name].metadata.load_priority
+        )
 
         # Load plugins
         for plugin_name in plugins_to_load:
@@ -569,45 +593,65 @@ class PluginManager:
         """Get plugin system statistics - optimized statistics"""
         with self._lock:
             stats = {
-                'total_plugins': len(self._plugins),
-                'active_plugins': len([p for p in self._plugins.values() if p.status == PluginStatus.ACTIVE]),
-                'inactive_plugins': len([p for p in self._plugins.values() if p.status == PluginStatus.INACTIVE]),
-                'error_plugins': len([p for p in self._plugins.values() if p.status == PluginStatus.ERROR]),
-                'discovery_complete': self._discovery_complete,
-                'auto_load_enabled': self._auto_load_enabled,
-                'plugin_directories': self.plugin_directories,
-                'engine_version': self.engine_version,
-                'hooks_registered': len(self._hooks),
-                'plugins_by_type': {
+                "total_plugins": len(self._plugins),
+                "active_plugins": len(
+                    [
+                        p
+                        for p in self._plugins.values()
+                        if p.status == PluginStatus.ACTIVE
+                    ]
+                ),
+                "inactive_plugins": len(
+                    [
+                        p
+                        for p in self._plugins.values()
+                        if p.status == PluginStatus.INACTIVE
+                    ]
+                ),
+                "error_plugins": len(
+                    [
+                        p
+                        for p in self._plugins.values()
+                        if p.status == PluginStatus.ERROR
+                    ]
+                ),
+                "discovery_complete": self._discovery_complete,
+                "auto_load_enabled": self._auto_load_enabled,
+                "plugin_directories": self.plugin_directories,
+                "engine_version": self.engine_version,
+                "hooks_registered": len(self._hooks),
+                "plugins_by_type": {
                     plugin_type.value: len(plugin_names)
                     for plugin_type, plugin_names in self._plugins_by_type.items()
-                }
+                },
             }
 
         return stats
 
-    def export_plugin_config(self, format_type: str = 'json') -> Union[str, Dict[str, Any]]:
+    def export_plugin_config(
+        self, format_type: str = "json"
+    ) -> Union[str, Dict[str, Any]]:
         """Export plugin configuration - optimized export"""
         config_data = {
-            'metadata': {
-                'exported_at': _current_time(),
-                'engine_version': self.engine_version,
-                'plugin_directories': self.plugin_directories
+            "metadata": {
+                "exported_at": _current_time(),
+                "engine_version": self.engine_version,
+                "plugin_directories": self.plugin_directories,
             },
-            'plugins': {}
+            "plugins": {},
         }
 
         with self._lock:
             for plugin_name, plugin_info in self._plugins.items():
                 if plugin_info.status == PluginStatus.ACTIVE:
-                    config_data['plugins'][plugin_name] = {
-                        'version': plugin_info.metadata.version,
-                        'type': plugin_info.metadata.plugin_type.value,
-                        'config': plugin_info.config,
-                        'auto_load': True
+                    config_data["plugins"][plugin_name] = {
+                        "version": plugin_info.metadata.version,
+                        "type": plugin_info.metadata.plugin_type.value,
+                        "config": plugin_info.config,
+                        "auto_load": True,
                     }
 
-        if format_type == 'json':
+        if format_type == "json":
             return json.dumps(config_data, indent=2, default=str)
         else:
             return config_data
@@ -641,7 +685,8 @@ class PluginManager:
 
         with self._lock:
             active_plugins = [
-                name for name, info in self._plugins.items()
+                name
+                for name, info in self._plugins.items()
                 if info.status == PluginStatus.ACTIVE
             ]
 

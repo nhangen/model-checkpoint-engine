@@ -1,11 +1,11 @@
 """Database migration management system"""
 
-import sqlite3
-import os
-import time
 import logging
-from typing import List, Dict, Any, Optional
+import os
+import sqlite3
+import time
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from ..utils.checksum import calculate_data_checksum
 
@@ -22,7 +22,9 @@ class MigrationManager:
             migrations_dir: Directory containing migration files
         """
         self.db_path = db_path
-        self.migrations_dir = migrations_dir or str(Path(__file__).parent / "migrations")
+        self.migrations_dir = migrations_dir or str(
+            Path(__file__).parent / "migrations"
+        )
         self.logger = logging.getLogger(__name__)
 
         # Ensure migrations directory exists
@@ -42,7 +44,8 @@ class MigrationManager:
     def _init_migration_table(self) -> None:
         """Initialize migration tracking table"""
         with self._get_connection() as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE IF NOT EXISTS schema_migrations (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     version TEXT UNIQUE NOT NULL,
@@ -51,26 +54,31 @@ class MigrationManager:
                     execution_time_ms INTEGER NOT NULL,
                     checksum TEXT NOT NULL
                 )
-            """)
+            """
+            )
             conn.commit()
 
     def get_current_version(self) -> Optional[str]:
         """Get current database schema version"""
         with self._get_connection() as conn:
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT version FROM schema_migrations
                 ORDER BY executed_at DESC LIMIT 1
-            """)
+            """
+            )
             row = cursor.fetchone()
             return row[0] if row else None
 
     def get_applied_migrations(self) -> List[str]:
         """Get list of applied migration versions"""
         with self._get_connection() as conn:
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT version FROM schema_migrations
                 ORDER BY executed_at
-            """)
+            """
+            )
             return [row[0] for row in cursor.fetchall()]
 
     def get_pending_migrations(self) -> List[Dict[str, str]]:
@@ -82,11 +90,13 @@ class MigrationManager:
         for migration_file in migration_files:
             version = self._extract_version(migration_file)
             if version not in applied:
-                pending.append({
-                    'version': version,
-                    'filename': migration_file,
-                    'path': os.path.join(self.migrations_dir, migration_file)
-                })
+                pending.append(
+                    {
+                        "version": version,
+                        "filename": migration_file,
+                        "path": os.path.join(self.migrations_dir, migration_file),
+                    }
+                )
 
         return pending
 
@@ -95,14 +105,17 @@ class MigrationManager:
         if not os.path.exists(self.migrations_dir):
             return []
 
-        files = [f for f in os.listdir(self.migrations_dir)
-                if f.endswith('.sql') and f[0].isdigit()]
+        files = [
+            f
+            for f in os.listdir(self.migrations_dir)
+            if f.endswith(".sql") and f[0].isdigit()
+        ]
         return sorted(files)
 
     def _extract_version(self, filename: str) -> str:
         """Extract version from migration filename"""
         # Expected format: 001_description.sql
-        return filename.split('_')[0]
+        return filename.split("_")[0]
 
     def _calculate_checksum(self, content: str) -> str:
         """Calculate SHA256 checksum of migration content - uses shared utility"""
@@ -121,46 +134,48 @@ class MigrationManager:
         pending = self.get_pending_migrations()
 
         if target_version:
-            pending = [m for m in pending if m['version'] <= target_version]
+            pending = [m for m in pending if m["version"] <= target_version]
 
         if not pending:
             self.logger.info("No pending migrations to run")
             return {
-                'status': 'success',
-                'migrations_run': 0,
-                'message': 'No pending migrations'
+                "status": "success",
+                "migrations_run": 0,
+                "message": "No pending migrations",
             }
 
         results = {
-            'status': 'success',
-            'migrations_run': 0,
-            'executed': [],
-            'failed': None,
-            'total_time_ms': 0
+            "status": "success",
+            "migrations_run": 0,
+            "executed": [],
+            "failed": None,
+            "total_time_ms": 0,
         }
 
         start_time = time.time()
 
         try:
             for migration in pending:
-                self.logger.info(f"Running migration {migration['version']}: {migration['filename']}")
+                self.logger.info(
+                    f"Running migration {migration['version']}: {migration['filename']}"
+                )
                 self._run_migration(migration)
-                results['executed'].append(migration['version'])
-                results['migrations_run'] += 1
+                results["executed"].append(migration["version"])
+                results["migrations_run"] += 1
 
         except Exception as e:
-            results['status'] = 'failed'
-            results['failed'] = migration['version']
-            results['error'] = str(e)
+            results["status"] = "failed"
+            results["failed"] = migration["version"]
+            results["error"] = str(e)
             self.logger.error(f"Migration {migration['version']} failed: {e}")
             raise
 
-        results['total_time_ms'] = int((time.time() - start_time) * 1000)
+        results["total_time_ms"] = int((time.time() - start_time) * 1000)
         return results
 
     def _run_migration(self, migration: Dict[str, str]) -> None:
         """Run a single migration"""
-        with open(migration['path'], 'r') as f:
+        with open(migration["path"], "r") as f:
             sql_content = f.read()
 
         checksum = self._calculate_checksum(sql_content)
@@ -174,17 +189,20 @@ class MigrationManager:
 
             # Record migration
             execution_time_ms = int((time.time() - start_time) * 1000)
-            conn.execute("""
+            conn.execute(
+                """
                 INSERT INTO schema_migrations
                 (version, filename, executed_at, execution_time_ms, checksum)
                 VALUES (?, ?, ?, ?, ?)
-            """, (
-                migration['version'],
-                migration['filename'],
-                time.time(),
-                execution_time_ms,
-                checksum
-            ))
+            """,
+                (
+                    migration["version"],
+                    migration["filename"],
+                    time.time(),
+                    execution_time_ms,
+                    checksum,
+                ),
+            )
 
             conn.commit()
 
@@ -194,14 +212,14 @@ class MigrationManager:
         statements = []
         current_statement = []
 
-        for line in sql_content.split('\n'):
+        for line in sql_content.split("\n"):
             line = line.strip()
-            if not line or line.startswith('--'):
+            if not line or line.startswith("--"):
                 continue
 
             current_statement.append(line)
-            if line.endswith(';'):
-                statements.append('\n'.join(current_statement))
+            if line.endswith(";"):
+                statements.append("\n".join(current_statement))
                 current_statement = []
 
         return statements
@@ -218,57 +236,53 @@ class MigrationManager:
         """
         current_version = self.get_current_version()
         if not current_version:
-            return {
-                'status': 'error',
-                'message': 'No migrations to rollback'
-            }
+            return {"status": "error", "message": "No migrations to rollback"}
 
         if target_version >= current_version:
             return {
-                'status': 'error',
-                'message': f'Target version {target_version} is not older than current {current_version}'
+                "status": "error",
+                "message": f"Target version {target_version} is not older than current {current_version}",
             }
 
         # Note: This is a simplified rollback implementation
         # In production, you'd need proper rollback SQL files
         self.logger.warning("Rollback functionality requires manual rollback SQL files")
-        return {
-            'status': 'manual',
-            'message': 'Rollback requires manual intervention'
-        }
+        return {"status": "manual", "message": "Rollback requires manual intervention"}
 
     def validate_migrations(self) -> Dict[str, Any]:
         """Validate applied migrations against their checksums"""
         validation_results = {
-            'status': 'success',
-            'validated': [],
-            'mismatched': [],
-            'missing_files': []
+            "status": "success",
+            "validated": [],
+            "mismatched": [],
+            "missing_files": [],
         }
 
         with self._get_connection() as conn:
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT version, filename, checksum
                 FROM schema_migrations
                 ORDER BY executed_at
-            """)
+            """
+            )
 
             for version, filename, stored_checksum in cursor.fetchall():
                 migration_path = os.path.join(self.migrations_dir, filename)
 
                 if not os.path.exists(migration_path):
-                    validation_results['missing_files'].append(version)
-                    validation_results['status'] = 'warning'
+                    validation_results["missing_files"].append(version)
+                    validation_results["status"] = "warning"
                     continue
 
-                with open(migration_path, 'r') as f:
+                with open(migration_path, "r") as f:
                     current_checksum = self._calculate_checksum(f.read())
 
                 if current_checksum != stored_checksum:
-                    validation_results['mismatched'].append(version)
-                    validation_results['status'] = 'error'
+                    validation_results["mismatched"].append(version)
+                    validation_results["status"] = "error"
                 else:
-                    validation_results['validated'].append(version)
+                    validation_results["validated"].append(version)
 
         return validation_results
 
@@ -290,7 +304,7 @@ class MigrationManager:
             next_version = "001"
 
         # Create filename
-        clean_description = description.lower().replace(' ', '_').replace('-', '_')
+        clean_description = description.lower().replace(" ", "_").replace("-", "_")
         filename = f"{next_version}_{clean_description}.sql"
         filepath = os.path.join(self.migrations_dir, filename)
 
@@ -306,7 +320,7 @@ class MigrationManager:
 -- Remember to test your migration thoroughly!
 """
 
-        with open(filepath, 'w') as f:
+        with open(filepath, "w") as f:
             f.write(template)
 
         self.logger.info(f"Created migration file: {filepath}")

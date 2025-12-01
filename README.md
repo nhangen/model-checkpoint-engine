@@ -55,7 +55,7 @@ manager = EnhancedCheckpointManager(
 # During training
 for epoch in range(epochs):
     # Your training logic here...
-    
+
     # Save checkpoint with automatic best model detection
     checkpoint_id = manager.save_checkpoint(
         model=model,
@@ -66,7 +66,7 @@ for epoch in range(epochs):
         metrics={"accuracy": accuracy},
         notes=f"Checkpoint at epoch {epoch}"
     )
-    
+
     print(f"Saved checkpoint: {checkpoint_id}")
 
 # Load best checkpoint
@@ -86,6 +86,34 @@ pip install -e .
 # - SQLite (built into Python)
 # - PyTorch (optional, only if using PyTorch storage backend)
 ```
+
+## Development Setup
+
+This project uses pre-commit hooks to maintain code quality and consistency.
+
+### Quick Start for Developers
+
+```bash
+# Install with development dependencies
+pip install -e ".[dev]"
+
+# Install pre-commit hooks
+pre-commit install
+
+# (Optional) Run on all files to check current state
+pre-commit run --all-files
+```
+
+### What Pre-commit Checks
+
+- **Code Formatting**: Black, isort
+- **Linting**: Flake8 with plugins (docstrings, bugbear, comprehensions)
+- **Type Checking**: MyPy
+- **Security**: Bandit, Safety, private key detection
+- **File Quality**: Trailing whitespace, line endings, YAML/JSON validation
+- **Python Standards**: AST validation, debug statement detection
+
+See [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md) for detailed documentation.
 
 ## System Architecture
 
@@ -132,8 +160,8 @@ def log_checkpoint_save(context):
     return True
 
 manager.hook_manager.register_hook(
-    "logger", 
-    log_checkpoint_save, 
+    "logger",
+    log_checkpoint_save,
     [HookEvent.BEFORE_CHECKPOINT_SAVE]
 )
 
@@ -184,7 +212,7 @@ from model_checkpoint import ExperimentTracker
 
 tracker = ExperimentTracker(
     experiment_name="resnet_training",
-    project_name="image_classification", 
+    project_name="image_classification",
     tags=["baseline", "resnet50"],
     config={
         "model": "resnet50",

@@ -1,11 +1,11 @@
 """Optimized cleanup scheduler - zero redundancy design"""
 
-import time
+import json
 import threading
-from typing import Dict, List, Any, Optional, Callable
+import time
 from dataclasses import dataclass, field
 from enum import Enum
-import json
+from typing import Any, Callable, Dict, List, Optional
 
 from .retention_manager import RetentionManager, RetentionRule
 
@@ -17,6 +17,7 @@ def _current_time() -> float:
 
 class ScheduleType(Enum):
     """Optimized schedule type enum"""
+
     INTERVAL = "interval"
     DAILY = "daily"
     WEEKLY = "weekly"
@@ -27,6 +28,7 @@ class ScheduleType(Enum):
 @dataclass
 class ScheduledTask:
     """Optimized scheduled task"""
+
     name: str
     schedule_type: ScheduleType
     retention_rules: List[str] = field(default_factory=list)
@@ -62,28 +64,28 @@ class CleanupScheduler:
 
         # Optimized: Pre-defined common schedules
         self._default_schedules = {
-            'daily_cleanup': ScheduledTask(
-                name='daily_cleanup',
+            "daily_cleanup": ScheduledTask(
+                name="daily_cleanup",
                 schedule_type=ScheduleType.DAILY,
-                retention_rules=['keep_recent_7_days'],
+                retention_rules=["keep_recent_7_days"],
                 hour=2,
-                dry_run=False
+                dry_run=False,
             ),
-            'weekly_deep_clean': ScheduledTask(
-                name='weekly_deep_clean',
+            "weekly_deep_clean": ScheduledTask(
+                name="weekly_deep_clean",
                 schedule_type=ScheduleType.WEEKLY,
-                retention_rules=['keep_best_10', 'limit_size_1gb'],
+                retention_rules=["keep_best_10", "limit_size_1gb"],
                 hour=3,
                 day_of_week=0,  # Monday
-                dry_run=False
+                dry_run=False,
             ),
-            'hourly_size_check': ScheduledTask(
-                name='hourly_size_check',
+            "hourly_size_check": ScheduledTask(
+                name="hourly_size_check",
                 schedule_type=ScheduleType.INTERVAL,
-                retention_rules=['limit_size_1gb'],
+                retention_rules=["limit_size_1gb"],
                 interval_seconds=3600.0,  # 1 hour
-                dry_run=True
-            )
+                dry_run=True,
+            ),
         }
 
     def add_scheduled_task(self, task: ScheduledTask) -> None:
@@ -116,7 +118,9 @@ class CleanupScheduler:
                 return False
 
             self._running = True
-            self._scheduler_thread = threading.Thread(target=self._scheduler_loop, daemon=True)
+            self._scheduler_thread = threading.Thread(
+                target=self._scheduler_loop, daemon=True
+            )
             self._scheduler_thread.start()
             return True
 
@@ -168,7 +172,9 @@ class CleanupScheduler:
                 task.custom_function(self.retention_manager)
             else:
                 # Execute retention rules
-                candidates = self.retention_manager.find_cleanup_candidates(rules=task.retention_rules)
+                candidates = self.retention_manager.find_cleanup_candidates(
+                    rules=task.retention_rules
+                )
                 self.retention_manager.execute_cleanup(candidates, dry_run=task.dry_run)
 
             # Update task state
@@ -193,6 +199,7 @@ class CleanupScheduler:
         elif task.schedule_type == ScheduleType.DAILY:
             # Optimized: Calculate next daily run
             import datetime
+
             now = datetime.datetime.fromtimestamp(current_time)
             next_run = now.replace(hour=task.hour, minute=0, second=0, microsecond=0)
 
@@ -205,6 +212,7 @@ class CleanupScheduler:
         elif task.schedule_type == ScheduleType.WEEKLY:
             # Optimized: Calculate next weekly run
             import datetime
+
             now = datetime.datetime.fromtimestamp(current_time)
 
             # Calculate days until next occurrence
@@ -213,17 +221,26 @@ class CleanupScheduler:
                 days_ahead += 7
 
             next_run = now + datetime.timedelta(days=days_ahead)
-            next_run = next_run.replace(hour=task.hour, minute=0, second=0, microsecond=0)
+            next_run = next_run.replace(
+                hour=task.hour, minute=0, second=0, microsecond=0
+            )
 
             return next_run.timestamp()
 
         elif task.schedule_type == ScheduleType.MONTHLY:
             # Optimized: Calculate next monthly run
             import datetime
+
             now = datetime.datetime.fromtimestamp(current_time)
 
             try:
-                next_run = now.replace(day=task.day_of_month, hour=task.hour, minute=0, second=0, microsecond=0)
+                next_run = now.replace(
+                    day=task.day_of_month,
+                    hour=task.hour,
+                    minute=0,
+                    second=0,
+                    microsecond=0,
+                )
 
                 # If we've passed this month's date, go to next month
                 if next_run <= now:
@@ -248,28 +265,30 @@ class CleanupScheduler:
             current_time = _current_time()
 
             status = {
-                'scheduler_running': self._running,
-                'total_tasks': len(self._tasks),
-                'enabled_tasks': sum(1 for t in self._tasks.values() if t.enabled),
-                'tasks': []
+                "scheduler_running": self._running,
+                "total_tasks": len(self._tasks),
+                "enabled_tasks": sum(1 for t in self._tasks.values() if t.enabled),
+                "tasks": [],
             }
 
             # Optimized: Single pass through all tasks
             for task in self._tasks.values():
                 time_until_next = max(0, task.next_run - current_time)
-                time_since_last = current_time - task.last_run if task.last_run > 0 else 0
+                time_since_last = (
+                    current_time - task.last_run if task.last_run > 0 else 0
+                )
 
                 task_info = {
-                    'name': task.name,
-                    'schedule_type': task.schedule_type.value,
-                    'enabled': task.enabled,
-                    'dry_run': task.dry_run,
-                    'run_count': task.run_count,
-                    'last_run_ago_seconds': time_since_last,
-                    'next_run_in_seconds': time_until_next,
-                    'retention_rules': task.retention_rules
+                    "name": task.name,
+                    "schedule_type": task.schedule_type.value,
+                    "enabled": task.enabled,
+                    "dry_run": task.dry_run,
+                    "run_count": task.run_count,
+                    "last_run_ago_seconds": time_since_last,
+                    "next_run_in_seconds": time_until_next,
+                    "retention_rules": task.retention_rules,
                 }
-                status['tasks'].append(task_info)
+                status["tasks"].append(task_info)
 
             return status
 
@@ -285,7 +304,7 @@ class CleanupScheduler:
         """
         task = self.get_scheduled_task(task_name)
         if not task:
-            return {'error': f'Task "{task_name}" not found'}
+            return {"error": f'Task "{task_name}" not found'}
 
         try:
             current_time = _current_time()
@@ -293,11 +312,15 @@ class CleanupScheduler:
             if task.custom_function:
                 # Execute custom function
                 task.custom_function(self.retention_manager)
-                result = {'status': 'completed', 'type': 'custom_function'}
+                result = {"status": "completed", "type": "custom_function"}
             else:
                 # Execute retention rules
-                candidates = self.retention_manager.find_cleanup_candidates(rules=task.retention_rules)
-                result = self.retention_manager.execute_cleanup(candidates, dry_run=task.dry_run)
+                candidates = self.retention_manager.find_cleanup_candidates(
+                    rules=task.retention_rules
+                )
+                result = self.retention_manager.execute_cleanup(
+                    candidates, dry_run=task.dry_run
+                )
 
             # Update task state
             with self._lock:
@@ -305,13 +328,13 @@ class CleanupScheduler:
                     task.last_run = current_time
                     task.run_count += 1
 
-            result['executed_at'] = current_time
-            result['task_name'] = task_name
+            result["executed_at"] = current_time
+            result["task_name"] = task_name
 
             return result
 
         except Exception as e:
-            return {'error': f'Task execution failed: {e}', 'task_name': task_name}
+            return {"error": f"Task execution failed: {e}", "task_name": task_name}
 
     def simulate_schedule(self, days: int = 7) -> List[Dict[str, Any]]:
         """
@@ -342,54 +365,58 @@ class CleanupScheduler:
                     interval_seconds=task.interval_seconds,
                     hour=task.hour,
                     day_of_week=task.day_of_week,
-                    day_of_month=task.day_of_month
+                    day_of_month=task.day_of_month,
                 )
 
                 # Generate all runs within the time window
                 while next_run <= end_time:
-                    executions.append({
-                        'task_name': task.name,
-                        'scheduled_time': next_run,
-                        'days_from_now': (next_run - current_time) / (24 * 3600),
-                        'retention_rules': task.retention_rules,
-                        'dry_run': task.dry_run
-                    })
+                    executions.append(
+                        {
+                            "task_name": task.name,
+                            "scheduled_time": next_run,
+                            "days_from_now": (next_run - current_time) / (24 * 3600),
+                            "retention_rules": task.retention_rules,
+                            "dry_run": task.dry_run,
+                        }
+                    )
 
                     # Calculate next occurrence
                     temp_task.next_run = next_run
                     next_run = self._calculate_next_run(temp_task)
 
         # Sort by execution time
-        executions.sort(key=lambda x: x['scheduled_time'])
+        executions.sort(key=lambda x: x["scheduled_time"])
 
         return executions
 
-    def export_schedule_config(self, format_type: str = 'json') -> Union[str, Dict[str, Any]]:
+    def export_schedule_config(
+        self, format_type: str = "json"
+    ) -> Union[str, Dict[str, Any]]:
         """Export scheduler configuration"""
         with self._lock:
             config_data = {
-                'scheduler_status': {
-                    'running': self._running,
-                    'total_tasks': len(self._tasks)
+                "scheduler_status": {
+                    "running": self._running,
+                    "total_tasks": len(self._tasks),
                 },
-                'tasks': {}
+                "tasks": {},
             }
 
             for name, task in self._tasks.items():
-                config_data['tasks'][name] = {
-                    'schedule_type': task.schedule_type.value,
-                    'retention_rules': task.retention_rules,
-                    'interval_seconds': task.interval_seconds,
-                    'hour': task.hour,
-                    'day_of_week': task.day_of_week,
-                    'day_of_month': task.day_of_month,
-                    'enabled': task.enabled,
-                    'dry_run': task.dry_run,
-                    'run_count': task.run_count,
-                    'last_run': task.last_run
+                config_data["tasks"][name] = {
+                    "schedule_type": task.schedule_type.value,
+                    "retention_rules": task.retention_rules,
+                    "interval_seconds": task.interval_seconds,
+                    "hour": task.hour,
+                    "day_of_week": task.day_of_week,
+                    "day_of_month": task.day_of_month,
+                    "enabled": task.enabled,
+                    "dry_run": task.dry_run,
+                    "run_count": task.run_count,
+                    "last_run": task.last_run,
                 }
 
-        if format_type == 'json':
+        if format_type == "json":
             return json.dumps(config_data, indent=2, default=str)
         else:
             return config_data
@@ -400,19 +427,19 @@ class CleanupScheduler:
             with self._lock:
                 self._tasks.clear()
 
-                for name, task_config in config_data.get('tasks', {}).items():
+                for name, task_config in config_data.get("tasks", {}).items():
                     task = ScheduledTask(
                         name=name,
-                        schedule_type=ScheduleType(task_config['schedule_type']),
-                        retention_rules=task_config.get('retention_rules', []),
-                        interval_seconds=task_config.get('interval_seconds'),
-                        hour=task_config.get('hour', 2),
-                        day_of_week=task_config.get('day_of_week', 0),
-                        day_of_month=task_config.get('day_of_month', 1),
-                        enabled=task_config.get('enabled', True),
-                        dry_run=task_config.get('dry_run', True),
-                        run_count=task_config.get('run_count', 0),
-                        last_run=task_config.get('last_run', 0.0)
+                        schedule_type=ScheduleType(task_config["schedule_type"]),
+                        retention_rules=task_config.get("retention_rules", []),
+                        interval_seconds=task_config.get("interval_seconds"),
+                        hour=task_config.get("hour", 2),
+                        day_of_week=task_config.get("day_of_week", 0),
+                        day_of_month=task_config.get("day_of_month", 1),
+                        enabled=task_config.get("enabled", True),
+                        dry_run=task_config.get("dry_run", True),
+                        run_count=task_config.get("run_count", 0),
+                        last_run=task_config.get("last_run", 0.0),
                     )
 
                     task.next_run = self._calculate_next_run(task)

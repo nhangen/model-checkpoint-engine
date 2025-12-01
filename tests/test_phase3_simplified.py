@@ -59,7 +59,7 @@ class TestPhase3Components:
 
     def test_documentation_generator_import(self):
         """Test documentation generator can be imported"""
-        from model_checkpoint.docs.documentation_generator import DocumentationGenerator
+        from model_checkpoint.docs.doc_generator import DocumentationGenerator
         assert DocumentationGenerator is not None
 
     def test_visualization_dashboard_import(self):
@@ -121,7 +121,7 @@ class TestPhase3Components:
             'model_checkpoint.plugins.plugin_manager',
             'model_checkpoint.monitoring.performance_monitor',
             'model_checkpoint.migration.migration_manager',
-            'model_checkpoint.docs.documentation_generator',
+            'model_checkpoint.docs.doc_generator',
             'model_checkpoint.visualization.dashboard_engine',
             'model_checkpoint.phase3_shared.shared_utils'
         ]

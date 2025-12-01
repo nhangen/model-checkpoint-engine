@@ -1,0 +1,62 @@
+# Flake8 configuration for Model Checkpoint Engine
+# Flake8 doesn't support pyproject.toml, so we use .flake8 file
+
+[flake8]
+# Base configuration
+max-line-length = 88
+extend-ignore =
+    E203,
+    W503
+
+# Exclude directories
+exclude =
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    .tox,
+    .mypy_cache,
+    .pytest_cache,
+    htmlcov,
+    *.pyc,
+
+# Select error codes to check
+select =
+    # Pycodestyle errors
+    E,
+    # Pycodestyle warnings
+    W,
+    # PyFlakes
+    F,
+    # flake8-bugbear
+    B,
+    # flake8-comprehensions
+    C,
+
+# Maximum complexity
+max-complexity = 15
+
+# Docstring configuration (flake8-docstrings)
+docstring-convention = google
+
+# Per-file ignores
+per-file-ignores =
+    # __init__.py files don't need docstrings for every import
+    __init__.py:D104,F401,
+    # Test files can have longer lines and missing docstrings
+    tests/*:D100,D101,D102,D103,E501,
+    # Examples don't need strict docstrings
+    examples/*:D100,D101,D102,D103,
+    # Setup file exceptions
+    setup.py:D100,
+
+# Count errors
+count = True
+# Show source code
+show-source = True
+# Show statistics
+statistics = True

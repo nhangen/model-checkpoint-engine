@@ -1,13 +1,13 @@
 """Optimized base API interface - zero redundancy design"""
 
-import time
-from typing import Dict, List, Any, Optional, Union, Callable
-from dataclasses import dataclass, field
-from abc import ABC, abstractmethod
-from enum import Enum
 import json
+import time
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Union
 
-from ..hooks import HookManager, HookEvent, HookContext
+from ..hooks import HookContext, HookEvent, HookManager
 
 
 def _current_time() -> float:
@@ -17,6 +17,7 @@ def _current_time() -> float:
 
 class APIStatus(Enum):
     """Optimized API status enum"""
+
     SUCCESS = "success"
     ERROR = "error"
     WARNING = "warning"
@@ -25,6 +26,7 @@ class APIStatus(Enum):
 
 class HTTPMethod(Enum):
     """Optimized HTTP method enum"""
+
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -36,6 +38,7 @@ class HTTPMethod(Enum):
 @dataclass
 class APIResponse:
     """Optimized API response - using field defaults"""
+
     status: APIStatus
     data: Any = None
     message: str = ""
@@ -49,6 +52,7 @@ class APIResponse:
 @dataclass
 class APIError(Exception):
     """Optimized API error - inheriting from Exception"""
+
     message: str
     error_code: str
     status_code: int = 500
@@ -59,6 +63,7 @@ class APIError(Exception):
 @dataclass
 class EndpointConfig:
     """Optimized endpoint configuration"""
+
     path: str
     method: HTTPMethod
     handler: Callable
@@ -118,9 +123,13 @@ class BaseAPI(ABC):
         pass
 
     @abstractmethod
-    def _handle_request(self, path: str, method: HTTPMethod,
-                       data: Optional[Dict[str, Any]] = None,
-                       headers: Optional[Dict[str, str]] = None) -> APIResponse:
+    def _handle_request(
+        self,
+        path: str,
+        method: HTTPMethod,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> APIResponse:
         """Handle incoming request - implementation specific"""
         pass
 
@@ -154,10 +163,14 @@ class BaseAPI(ABC):
         if callable(middleware):
             self._middleware.append(middleware)
 
-    def process_request(self, path: str, method: HTTPMethod,
-                       data: Optional[Dict[str, Any]] = None,
-                       headers: Optional[Dict[str, str]] = None,
-                       client_id: Optional[str] = None) -> APIResponse:
+    def process_request(
+        self,
+        path: str,
+        method: HTTPMethod,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+        client_id: Optional[str] = None,
+    ) -> APIResponse:
         """
         Process incoming request - optimized pipeline
 
@@ -179,22 +192,24 @@ class BaseAPI(ABC):
             context = HookContext(
                 event=HookEvent.BEFORE_API_REQUEST,
                 data={
-                    'path': path,
-                    'method': method.value,
-                    'data': data,
-                    'headers': headers,
-                    'client_id': client_id,
-                    'request_id': request_id
-                }
+                    "path": path,
+                    "method": method.value,
+                    "data": data,
+                    "headers": headers,
+                    "client_id": client_id,
+                    "request_id": request_id,
+                },
             )
-            hook_result = self.hook_manager.fire_hook(HookEvent.BEFORE_API_REQUEST, context)
+            hook_result = self.hook_manager.fire_hook(
+                HookEvent.BEFORE_API_REQUEST, context
+            )
             if not hook_result.success or hook_result.stopped_by:
                 return APIResponse(
                     status=APIStatus.ERROR,
                     message=f"Request cancelled by hook: {hook_result.stopped_by}",
                     error_code="REQUEST_CANCELLED",
                     request_id=request_id,
-                    execution_time_ms=(_current_time() - start_time) * 1000
+                    execution_time_ms=(_current_time() - start_time) * 1000,
                 )
 
         try:
@@ -207,7 +222,7 @@ class BaseAPI(ABC):
                 raise APIError(
                     message="Rate limit exceeded",
                     error_code="RATE_LIMIT_EXCEEDED",
-                    status_code=429
+                    status_code=429,
                 )
 
             # Find endpoint
@@ -216,7 +231,7 @@ class BaseAPI(ABC):
                 raise APIError(
                     message=f"Endpoint not found: {method.value} {path}",
                     error_code="ENDPOINT_NOT_FOUND",
-                    status_code=404
+                    status_code=404,
                 )
 
             endpoint = self._endpoints[endpoint_key]
@@ -236,7 +251,7 @@ class BaseAPI(ABC):
                     raise APIError(
                         message=f"Middleware error: {e}",
                         error_code="MIDDLEWARE_ERROR",
-                        status_code=500
+                        status_code=500,
                     )
 
             # Execute handler
@@ -255,16 +270,16 @@ class BaseAPI(ABC):
                 after_context = HookContext(
                     event=HookEvent.AFTER_API_REQUEST,
                     data={
-                        'path': path,
-                        'method': method.value,
-                        'request_data': data,
-                        'headers': headers,
-                        'client_id': client_id,
-                        'request_id': request_id,
-                        'response': response,
-                        'execution_time_ms': response.execution_time_ms,
-                        'status': response.status.value
-                    }
+                        "path": path,
+                        "method": method.value,
+                        "request_data": data,
+                        "headers": headers,
+                        "client_id": client_id,
+                        "request_id": request_id,
+                        "response": response,
+                        "execution_time_ms": response.execution_time_ms,
+                        "status": response.status.value,
+                    },
                 )
                 self.hook_manager.fire_hook(HookEvent.AFTER_API_REQUEST, after_context)
 
@@ -278,7 +293,7 @@ class BaseAPI(ABC):
                 error_code=e.error_code,
                 request_id=request_id,
                 execution_time_ms=(_current_time() - start_time) * 1000,
-                metadata={"status_code": e.status_code}
+                metadata={"status_code": e.status_code},
             )
 
         except Exception as e:
@@ -289,20 +304,23 @@ class BaseAPI(ABC):
                 error_code="INTERNAL_ERROR",
                 request_id=request_id,
                 execution_time_ms=(_current_time() - start_time) * 1000,
-                metadata={"status_code": 500}
+                metadata={"status_code": 500},
             )
 
-    def _execute_handler(self, endpoint: EndpointConfig,
-                        data: Optional[Dict[str, Any]],
-                        headers: Optional[Dict[str, str]]) -> APIResponse:
+    def _execute_handler(
+        self,
+        endpoint: EndpointConfig,
+        data: Optional[Dict[str, Any]],
+        headers: Optional[Dict[str, str]],
+    ) -> APIResponse:
         """Execute endpoint handler - optimized execution"""
         try:
             # Prepare handler arguments
             handler_args = {}
             if data is not None:
-                handler_args['data'] = data
+                handler_args["data"] = data
             if headers is not None:
-                handler_args['headers'] = headers
+                handler_args["headers"] = headers
 
             # Execute handler
             result = endpoint.handler(**handler_args)
@@ -311,21 +329,15 @@ class BaseAPI(ABC):
             if isinstance(result, APIResponse):
                 return result
             elif isinstance(result, dict):
-                return APIResponse(
-                    status=APIStatus.SUCCESS,
-                    data=result
-                )
+                return APIResponse(status=APIStatus.SUCCESS, data=result)
             else:
-                return APIResponse(
-                    status=APIStatus.SUCCESS,
-                    data={"result": result}
-                )
+                return APIResponse(status=APIStatus.SUCCESS, data={"result": result})
 
         except Exception as e:
             raise APIError(
                 message=f"Handler execution failed: {e}",
                 error_code="HANDLER_ERROR",
-                status_code=500
+                status_code=500,
             )
 
     def _check_rate_limit(self, client_id: str) -> bool:
@@ -339,7 +351,8 @@ class BaseAPI(ABC):
         # Clean old requests outside window
         cutoff_time = current_time - self._rate_limit_window
         self._rate_limits[client_id] = [
-            req_time for req_time in self._rate_limits[client_id]
+            req_time
+            for req_time in self._rate_limits[client_id]
             if req_time > cutoff_time
         ]
 
@@ -351,8 +364,9 @@ class BaseAPI(ABC):
         self._rate_limits[client_id].append(current_time)
         return True
 
-    def _get_cached_response(self, endpoint_key: str,
-                           data: Optional[Dict[str, Any]]) -> Optional[APIResponse]:
+    def _get_cached_response(
+        self, endpoint_key: str, data: Optional[Dict[str, Any]]
+    ) -> Optional[APIResponse]:
         """Get cached response - optimized retrieval"""
         cache_key = self._generate_cache_key(endpoint_key, data)
 
@@ -364,7 +378,7 @@ class BaseAPI(ABC):
         current_time = _current_time()
 
         cached_data = self._response_cache[cache_key]
-        cache_ttl = cached_data.get('ttl', 300)
+        cache_ttl = cached_data.get("ttl", 300)
 
         if current_time - cache_time > cache_ttl:
             # Cache expired
@@ -373,38 +387,42 @@ class BaseAPI(ABC):
             return None
 
         # Return cached response
-        response_data = cached_data['response']
+        response_data = cached_data["response"]
         return APIResponse(**response_data)
 
-    def _cache_response(self, endpoint_key: str, data: Optional[Dict[str, Any]],
-                       response: APIResponse, ttl: int) -> None:
+    def _cache_response(
+        self,
+        endpoint_key: str,
+        data: Optional[Dict[str, Any]],
+        response: APIResponse,
+        ttl: int,
+    ) -> None:
         """Cache response - optimized storage"""
         cache_key = self._generate_cache_key(endpoint_key, data)
 
         # Convert response to dict for caching
         response_dict = {
-            'status': response.status,
-            'data': response.data,
-            'message': response.message,
-            'error_code': response.error_code,
-            'metadata': response.metadata
+            "status": response.status,
+            "data": response.data,
+            "message": response.message,
+            "error_code": response.error_code,
+            "metadata": response.metadata,
         }
 
-        self._response_cache[cache_key] = {
-            'response': response_dict,
-            'ttl': ttl
-        }
+        self._response_cache[cache_key] = {"response": response_dict, "ttl": ttl}
         self._cache_timestamps[cache_key] = _current_time()
 
         # Limit cache size (remove oldest entries)
         if len(self._response_cache) > 1000:
-            oldest_key = min(self._cache_timestamps.keys(),
-                           key=lambda k: self._cache_timestamps[k])
+            oldest_key = min(
+                self._cache_timestamps.keys(), key=lambda k: self._cache_timestamps[k]
+            )
             self._response_cache.pop(oldest_key, None)
             self._cache_timestamps.pop(oldest_key, None)
 
-    def _generate_cache_key(self, endpoint_key: str,
-                          data: Optional[Dict[str, Any]]) -> str:
+    def _generate_cache_key(
+        self, endpoint_key: str, data: Optional[Dict[str, Any]]
+    ) -> str:
         """Generate cache key - optimized key generation"""
         if data is None:
             return endpoint_key
@@ -423,29 +441,32 @@ class BaseAPI(ABC):
 
         endpoint_info = []
         for key, endpoint in self._endpoints.items():
-            endpoint_info.append({
-                'path': endpoint.path,
-                'method': endpoint.method.value,
-                'description': endpoint.description,
-                'auth_required': endpoint.auth_required,
-                'rate_limit': endpoint.rate_limit,
-                'cache_ttl': endpoint.cache_ttl
-            })
+            endpoint_info.append(
+                {
+                    "path": endpoint.path,
+                    "method": endpoint.method.value,
+                    "description": endpoint.description,
+                    "auth_required": endpoint.auth_required,
+                    "rate_limit": endpoint.rate_limit,
+                    "cache_ttl": endpoint.cache_ttl,
+                }
+            )
 
         return {
-            'name': self.name,
-            'version': self.version,
-            'endpoints': endpoint_info,
-            'middleware_count': len(self._middleware),
-            'statistics': {
-                'total_requests': self._request_count,
-                'total_errors': self._error_count,
-                'error_rate': (self._error_count / max(self._request_count, 1)) * 100,
-                'last_request_time': self._last_request_time,
-                'uptime_seconds': current_time - (self._last_request_time or current_time),
-                'cached_responses': len(self._response_cache),
-                'active_rate_limits': len(self._rate_limits)
-            }
+            "name": self.name,
+            "version": self.version,
+            "endpoints": endpoint_info,
+            "middleware_count": len(self._middleware),
+            "statistics": {
+                "total_requests": self._request_count,
+                "total_errors": self._error_count,
+                "error_rate": (self._error_count / max(self._request_count, 1)) * 100,
+                "last_request_time": self._last_request_time,
+                "uptime_seconds": current_time
+                - (self._last_request_time or current_time),
+                "cached_responses": len(self._response_cache),
+                "active_rate_limits": len(self._rate_limits),
+            },
         }
 
     def clear_cache(self) -> int:
@@ -477,7 +498,7 @@ class BaseAPI(ABC):
         if not config.path:
             errors.append("Path is required")
 
-        if not config.path.startswith('/'):
+        if not config.path.startswith("/"):
             errors.append("Path must start with '/'")
 
         if not callable(config.handler):
@@ -496,16 +517,14 @@ class BaseAPI(ABC):
         current_time = _current_time()
 
         health_data = {
-            'status': 'healthy',
-            'timestamp': current_time,
-            'version': self.version,
-            'uptime_seconds': current_time - (self._last_request_time or current_time),
-            'total_requests': self._request_count,
-            'error_rate': (self._error_count / max(self._request_count, 1)) * 100
+            "status": "healthy",
+            "timestamp": current_time,
+            "version": self.version,
+            "uptime_seconds": current_time - (self._last_request_time or current_time),
+            "total_requests": self._request_count,
+            "error_rate": (self._error_count / max(self._request_count, 1)) * 100,
         }
 
         return APIResponse(
-            status=APIStatus.SUCCESS,
-            data=health_data,
-            message="API is healthy"
+            status=APIStatus.SUCCESS, data=health_data, message="API is healthy"
         )

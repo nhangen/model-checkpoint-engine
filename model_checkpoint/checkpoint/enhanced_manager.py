@@ -1,11 +1,11 @@
 """Enhanced CheckpointManager with comprehensive features and performance optimizations"""
 
-import os
-import uuid
-import time
 import logging
-from typing import Dict, List, Any, Optional, Union, Callable
+import os
+import time
+import uuid
 from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional, Union
 
 try:
     import torch
@@ -14,10 +14,10 @@ except ImportError:
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from ..database.models import Checkpoint
+from ..hooks import HookContext, HookEvent, HookManager
+from ..integrity import CheckpointVerifier, ChecksumCalculator, IntegrityTracker
+from ..performance import BatchProcessor, CacheManager
 from .storage import BaseStorageBackend, PyTorchStorageBackend
-from ..integrity import ChecksumCalculator, IntegrityTracker, CheckpointVerifier
-from ..performance import CacheManager, BatchProcessor
-from ..hooks import HookManager, HookEvent, HookContext
 
 
 class EnhancedCheckpointManager:
@@ -29,20 +29,22 @@ class EnhancedCheckpointManager:
     - Advanced querying and analytics
     """
 
-    def __init__(self,
-                 experiment_tracker=None,
-                 checkpoint_dir: Optional[str] = None,
-                 storage_backend: str = 'pytorch',
-                 enable_compression: bool = True,
-                 enable_integrity_checks: bool = True,
-                 enable_caching: bool = True,
-                 cache_size: int = 500,
-                 save_best: bool = True,
-                 save_last: bool = True,
-                 save_frequency: int = 5,
-                 max_checkpoints: int = 10,
-                 database_url: str = "sqlite:///experiments.db",
-                 enable_hooks: bool = True):
+    def __init__(
+        self,
+        experiment_tracker=None,
+        checkpoint_dir: Optional[str] = None,
+        storage_backend: str = "pytorch",
+        enable_compression: bool = True,
+        enable_integrity_checks: bool = True,
+        enable_caching: bool = True,
+        cache_size: int = 500,
+        save_best: bool = True,
+        save_last: bool = True,
+        save_frequency: int = 5,
+        max_checkpoints: int = 10,
+        database_url: str = "sqlite:///experiments.db",
+        enable_hooks: bool = True,
+    ):
         """
         Initialize enhanced checkpoint manager
 
@@ -128,40 +130,40 @@ class EnhancedCheckpointManager:
         self.logger.info(f"Integrity checks: {enable_integrity_checks}")
         self.logger.info(f"Caching: {enable_caching}")
 
-    def _initialize_storage_backend(self, backend_type: str,
-                                  compression: bool) -> BaseStorageBackend:
+    def _initialize_storage_backend(
+        self, backend_type: str, compression: bool
+    ) -> BaseStorageBackend:
         """Initialize the specified storage backend"""
-        if backend_type.lower() == 'pytorch':
+        if backend_type.lower() == "pytorch":
+            return PyTorchStorageBackend(self.checkpoint_dir, compression=compression)
+        elif backend_type.lower() == "safetensors":
             return PyTorchStorageBackend(
-                self.checkpoint_dir,
-                compression=compression
-            )
-        elif backend_type.lower() == 'safetensors':
-            return PyTorchStorageBackend(
-                self.checkpoint_dir,
-                compression=compression,
-                use_safetensors=True
+                self.checkpoint_dir, compression=compression, use_safetensors=True
             )
         else:
             raise ValueError(f"Unsupported storage backend: {backend_type}")
 
-    def save_checkpoint(self,
-                       model: Any,  # torch.nn.Module when torch is available
-                       optimizer: Optional[Any] = None,  # torch.optim.Optimizer when torch is available
-                       scheduler: Optional[Any] = None,
-                       epoch: int = 0,
-                       step: int = 0,
-                       loss: float = 0.0,
-                       val_loss: Optional[float] = None,
-                       metrics: Optional[Dict[str, float]] = None,
-                       config: Optional[Dict[str, Any]] = None,
-                       notes: Optional[str] = None,
-                       model_name: Optional[str] = None,
-                       experiment_id: Optional[str] = None,
-                       save_optimizer: bool = True,
-                       save_scheduler: bool = True,
-                       compute_checksum: bool = True,
-                       update_best: bool = True) -> str:
+    def save_checkpoint(
+        self,
+        model: Any,  # torch.nn.Module when torch is available
+        optimizer: Optional[
+            Any
+        ] = None,  # torch.optim.Optimizer when torch is available
+        scheduler: Optional[Any] = None,
+        epoch: int = 0,
+        step: int = 0,
+        loss: float = 0.0,
+        val_loss: Optional[float] = None,
+        metrics: Optional[Dict[str, float]] = None,
+        config: Optional[Dict[str, Any]] = None,
+        notes: Optional[str] = None,
+        model_name: Optional[str] = None,
+        experiment_id: Optional[str] = None,
+        save_optimizer: bool = True,
+        save_scheduler: bool = True,
+        compute_checksum: bool = True,
+        update_best: bool = True,
+    ) -> str:
         """
         Save model checkpoint with enhanced features
 
@@ -209,46 +211,60 @@ class EnhancedCheckpointManager:
                 checkpoint_id=checkpoint_id,
                 experiment_id=exp_id,
                 data={
-                    'model': model,
-                    'optimizer': optimizer,
-                    'scheduler': scheduler,
-                    'epoch': epoch,
-                    'step': step,
-                    'loss': loss,
-                    'val_loss': val_loss,
-                    'metrics': metrics,
-                    'model_name': model_name,
-                    'checkpoint_type': checkpoint_type,
-                    'notes': notes,
-                    'best_flags': best_flags
-                }
+                    "model": model,
+                    "optimizer": optimizer,
+                    "scheduler": scheduler,
+                    "epoch": epoch,
+                    "step": step,
+                    "loss": loss,
+                    "val_loss": val_loss,
+                    "metrics": metrics,
+                    "model_name": model_name,
+                    "checkpoint_type": checkpoint_type,
+                    "notes": notes,
+                    "best_flags": best_flags,
+                },
             )
-            hook_result = self.hook_manager.fire_hook(HookEvent.BEFORE_CHECKPOINT_SAVE, context)
+            hook_result = self.hook_manager.fire_hook(
+                HookEvent.BEFORE_CHECKPOINT_SAVE, context
+            )
             if not hook_result.success or hook_result.stopped_by:
-                raise RuntimeError(f"Checkpoint save cancelled by hook: {hook_result.stopped_by}")
+                raise RuntimeError(
+                    f"Checkpoint save cancelled by hook: {hook_result.stopped_by}"
+                )
 
         # Prepare checkpoint data
         checkpoint_data = {
-            'model_state_dict': model.state_dict() if hasattr(model, 'state_dict') else model,
-            'epoch': epoch,
-            'step': step,
-            'loss': loss,
-            'val_loss': val_loss,
-            'metrics': metrics or {},
-            'config': config or {},
-            'experiment_id': exp_id,
-            'checkpoint_id': checkpoint_id,
-            'save_timestamp': time.time(),
-            'model_name': model_name
+            "model_state_dict": (
+                model.state_dict() if hasattr(model, "state_dict") else model
+            ),
+            "epoch": epoch,
+            "step": step,
+            "loss": loss,
+            "val_loss": val_loss,
+            "metrics": metrics or {},
+            "config": config or {},
+            "experiment_id": exp_id,
+            "checkpoint_id": checkpoint_id,
+            "save_timestamp": time.time(),
+            "model_name": model_name,
         }
 
         # Add optimizer state if requested
         if save_optimizer and optimizer is not None:
-            checkpoint_data['optimizer_state_dict'] = optimizer.state_dict() if hasattr(optimizer, 'state_dict') else optimizer
+            checkpoint_data["optimizer_state_dict"] = (
+                optimizer.state_dict()
+                if hasattr(optimizer, "state_dict")
+                else optimizer
+            )
 
         # Add scheduler state if requested
         if save_scheduler and scheduler is not None:
-            checkpoint_data['scheduler_state_dict'] = scheduler.state_dict() if hasattr(scheduler, 'state_dict') else scheduler
+            checkpoint_data["scheduler_state_dict"] = (
+                scheduler.state_dict()
+                if hasattr(scheduler, "state_dict")
+                else scheduler
+            )
 
         # Determine checkpoint type and update best flags
         checkpoint_type, best_flags = self._determine_checkpoint_type_and_flags(
@@ -265,10 +281,10 @@ class EnhancedCheckpointManager:
 
         # Compute additional integrity metadata if enabled
         checksum = None
-        file_size = save_metadata.get('file_size')
+        file_size = save_metadata.get("file_size")
 
         if self.enable_integrity_checks and compute_checksum:
-            checksum = save_metadata.get('checksum')
+            checksum = save_metadata.get("checksum")
             if not checksum:
                 checksum = self.checksum_calculator.calculate_file_checksum(file_path)
 
@@ -289,16 +305,16 @@ class EnhancedCheckpointManager:
             loss=loss,
             val_loss=val_loss,
             notes=notes,
-            is_best_loss=best_flags.get('is_best_loss', False),
-            is_best_val_loss=best_flags.get('is_best_val_loss', False),
-            is_best_metric=best_flags.get('is_best_metric', False),
+            is_best_loss=best_flags.get("is_best_loss", False),
+            is_best_val_loss=best_flags.get("is_best_val_loss", False),
+            is_best_metric=best_flags.get("is_best_metric", False),
             metrics=metrics or {},
             metadata={
-                'save_time_seconds': time.time() - start_time,
-                'storage_backend': type(self.storage_backend).__name__,
-                'compression_enabled': self.storage_backend.compression,
-                **save_metadata
-            }
+                "save_time_seconds": time.time() - start_time,
+                "storage_backend": type(self.storage_backend).__name__,
+                "compression_enabled": self.storage_backend.compression,
+                **save_metadata,
+            },
         )
 
         # Save to database
@@ -312,7 +328,9 @@ class EnhancedCheckpointManager:
 
         # Log checkpoint save
         save_time = time.time() - start_time
-        self.logger.info(f"Saved {checkpoint_type} checkpoint: {os.path.basename(file_path)}")
+        self.logger.info(
+            f"Saved {checkpoint_type} checkpoint: {os.path.basename(file_path)}"
+        )
         self.logger.info(f"Save time: {save_time:.2f}s, Size: {file_size} bytes")
 
         if metrics:
@@ -324,19 +342,23 @@ class EnhancedCheckpointManager:
 
         # Fire after checkpoint save hook
         if self.hook_manager:
-            context.data.update({
-                'checkpoint_id': checkpoint_id,
-                'file_path': file_path,
-                'file_size': file_size,
-                'checksum': checksum,
-                'save_time': time.time() - start_time,
-                'checkpoint_record': checkpoint_record
-            })
+            context.data.update(
+                {
+                    "checkpoint_id": checkpoint_id,
+                    "file_path": file_path,
+                    "file_size": file_size,
+                    "checksum": checksum,
+                    "save_time": time.time() - start_time,
+                    "checkpoint_record": checkpoint_record,
+                }
+            )
             self.hook_manager.fire_hook(HookEvent.AFTER_CHECKPOINT_SAVE, context)
 
         return checkpoint_id
 
-    def register_hook(self, name: str, handler: Callable, events: List[HookEvent], **kwargs):
+    def register_hook(
+        self, name: str, handler: Callable, events: List[HookEvent], **kwargs
+    ):
         """
         Register a hook for checkpoint operations.
 
@@ -362,14 +384,16 @@ class EnhancedCheckpointManager:
             return self.hook_manager.list_hooks()
         return []
 
-    def load_checkpoint(self,
-                       checkpoint_id: Optional[str] = None,
-                       experiment_id: Optional[str] = None,
-                       checkpoint_type: str = 'latest',
-                       verify_integrity: bool = True,
-                       device: Optional[Any] = None,  # torch.device when torch is available
-                       load_optimizer: bool = True,
-                       load_scheduler: bool = True) -> Dict[str, Any]:
+    def load_checkpoint(
+        self,
+        checkpoint_id: Optional[str] = None,
+        experiment_id: Optional[str] = None,
+        checkpoint_type: str = "latest",
+        verify_integrity: bool = True,
+        device: Optional[Any] = None,  # torch.device when torch is available
+        load_optimizer: bool = True,
+        load_scheduler: bool = True,
+    ) -> Dict[str, Any]:
         """
         Load checkpoint with enhanced features
 
@@ -400,13 +424,17 @@ class EnhancedCheckpointManager:
             checkpoint_record = self._find_checkpoint_by_type(exp_id, checkpoint_type)
 
         if not checkpoint_record:
-            raise ValueError(f"Checkpoint not found: {checkpoint_id or checkpoint_type}")
+            raise ValueError(
+                f"Checkpoint not found: {checkpoint_id or checkpoint_type}"
+            )
 
         # Verify integrity if enabled and requested
         if self.enable_integrity_checks and verify_integrity:
             verification_result = self.verifier.verify_checkpoint(checkpoint_record.id)
-            if verification_result['status'] != 'verified':
-                self.logger.warning(f"Integrity verification failed: {verification_result['errors']}")
+            if verification_result["status"] != "verified":
+                self.logger.warning(
+                    f"Integrity verification failed: {verification_result['errors']}"
+                )
                 # Continue loading but warn user
 
         # Load checkpoint data
@@ -415,38 +443,50 @@ class EnhancedCheckpointManager:
         )
 
         # Filter out unwanted components
-        if not load_optimizer and 'optimizer_state_dict' in checkpoint_data:
-            del checkpoint_data['optimizer_state_dict']
+        if not load_optimizer and "optimizer_state_dict" in checkpoint_data:
+            del checkpoint_data["optimizer_state_dict"]
 
-        if not load_scheduler and 'scheduler_state_dict' in checkpoint_data:
-            del checkpoint_data['scheduler_state_dict']
+        if not load_scheduler and "scheduler_state_dict" in checkpoint_data:
+            del checkpoint_data["scheduler_state_dict"]
 
         # Add metadata from database record
-        checkpoint_data['_checkpoint_metadata'] = {
-            'checkpoint_id': checkpoint_record.id,
-            'experiment_id': checkpoint_record.experiment_id,
-            'epoch': checkpoint_record.epoch,
-            'step': checkpoint_record.step,
-            'checkpoint_type': checkpoint_record.checkpoint_type,
-            'is_best_loss': checkpoint_record.is_best_loss,
-            'is_best_val_loss': checkpoint_record.is_best_val_loss,
-            'is_best_metric': checkpoint_record.is_best_metric,
-            'load_time_seconds': time.time() - start_time,
-            'device': str(device) if device else 'cpu'
+        checkpoint_data["_checkpoint_metadata"] = {
+            "checkpoint_id": checkpoint_record.id,
+            "experiment_id": checkpoint_record.experiment_id,
+            "epoch": checkpoint_record.epoch,
+            "step": checkpoint_record.step,
+            "checkpoint_type": checkpoint_record.checkpoint_type,
+            "is_best_loss": checkpoint_record.is_best_loss,
+            "is_best_val_loss": checkpoint_record.is_best_val_loss,
+            "is_best_metric": checkpoint_record.is_best_metric,
+            "load_time_seconds": time.time() - start_time,
+            "device": str(device) if device else "cpu",
         }
 
-        self.logger.info(f"Loaded checkpoint: {os.path.basename(checkpoint_record.file_path)}")
+        self.logger.info(
+            f"Loaded checkpoint: {os.path.basename(checkpoint_record.file_path)}"
+        )
         self.logger.info(f"Load time: {time.time() - start_time:.2f}s")
 
         return checkpoint_data
 
-    def _determine_checkpoint_type_and_flags(self, experiment_id: str, epoch: int, step: int,
-                                           loss: float, val_loss: Optional[float],
-                                           metrics: Optional[Dict[str, float]],
-                                           update_best: bool) -> tuple:
+    def _determine_checkpoint_type_and_flags(
+        self,
+        experiment_id: str,
+        epoch: int,
+        step: int,
+        loss: float,
+        val_loss: Optional[float],
+        metrics: Optional[Dict[str, float]],
+        update_best: bool,
+    ) -> tuple:
         """Determine checkpoint type and best model flags"""
-        checkpoint_type = 'manual'
-        best_flags = {'is_best_loss': False, 'is_best_val_loss': False, 'is_best_metric': False}
+        checkpoint_type = "manual"
+        best_flags = {
+            "is_best_loss": False,
+            "is_best_val_loss": False,
+            "is_best_metric": False,
+        }
 
         if not update_best:
             return checkpoint_type, best_flags
@@ -459,44 +499,44 @@ class EnhancedCheckpointManager:
 
         # Check if this is the best loss
         if loss is not None:
-            if 'loss' not in best_metrics or loss < best_metrics['loss']:
-                best_metrics['loss'] = loss
-                best_flags['is_best_loss'] = True
-                checkpoint_type = 'best'
+            if "loss" not in best_metrics or loss < best_metrics["loss"]:
+                best_metrics["loss"] = loss
+                best_flags["is_best_loss"] = True
+                checkpoint_type = "best"
 
         # Check if this is the best validation loss
         if val_loss is not None:
-            if 'val_loss' not in best_metrics or val_loss < best_metrics['val_loss']:
-                best_metrics['val_loss'] = val_loss
-                best_flags['is_best_val_loss'] = True
-                checkpoint_type = 'best'
+            if "val_loss" not in best_metrics or val_loss < best_metrics["val_loss"]:
+                best_metrics["val_loss"] = val_loss
+                best_flags["is_best_val_loss"] = True
+                checkpoint_type = "best"
 
         # Check custom metrics
         if metrics:
             for metric_name, value in metrics.items():
                 # Assume metrics ending with 'loss' or 'error' should be minimized
-                minimize = metric_name.endswith(('loss', 'error'))
+                minimize = metric_name.endswith(("loss", "error"))
 
                 if metric_name not in best_metrics:
                     best_metrics[metric_name] = value
-                    best_flags['is_best_metric'] = True
-                    checkpoint_type = 'best'
+                    best_flags["is_best_metric"] = True
+                    checkpoint_type = "best"
                 elif minimize and value < best_metrics[metric_name]:
                     best_metrics[metric_name] = value
-                    best_flags['is_best_metric'] = True
-                    checkpoint_type = 'best'
+                    best_flags["is_best_metric"] = True
+                    checkpoint_type = "best"
                 elif not minimize and value > best_metrics[metric_name]:
                     best_metrics[metric_name] = value
-                    best_flags['is_best_metric'] = True
-                    checkpoint_type = 'best'
+                    best_flags["is_best_metric"] = True
+                    checkpoint_type = "best"
 
         # Check if this is a frequency save
         if epoch % self.save_frequency == 0:
-            checkpoint_type = 'frequency'
+            checkpoint_type = "frequency"
 
         # Always save last checkpoint
         if self.save_last:
-            checkpoint_type = 'last'
+            checkpoint_type = "last"
 
         return checkpoint_type, best_flags
 
@@ -504,7 +544,9 @@ class EnhancedCheckpointManager:
         """Get checkpoint record from database or cache"""
         # Try cache first
         if self.cache_manager:
-            cached = self.cache_manager.checkpoint_cache.get_checkpoint_metadata(checkpoint_id)
+            cached = self.cache_manager.checkpoint_cache.get_checkpoint_metadata(
+                checkpoint_id
+            )
             if cached:
                 return Checkpoint(**cached)
 
@@ -519,26 +561,28 @@ class EnhancedCheckpointManager:
 
         return record
 
-    def _find_checkpoint_by_type(self, experiment_id: str, checkpoint_type: str) -> Optional[Checkpoint]:
+    def _find_checkpoint_by_type(
+        self, experiment_id: str, checkpoint_type: str
+    ) -> Optional[Checkpoint]:
         """Find checkpoint by type for an experiment"""
-        if checkpoint_type == 'latest':
+        if checkpoint_type == "latest":
             checkpoints = self.db.get_checkpoints_by_experiment(experiment_id)
             if checkpoints:
                 return max(checkpoints, key=lambda c: c.created_at)
 
-        elif checkpoint_type == 'best_loss':
+        elif checkpoint_type == "best_loss":
             checkpoints = self.db.get_checkpoints_by_experiment(experiment_id)
             best_checkpoints = [c for c in checkpoints if c.is_best_loss]
             if best_checkpoints:
                 return max(best_checkpoints, key=lambda c: c.created_at)
 
-        elif checkpoint_type == 'best_val_loss':
+        elif checkpoint_type == "best_val_loss":
             checkpoints = self.db.get_checkpoints_by_experiment(experiment_id)
             best_checkpoints = [c for c in checkpoints if c.is_best_val_loss]
             if best_checkpoints:
                 return max(best_checkpoints, key=lambda c: c.created_at)
 
-        elif checkpoint_type == 'best_metric':
+        elif checkpoint_type == "best_metric":
             checkpoints = self.db.get_checkpoints_by_experiment(experiment_id)
             best_checkpoints = [c for c in checkpoints if c.is_best_metric]
             if best_checkpoints:
@@ -561,9 +605,9 @@ class EnhancedCheckpointManager:
         # Protected types (keep best checkpoints)
         protected_types = set()
         if self.save_best:
-            protected_types.update(['best'])
+            protected_types.update(["best"])
         if self.save_last:
-            protected_types.add('last')
+            protected_types.add("last")
 
         # Remove excess checkpoints
         for ckpt_type, ckpts in by_type.items():
@@ -575,7 +619,7 @@ class EnhancedCheckpointManager:
                 ckpts_to_remove = ckpts[1:]
             else:
                 # Keep only up to max_checkpoints
-                ckpts_to_remove = ckpts[self.max_checkpoints:]
+                ckpts_to_remove = ckpts[self.max_checkpoints :]
 
             for ckpt in ckpts_to_remove:
                 try:
@@ -589,16 +633,23 @@ class EnhancedCheckpointManager:
 
                     # Remove from cache
                     if self.cache_manager:
-                        self.cache_manager.checkpoint_cache.invalidate_checkpoint(ckpt.id)
+                        self.cache_manager.checkpoint_cache.invalidate_checkpoint(
+                            ckpt.id
+                        )
 
-                    self.logger.info(f"Removed old checkpoint: {os.path.basename(ckpt.file_path)}")
+                    self.logger.info(
+                        f"Removed old checkpoint: {os.path.basename(ckpt.file_path)}"
+                    )
 
                 except OSError:
                     pass  # File might already be deleted
 
-    def list_checkpoints(self, experiment_id: Optional[str] = None,
-                        checkpoint_type: Optional[str] = None,
-                        include_metadata: bool = True) -> List[Dict[str, Any]]:
+    def list_checkpoints(
+        self,
+        experiment_id: Optional[str] = None,
+        checkpoint_type: Optional[str] = None,
+        include_metadata: bool = True,
+    ) -> List[Dict[str, Any]]:
         """
         List checkpoints with enhanced filtering
 
@@ -619,35 +670,41 @@ class EnhancedCheckpointManager:
         result = []
         for ckpt in checkpoints:
             ckpt_info = {
-                'id': ckpt.id,
-                'epoch': ckpt.epoch,
-                'step': ckpt.step,
-                'checkpoint_type': ckpt.checkpoint_type,
-                'file_path': ckpt.file_path,
-                'loss': ckpt.loss,
-                'val_loss': ckpt.val_loss,
-                'is_best_loss': ckpt.is_best_loss,
-                'is_best_val_loss': ckpt.is_best_val_loss,
-                'is_best_metric': ckpt.is_best_metric,
-                'created_at': ckpt.created_at,
-                'file_exists': os.path.exists(ckpt.file_path) if ckpt.file_path else False
+                "id": ckpt.id,
+                "epoch": ckpt.epoch,
+                "step": ckpt.step,
+                "checkpoint_type": ckpt.checkpoint_type,
+                "file_path": ckpt.file_path,
+                "loss": ckpt.loss,
+                "val_loss": ckpt.val_loss,
+                "is_best_loss": ckpt.is_best_loss,
+                "is_best_val_loss": ckpt.is_best_val_loss,
+                "is_best_metric": ckpt.is_best_metric,
+                "created_at": ckpt.created_at,
+                "file_exists": (
+                    os.path.exists(ckpt.file_path) if ckpt.file_path else False
+                ),
             }
 
             if include_metadata:
-                ckpt_info.update({
-                    'file_size': ckpt.file_size,
-                    'checksum': ckpt.checksum,
-                    'model_name': ckpt.model_name,
-                    'notes': ckpt.notes,
-                    'metrics': ckpt.metrics,
-                    'metadata': ckpt.metadata
-                })
+                ckpt_info.update(
+                    {
+                        "file_size": ckpt.file_size,
+                        "checksum": ckpt.checksum,
+                        "model_name": ckpt.model_name,
+                        "notes": ckpt.notes,
+                        "metrics": ckpt.metrics,
+                        "metadata": ckpt.metadata,
+                    }
+                )
 
             result.append(ckpt_info)
 
         return result
 
-    def get_experiment_statistics(self, experiment_id: Optional[str] = None) -> Dict[str, Any]:
+    def get_experiment_statistics(
+        self, experiment_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Get comprehensive experiment statistics"""
         exp_id = experiment_id or self.experiment_id
         if not exp_id:
@@ -655,11 +712,12 @@ class EnhancedCheckpointManager:
 
         return self.db.get_experiment_statistics(exp_id)
 
-    def verify_experiment_integrity(self, experiment_id: Optional[str] = None,
-                                  repair_on_failure: bool = False) -> Dict[str, Any]:
+    def verify_experiment_integrity(
+        self, experiment_id: Optional[str] = None, repair_on_failure: bool = False
+    ) -> Dict[str, Any]:
         """Verify integrity of all checkpoints in an experiment"""
         if not self.enable_integrity_checks:
-            return {'error': 'Integrity checks not enabled'}
+            return {"error": "Integrity checks not enabled"}
 
         exp_id = experiment_id or self.experiment_id
         if not exp_id:
@@ -670,16 +728,16 @@ class EnhancedCheckpointManager:
     def get_performance_statistics(self) -> Dict[str, Any]:
         """Get performance statistics for the checkpoint manager"""
         stats = {
-            'storage_backend': type(self.storage_backend).__name__,
-            'checkpoint_directory': self.checkpoint_dir,
-            'integrity_checks_enabled': self.enable_integrity_checks,
-            'caching_enabled': self.cache_manager is not None
+            "storage_backend": type(self.storage_backend).__name__,
+            "checkpoint_directory": self.checkpoint_dir,
+            "integrity_checks_enabled": self.enable_integrity_checks,
+            "caching_enabled": self.cache_manager is not None,
         }
 
         if self.cache_manager:
-            stats['cache_statistics'] = self.cache_manager.get_global_statistics()
+            stats["cache_statistics"] = self.cache_manager.get_global_statistics()
 
         if self.integrity_tracker:
-            stats['integrity_statistics'] = self.integrity_tracker.get_statistics()
+            stats["integrity_statistics"] = self.integrity_tracker.get_statistics()
 
         return stats
