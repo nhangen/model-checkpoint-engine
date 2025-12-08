@@ -12,12 +12,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+def get_project_root():
+    return Path(__file__).parent.resolve().parents[2] # todo: find cleaner way
+
 try:
     import sys
     from pathlib import Path
 
     # Add tools directory to path
-    tools_path = Path("/workspace/pose-estimation-vit/tools").resolve()
+    tools_path = get_project_root()
     if tools_path.exists() and str(tools_path) not in sys.path:
         sys.path.insert(0, str(tools_path))
 
@@ -54,7 +57,7 @@ class SystemValidator:
             base_dir: Base directory for PE-VIT ecosystem.
                      Defaults to /workspace/pose-estimation-vit
         """
-        self.base_dir = Path(base_dir) if base_dir else Path("/workspace/pose-estimation-vit")
+        self.base_dir = Path(base_dir) if base_dir else get_project_root()
         self.data_dir = self.base_dir / "data"
         self.results: List[ValidationResult] = []
 
