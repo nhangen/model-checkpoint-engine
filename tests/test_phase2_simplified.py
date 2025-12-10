@@ -48,7 +48,6 @@ class TestPhase2Components:
         """Test that Phase 2 modules can be imported"""
         try:
             from model_checkpoint.analytics import BestModelSelector, MetricsCollector
-
             assert MetricsCollector is not None
             assert BestModelSelector is not None
         except ImportError as e:
@@ -67,7 +66,6 @@ class TestPhase2Components:
             from model_checkpoint.notifications.notification_manager import (
                 NotificationManager,
             )
-
             manager = NotificationManager()
             assert manager is not None
         except (ImportError, SyntaxError) as e:

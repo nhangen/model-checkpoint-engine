@@ -31,12 +31,13 @@ class TestHookManager:
 
     def test_register_simple_hook(self, hook_manager):
         """Test registering a simple hook"""
-
         def test_handler(context: HookContext):
-            return {"test": "success"}
+            return {'test': 'success'}
 
         hook_manager.register_hook(
-            "test_hook", test_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE]
+            "test_hook",
+            test_handler,
+            [HookEvent.BEFORE_CHECKPOINT_SAVE]
         )
 
         assert "test_hook" in hook_manager._hook_registry
@@ -47,95 +48,87 @@ class TestHookManager:
         results = []
 
         def test_handler(context: HookContext):
-            results.append(context.get("test_data"))
-            return {"success": True}
+            results.append(context.get('test_data'))
+            return {'success': True}
 
         hook_manager.register_hook(
-            "test_hook", test_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE]
+            "test_hook",
+            test_handler,
+            [HookEvent.BEFORE_CHECKPOINT_SAVE]
         )
 
         # Fire the hook
         result = hook_manager.fire_hook(
-            HookEvent.BEFORE_CHECKPOINT_SAVE, data={"test_data": "hello world"}
+            HookEvent.BEFORE_CHECKPOINT_SAVE,
+            data={'test_data': 'hello world'}
         )
 
         assert result.success
         assert len(results) == 1
-        assert results[0] == "hello world"
+        assert results[0] == 'hello world'
 
     def test_hook_priority_order(self, hook_manager):
         """Test that hooks execute in priority order"""
         execution_order = []
 
         def high_priority_handler(context):
-            execution_order.append("high")
+            execution_order.append('high')
             return True
 
         def low_priority_handler(context):
-            execution_order.append("low")
+            execution_order.append('low')
             return True
 
         def normal_priority_handler(context):
-            execution_order.append("normal")
+            execution_order.append('normal')
             return True
 
         hook_manager.register_hook(
-            "low",
-            low_priority_handler,
-            [HookEvent.BEFORE_CHECKPOINT_SAVE],
-            priority=HookPriority.LOW,
+            "low", low_priority_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE],
+            priority=HookPriority.LOW
         )
         hook_manager.register_hook(
-            "high",
-            high_priority_handler,
-            [HookEvent.BEFORE_CHECKPOINT_SAVE],
-            priority=HookPriority.HIGH,
+            "high", high_priority_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE],
+            priority=HookPriority.HIGH
         )
         hook_manager.register_hook(
-            "normal",
-            normal_priority_handler,
-            [HookEvent.BEFORE_CHECKPOINT_SAVE],
-            priority=HookPriority.NORMAL,
+            "normal", normal_priority_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE],
+            priority=HookPriority.NORMAL
         )
 
         hook_manager.fire_hook(HookEvent.BEFORE_CHECKPOINT_SAVE)
 
-        assert execution_order == ["high", "normal", "low"]
+        assert execution_order == ['high', 'normal', 'low']
 
     def test_hook_can_stop_execution(self, hook_manager):
         """Test that a hook can stop execution chain"""
         results = []
 
         def stopping_handler(context):
-            results.append("stopping")
-            return {"success": True, "continue": False}
+            results.append('stopping')
+            return {'success': True, 'continue': False}
 
         def should_not_run_handler(context):
-            results.append("should_not_run")
+            results.append('should_not_run')
             return True
 
         hook_manager.register_hook(
-            "stopping",
-            stopping_handler,
-            [HookEvent.BEFORE_CHECKPOINT_SAVE],
-            priority=HookPriority.HIGH,
+            "stopping", stopping_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE],
+            priority=HookPriority.HIGH
         )
         hook_manager.register_hook(
-            "blocked",
-            should_not_run_handler,
-            [HookEvent.BEFORE_CHECKPOINT_SAVE],
-            priority=HookPriority.LOW,
+            "blocked", should_not_run_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE],
+            priority=HookPriority.LOW
         )
 
         result = hook_manager.fire_hook(HookEvent.BEFORE_CHECKPOINT_SAVE)
 
         assert not result.success
-        assert result.stopped_by == "stopping"
-        assert results == ["stopping"]  # Second handler should not run
+        assert result.stopped_by == 'stopping'
+        assert results == ['stopping']  # Second handler should not run
 
     def test_unregister_hook(self, hook_manager):
         """Test unregistering hooks"""
-
         def test_handler(context):
             return True
 
@@ -158,26 +151,26 @@ class TestHookContext:
         """Test creating a hook context"""
         context = HookContext(
             event=HookEvent.BEFORE_CHECKPOINT_SAVE,
-            data={"key": "value"},
-            checkpoint_id="test-id",
+            data={'key': 'value'},
+            checkpoint_id='test-id'
         )
 
         assert context.event == HookEvent.BEFORE_CHECKPOINT_SAVE
-        assert context.get("key") == "value"
-        assert context.checkpoint_id == "test-id"
+        assert context.get('key') == 'value'
+        assert context.checkpoint_id == 'test-id'
 
     def test_context_copy(self):
         """Test copying a context"""
         original = HookContext(
             event=HookEvent.BEFORE_CHECKPOINT_SAVE,
-            data={"key": "value"},
-            checkpoint_id="test-id",
+            data={'key': 'value'},
+            checkpoint_id='test-id'
         )
 
         copied = original.copy()
 
         assert copied.event == original.event
-        assert copied.get("key") == original.get("key")
+        assert copied.get('key') == original.get('key')
         assert copied.checkpoint_id == original.checkpoint_id
         assert copied is not original
         assert copied.data is not original.data
@@ -186,12 +179,12 @@ class TestHookContext:
         """Test updating context data"""
         context = HookContext(event=HookEvent.BEFORE_CHECKPOINT_SAVE)
 
-        context.set("new_key", "new_value")
-        assert context.get("new_key") == "new_value"
+        context.set('new_key', 'new_value')
+        assert context.get('new_key') == 'new_value'
 
-        context.update({"batch_key": "batch_value", "another": 123})
-        assert context.get("batch_key") == "batch_value"
-        assert context.get("another") == 123
+        context.update({'batch_key': 'batch_value', 'another': 123})
+        assert context.get('batch_key') == 'batch_value'
+        assert context.get('another') == 123
 
 
 class TestBaseHook:
@@ -216,13 +209,13 @@ class TestBaseHook:
         hook = TestHook()
         methods = hook.get_hook_methods()
 
-        assert "on_before_checkpoint_save" in methods
-        assert "on_after_checkpoint_save" in methods
-        assert "regular_method" not in methods
+        assert 'on_before_checkpoint_save' in methods
+        assert 'on_after_checkpoint_save' in methods
+        assert 'regular_method' not in methods
 
         # Check method configuration
-        save_config = methods["on_before_checkpoint_save"]
-        assert HookEvent.BEFORE_CHECKPOINT_SAVE in save_config["events"]
+        save_config = methods['on_before_checkpoint_save']
+        assert HookEvent.BEFORE_CHECKPOINT_SAVE in save_config['events']
 
 
 class TestHookDecorators:
@@ -235,30 +228,26 @@ class TestHookDecorators:
         def decorated_handler(context):
             return True
 
-        assert hasattr(decorated_handler, "_hook_events")
+        assert hasattr(decorated_handler, '_hook_events')
         assert decorated_handler._hook_events == [HookEvent.BEFORE_CHECKPOINT_SAVE]
         assert decorated_handler._priority == HookPriority.HIGH
 
     def test_conditional_hook_decorator(self):
         """Test the conditional_hook decorator"""
 
-        @conditional_hook(lambda ctx: ctx.get("condition") == True)
+        @conditional_hook(lambda ctx: ctx.get('condition') == True)
         def conditional_handler(context):
-            return {"executed": True}
+            return {'executed': True}
 
         # Should execute when condition is True
-        context = HookContext(
-            event=HookEvent.BEFORE_CHECKPOINT_SAVE, data={"condition": True}
-        )
+        context = HookContext(event=HookEvent.BEFORE_CHECKPOINT_SAVE, data={'condition': True})
         result = conditional_handler(context)
-        assert result["executed"] is True
+        assert result['executed'] is True
 
         # Should skip when condition is False
-        context = HookContext(
-            event=HookEvent.BEFORE_CHECKPOINT_SAVE, data={"condition": False}
-        )
+        context = HookContext(event=HookEvent.BEFORE_CHECKPOINT_SAVE, data={'condition': False})
         result = conditional_handler(context)
-        assert result["skipped"] is True
+        assert result['skipped'] is True
 
 
 class TestHookIntegration:
@@ -288,7 +277,7 @@ class TestHookIntegration:
         # Verify hook is registered
         hooks = manager.list_hooks()
         assert len(hooks) > 0
-        assert any(h["name"] == "test" for h in hooks)
+        assert any(h['name'] == 'test' for h in hooks)
 
     def test_metrics_collector_hooks(self):
         """Test that metrics collector fires hooks correctly"""
@@ -304,16 +293,16 @@ class TestHookIntegration:
         hook_data = []
 
         def metric_hook(context):
-            hook_data.append(
-                {
-                    "metric_name": context.get("metric_name"),
-                    "value": context.get("value"),
-                }
-            )
+            hook_data.append({
+                'metric_name': context.get('metric_name'),
+                'value': context.get('value')
+            })
             return True
 
         collector.hook_manager.register_hook(
-            "metric_test", metric_hook, [HookEvent.BEFORE_METRIC_COLLECTION]
+            "metric_test",
+            metric_hook,
+            [HookEvent.BEFORE_METRIC_COLLECTION]
         )
 
         # Collect a metric (should trigger hook)
@@ -321,8 +310,8 @@ class TestHookIntegration:
 
         # Verify hook was called
         assert len(hook_data) == 1
-        assert hook_data[0]["metric_name"] == "test_metric"
-        assert hook_data[0]["value"] == 0.5
+        assert hook_data[0]['metric_name'] == "test_metric"
+        assert hook_data[0]['value'] == 0.5
 
 
 class TestHookPerformance:
@@ -344,10 +333,10 @@ class TestHookPerformance:
         hook_manager.fire_hook(HookEvent.BEFORE_CHECKPOINT_SAVE)
 
         stats = hook_manager.get_performance_stats("slow_hook")
-        assert stats["total_calls"] == 1
-        assert stats["successful_calls"] == 1
-        assert stats["min_time"] >= 0.01  # At least 10ms
-        assert stats["avg_time"] >= 0.01
+        assert stats['total_calls'] == 1
+        assert stats['successful_calls'] == 1
+        assert stats['min_time'] >= 0.01  # At least 10ms
+        assert stats['avg_time'] >= 0.01
 
     def test_multiple_hooks_performance(self):
         """Test performance with multiple hooks"""
@@ -355,9 +344,8 @@ class TestHookPerformance:
 
         # Register multiple hooks
         for i in range(10):
-
             def handler(context, hook_id=i):
-                return {"hook_id": hook_id}
+                return {'hook_id': hook_id}
 
             hook_manager.register_hook(
                 f"hook_{i}", handler, [HookEvent.BEFORE_CHECKPOINT_SAVE]
@@ -385,19 +373,15 @@ class TestHookErrorHandling:
             raise ValueError("Test error")
 
         def working_handler(context):
-            return {"success": True}
+            return {'success': True}
 
         hook_manager.register_hook(
-            "failing",
-            failing_handler,
-            [HookEvent.BEFORE_CHECKPOINT_SAVE],
-            priority=HookPriority.HIGH,
+            "failing", failing_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE],
+            priority=HookPriority.HIGH
         )
         hook_manager.register_hook(
-            "working",
-            working_handler,
-            [HookEvent.BEFORE_CHECKPOINT_SAVE],
-            priority=HookPriority.LOW,
+            "working", working_handler, [HookEvent.BEFORE_CHECKPOINT_SAVE],
+            priority=HookPriority.LOW
         )
 
         # Fire hooks - should handle error gracefully
@@ -409,12 +393,12 @@ class TestHookErrorHandling:
 
         # Failing hook should have error recorded
         failing_result = result.get_result("failing")
-        assert failing_result["success"] is False
-        assert "Test error" in failing_result["error"]
+        assert failing_result['success'] is False
+        assert "Test error" in failing_result['error']
 
         # Working hook should succeed
         working_result = result.get_result("working")
-        assert working_result["success"] is True
+        assert working_result['success'] is True
 
 
 if __name__ == "__main__":

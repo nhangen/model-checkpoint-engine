@@ -8,33 +8,30 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from model_checkpoint.api.base_api import APIResponse, BaseAPI, HTTPMethod
-# Note: FlaskCheckpointAPI not implemented yet - tests skipped
-# from model_checkpoint.api.flask_integration import FlaskCheckpointAPI
+from model_checkpoint.api.flask_integration import FlaskCheckpointAPI
 from model_checkpoint.config.config_manager import ConfigManager
 from model_checkpoint.monitoring.performance_monitor import PerformanceMonitor
 from model_checkpoint.plugins.plugin_manager import PluginManager
 
 
-@pytest.mark.skip(reason="FlaskCheckpointAPI not implemented yet")
 class TestFlaskAPI:
     """Test Flask API integration"""
 
     @pytest.fixture
     def api(self):
-        # return FlaskCheckpointAPI()
-        pass
+        return FlaskCheckpointAPI()
 
     def test_api_initialization(self, api):
         """Test API initialization"""
         assert api is not None
-        assert hasattr(api, "process_request")
+        assert hasattr(api, 'process_request')
 
     def test_list_checkpoints_endpoint(self, api):
         """Test listing checkpoints via API"""
         response = api.process_request(
             path="/checkpoints",
             method=HTTPMethod.GET,
-            data={"experiment_id": "test_exp"},
+            data={"experiment_id": "test_exp"}
         )
 
         assert response.status_code in [200, 404]
@@ -43,7 +40,8 @@ class TestFlaskAPI:
     def test_get_checkpoint_endpoint(self, api):
         """Test getting specific checkpoint"""
         response = api.process_request(
-            path="/checkpoints/ckpt_001", method=HTTPMethod.GET
+            path="/checkpoints/ckpt_001",
+            method=HTTPMethod.GET
         )
 
         assert response.status_code in [200, 404]
@@ -51,7 +49,8 @@ class TestFlaskAPI:
     def test_delete_checkpoint_endpoint(self, api):
         """Test deleting checkpoint via API"""
         response = api.process_request(
-            path="/checkpoints/ckpt_001", method=HTTPMethod.DELETE
+            path="/checkpoints/ckpt_001",
+            method=HTTPMethod.DELETE
         )
 
         assert response.status_code in [200, 204, 404]
@@ -62,7 +61,9 @@ class TestFlaskAPI:
         responses = []
         for _ in range(100):
             response = api.process_request(
-                path="/checkpoints", method=HTTPMethod.GET, client_id="test_client"
+                path="/checkpoints",
+                method=HTTPMethod.GET,
+                client_id="test_client"
             )
             responses.append(response)
 
@@ -74,10 +75,16 @@ class TestFlaskAPI:
     def test_api_caching(self, api):
         """Test API response caching"""
         # First request
-        response1 = api.process_request(path="/checkpoints", method=HTTPMethod.GET)
+        response1 = api.process_request(
+            path="/checkpoints",
+            method=HTTPMethod.GET
+        )
 
         # Second identical request
-        response2 = api.process_request(path="/checkpoints", method=HTTPMethod.GET)
+        response2 = api.process_request(
+            path="/checkpoints",
+            method=HTTPMethod.GET
+        )
 
         # If caching is enabled, should be fast
         # Note: actual cache verification would need timing or cache inspection
@@ -88,11 +95,20 @@ class TestConfigManager:
 
     @pytest.fixture
     def config_manager(self):
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as tmp:
+        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as tmp:
             config = {
-                "database": {"url": "sqlite:///test.db", "pool_size": 10},
-                "storage": {"backend": "pytorch", "compression": True},
-                "cloud": {"provider": "s3", "bucket": "test-bucket"},
+                "database": {
+                    "url": "sqlite:///test.db",
+                    "pool_size": 10
+                },
+                "storage": {
+                    "backend": "pytorch",
+                    "compression": True
+                },
+                "cloud": {
+                    "provider": "s3",
+                    "bucket": "test-bucket"
+                }
             }
             json.dump(config, tmp)
             tmp.flush()
@@ -126,9 +142,7 @@ class TestConfigManager:
 
     def test_environment_override(self):
         """Test environment variable overrides"""
-        with patch.dict(
-            "os.environ", {"CHECKPOINT_DB_URL": "postgresql://localhost/test"}
-        ):
+        with patch.dict('os.environ', {'CHECKPOINT_DB_URL': 'postgresql://localhost/test'}):
             manager = ConfigManager()
             # Should override config file with env var
             # This depends on implementation
@@ -136,7 +150,9 @@ class TestConfigManager:
     def test_config_validation(self, config_manager):
         """Test configuration validation"""
         # Test with invalid config
-        is_valid = config_manager.validate({"database": "invalid"})  # Should be dict
+        is_valid = config_manager.validate({
+            "database": "invalid"  # Should be dict
+        })
         assert not is_valid
 
 
@@ -162,7 +178,7 @@ class TestPluginManager:
 
     def test_load_plugin(self, plugin_manager):
         """Test loading plugin from module"""
-        with patch("importlib.import_module") as mock_import:
+        with patch('importlib.import_module') as mock_import:
             mock_module = Mock()
             mock_module.Plugin = Mock
             mock_import.return_value = mock_module
@@ -181,9 +197,7 @@ class TestPluginManager:
         plugin_manager.register(plugin)
 
         # Execute hook
-        results = plugin_manager.execute_hook(
-            "on_checkpoint_save", {"checkpoint_id": "123"}
-        )
+        results = plugin_manager.execute_hook("on_checkpoint_save", {"checkpoint_id": "123"})
         plugin.on_checkpoint_save.assert_called_once()
 
     def test_plugin_dependencies(self, plugin_manager):
@@ -220,7 +234,6 @@ class TestPerformanceMonitor:
         with monitor.track("save_checkpoint"):
             # Simulate operation
             import time
-
             time.sleep(0.01)
 
         stats = monitor.get_stats("save_checkpoint")
@@ -244,7 +257,6 @@ class TestPerformanceMonitor:
         for i in range(10):
             with monitor.track("operation"):
                 import time
-
                 time.sleep(0.001)
 
         report = monitor.generate_report()
@@ -277,13 +289,16 @@ class TestPhase3Integration:
         config = {
             "api": {"rate_limit": 100},
             "plugins": {"enabled": True},
-            "monitoring": {"enabled": True},
+            "monitoring": {"enabled": True}
         }
         config_manager.update(config)
 
         # Track API call
         with monitor.track("api_call"):
-            response = api.process_request(path="/status", method=HTTPMethod.GET)
+            response = api.process_request(
+                path="/status",
+                method=HTTPMethod.GET
+            )
 
         assert response.status_code in [200, 404]
         stats = monitor.get_stats("api_call")
@@ -300,10 +315,13 @@ class TestPhase3Integration:
         # Test shared validation
         errors = validate_json_structure(
             {"name": "test"},
-            {"properties": {"name": {"type": "string", "required": True}}},
+            {"properties": {"name": {"type": "string", "required": True}}}
         )
         assert len(errors) == 0
 
         # Test shared merging
-        merged = merge_configurations({"a": 1, "b": {"c": 2}}, {"b": {"d": 3}})
+        merged = merge_configurations(
+            {"a": 1, "b": {"c": 2}},
+            {"b": {"d": 3}}
+        )
         assert merged == {"a": 1, "b": {"c": 2, "d": 3}}

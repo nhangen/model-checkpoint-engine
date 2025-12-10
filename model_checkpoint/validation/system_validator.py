@@ -1,7 +1,7 @@
 """
-System Validator for Model Checkpoint Ecosystem
+System Validator for PE-VIT Ecosystem
 
-Validates the complete model checkpoint ecosystem including directory structure,
+Validates the complete PE-VIT ecosystem including directory structure,
 database integrity, experiment tracking, and system integration.
 """
 
@@ -12,26 +12,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
-def get_system_root():
-    return Path(__file__).parent.resolve().parents[2] # todo: find cleaner way
-
 try:
     import sys
     from pathlib import Path
 
     # Add tools directory to path
-    tools_path = get_system_root()
+    tools_path = Path("/workspace/pose-estimation-vit/tools").resolve()
     if tools_path.exists() and str(tools_path) not in sys.path:
         sys.path.insert(0, str(tools_path))
 
-    # from experiment_manager import ExperimentManager  # type: ignore
-    # from run_index_generator import RunIndexGenerator  # type: ignore
+    from experiment_manager import ExperimentManager  # type: ignore
+    from run_index_generator import RunIndexGenerator  # type: ignore
     CORE_AVAILABLE = True
-except ImportError as e:
-    print(f"WARNING: Core import failed: {e}") 
-    CORE_AVAILABLE = False
-except Exception as e:
-    print(f"WARNING: Unexpected error during import: {e}")
+except ImportError:
     CORE_AVAILABLE = False
 
 
@@ -46,23 +39,36 @@ class ValidationResult:
 
 class SystemValidator:
     """
-    Validates the model checkpoint ecosystem components.
+    Validates the PE-VIT ecosystem components.
 
-    This class provides comprehensive validation for the entire model checkpoint
+    This class provides comprehensive validation for the entire PE-VIT
     ecosystem including directory structure, database integrity,
     experiment lifecycle, and system integration.
     """
 
-    def __init__(self, base_dir: Optional[str] = None):
+    def __init__(self, base_dir: Optional[str] = None, data_dir: Optional[str] = None):
         """
         Initialize the system validator.
 
         Args:
-            base_dir: Base directory for model checkpoint ecosystem.
-                     Defaults to root
+            base_dir: Base directory for PE-VIT ecosystem.
+                     Defaults to /workspace/pose-estimation-vit
+            data_dir: Data directory path. If not specified, auto-detects
+                     'data' or 'pe-vit-data' within base_dir.
         """
-        self.base_dir = Path(base_dir) if base_dir else get_system_root()
-        self.data_dir = self.base_dir / "data"
+        self.base_dir = Path(base_dir) if base_dir else Path("/workspace/pose-estimation-vit")
+
+        if data_dir:
+            self.data_dir = Path(data_dir)
+        else:
+            # Auto-detect data directory (check both 'data' and 'pe-vit-data')
+            if (self.base_dir / "data").exists():
+                self.data_dir = self.base_dir / "data"
+            elif (self.base_dir / "pe-vit-data").exists():
+                self.data_dir = self.base_dir / "pe-vit-data"
+            else:
+                self.data_dir = self.base_dir / "data"  # Default fallback
+
         self.results: List[ValidationResult] = []
 
     def validate_all(self) -> List[ValidationResult]:
@@ -93,7 +99,7 @@ class SystemValidator:
 
     def validate_data_structure(self) -> List[ValidationResult]:
         """
-        Validate data directory structure.
+        Validate PE-VIT data directory structure.
 
         Returns:
             List of validation results for data structure
@@ -128,16 +134,16 @@ class SystemValidator:
 
     def validate_symlinks(self) -> List[ValidationResult]:
         """
-        Validate symlink structure for model checkpoint ecosystem.
+        Validate symlink structure for PE-VIT ecosystem.
 
         Returns:
             List of validation results for symlinks
         """
-        project_dir = get_system_root()
+        project_dir = self.base_dir / "pose-estimation-vit"
         symlinks = {
-            "data": "data",
-            # "data": "pe-vit-data/datasets",
-            "experiments": "data/checkpoints",
+            "pe-vit-data": "../data",
+            "data": "pe-vit-data/datasets",
+            "experiments": "pe-vit-data/checkpoints",
         }
 
         symlink_results = []
@@ -161,8 +167,7 @@ class SystemValidator:
                 )
             else:
                 actual_target = os.readlink(link_path)
-                passed = (actual_target == expected_target) or \
-                         ((link_path.parent / actual_target).resolve() == (link_path.parent / expected_target).resolve())
+                passed = actual_target == expected_target
 
                 result = ValidationResult(
                     name=f"Symlink: {link_name}",
@@ -368,7 +373,7 @@ class SystemValidator:
 
     def print_results(self):
         """Print validation results in a readable format."""
-        print("MODEL CHECKPOINT ECOSYSTEM VALIDATION RESULTS")
+        print("PE-VIT ECOSYSTEM VALIDATION RESULTS")
         print("=" * 50)
 
         for result in self.results:

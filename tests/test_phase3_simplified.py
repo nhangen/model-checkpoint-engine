@@ -71,8 +71,8 @@ class TestPhase3Components:
         """Test Phase 3 shared utilities"""
         from model_checkpoint.phase3_shared.shared_utils import (
             current_time,
+            format_bytes,
             validate_json_structure,
-            format_bytes
         )
 
         # Test time function
@@ -94,9 +94,9 @@ class TestPhase3Components:
     def test_zero_redundancy_optimization(self):
         """Test that Phase 3 achieves zero redundancy through shared utilities"""
         from model_checkpoint.phase3_shared.shared_utils import (
+            calculate_file_hash,
             merge_configurations,
             sanitize_filename,
-            calculate_file_hash
         )
 
         # Test merge configurations
@@ -134,14 +134,14 @@ class TestPhase3Components:
 
     def test_hook_system_import(self):
         """Test hook system can be imported"""
-        from model_checkpoint.hooks import HookManager, HookEvent, BaseHook
+        from model_checkpoint.hooks import BaseHook, HookEvent, HookManager
         assert HookManager is not None
         assert HookEvent is not None
         assert BaseHook is not None
 
     def test_hook_system_basic_functionality(self):
         """Test basic hook system functionality"""
-        from model_checkpoint.hooks import HookManager, HookEvent, HookContext
+        from model_checkpoint.hooks import HookContext, HookEvent, HookManager
 
         # Create hook manager
         manager = HookManager(enable_async=False)
@@ -164,7 +164,9 @@ class TestPhase3Components:
     def test_checkpoint_manager_with_hooks(self):
         """Test checkpoint manager hook integration"""
         try:
-            from model_checkpoint.checkpoint.enhanced_manager import EnhancedCheckpointManager
+            from model_checkpoint.checkpoint.enhanced_manager import (
+                EnhancedCheckpointManager,
+            )
 
             # Create manager with hooks enabled
             manager = EnhancedCheckpointManager(enable_hooks=True)
@@ -214,7 +216,7 @@ class TestPhase3Components:
 
     def test_hook_priority_system(self):
         """Test hook priority execution order"""
-        from model_checkpoint.hooks import HookManager, HookEvent, HookPriority
+        from model_checkpoint.hooks import HookEvent, HookManager, HookPriority
 
         manager = HookManager(enable_async=False)
         execution_order = []
@@ -235,8 +237,8 @@ class TestPhase3Components:
 
     def test_hook_decorators(self):
         """Test hook decorators functionality"""
-        from model_checkpoint.hooks.decorators import hook_handler, conditional_hook
-        from model_checkpoint.hooks import HookEvent, HookPriority, HookContext
+        from model_checkpoint.hooks import HookContext, HookEvent, HookPriority
+        from model_checkpoint.hooks.decorators import conditional_hook, hook_handler
 
         # Test hook_handler decorator
         @hook_handler([HookEvent.BEFORE_CHECKPOINT_SAVE], priority=HookPriority.HIGH)

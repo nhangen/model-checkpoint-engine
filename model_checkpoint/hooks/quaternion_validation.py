@@ -5,10 +5,12 @@ These hooks provide validation for quaternion representations during training
 to prevent the rotation representation bugs that caused grid experiment failures.
 """
 
-import torch
-import numpy as np
-from typing import Dict, Any, Optional, Union
 import logging
+from typing import Any, Dict, Optional, Union
+
+import numpy as np
+import torch
+
 from model_checkpoint.hooks.base_hook import BaseHook, HookContext
 from model_checkpoint.hooks.hook_manager import HookEvent
 
