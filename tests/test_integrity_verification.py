@@ -1,4 +1,4 @@
-"""Tests for integrity verification system"""
+# Tests for integrity verification system
 
 import hashlib
 import os
@@ -17,18 +17,18 @@ from model_checkpoint.integrity import (
 
 
 class TestChecksumCalculator:
-    """Test checksum calculation functionality"""
+    # Test checksum calculation functionality
 
     @pytest.fixture
     def temp_dir(self):
-        """Create temporary directory for tests"""
+        # Create temporary directory for tests
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def test_file(self, temp_dir):
-        """Create test file with known content"""
+        # Create test file with known content
         file_path = os.path.join(temp_dir, "test_file.txt")
         content = b"Hello, World! This is a test file for checksum calculation."
         with open(file_path, 'wb') as f:
@@ -37,11 +37,11 @@ class TestChecksumCalculator:
 
     @pytest.fixture
     def calculator(self):
-        """Create checksum calculator"""
+        # Create checksum calculator
         return ChecksumCalculator(algorithm='sha256')
 
     def test_file_checksum_calculation(self, calculator, test_file):
-        """Test file checksum calculation"""
+        # Test file checksum calculation
         file_path, content = test_file
 
         # Calculate checksum
@@ -52,7 +52,7 @@ class TestChecksumCalculator:
         assert checksum == expected_checksum
 
     def test_data_checksum_calculation(self, calculator):
-        """Test raw data checksum calculation"""
+        # Test raw data checksum calculation
         data = b"Test data for checksum"
         checksum = calculator.calculate_data_checksum(data)
 
@@ -61,7 +61,7 @@ class TestChecksumCalculator:
         assert checksum == expected_checksum
 
     def test_file_verification(self, calculator, test_file):
-        """Test file checksum verification"""
+        # Test file checksum verification
         file_path, content = test_file
 
         # Calculate correct checksum
@@ -75,7 +75,7 @@ class TestChecksumCalculator:
         assert calculator.verify_file_checksum(file_path, wrong_checksum) is False
 
     def test_checksum_with_metadata(self, calculator, test_file):
-        """Test checksum calculation with metadata"""
+        # Test checksum calculation with metadata
         file_path, content = test_file
 
         metadata = calculator.calculate_with_metadata(file_path)
@@ -92,7 +92,7 @@ class TestChecksumCalculator:
         assert metadata['file_path'] == file_path
 
     def test_comprehensive_verification(self, calculator, test_file):
-        """Test comprehensive file verification"""
+        # Test comprehensive file verification
         file_path, content = test_file
 
         # Get expected values
@@ -111,7 +111,7 @@ class TestChecksumCalculator:
         assert result['actual_size'] == expected_size
 
     def test_missing_file_verification(self, calculator):
-        """Test verification of missing file"""
+        # Test verification of missing file
         missing_file = "/path/to/nonexistent/file.txt"
 
         result = calculator.verify_with_metadata(
@@ -122,7 +122,7 @@ class TestChecksumCalculator:
         assert result['checksum_match'] is False
 
     def test_different_algorithms(self, temp_dir, test_file):
-        """Test different hash algorithms"""
+        # Test different hash algorithms
         file_path, content = test_file
 
         # Test MD5
@@ -139,24 +139,24 @@ class TestChecksumCalculator:
 
 
 class TestIntegrityTracker:
-    """Test integrity tracking functionality"""
+    # Test integrity tracking functionality
 
     @pytest.fixture
     def temp_dir(self):
-        """Create temporary directory for tests"""
+        # Create temporary directory for tests
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def tracker(self, temp_dir):
-        """Create integrity tracker"""
+        # Create integrity tracker
         tracker_file = os.path.join(temp_dir, "integrity_tracker.json")
         return IntegrityTracker(tracker_file)
 
     @pytest.fixture
     def test_files(self, temp_dir):
-        """Create multiple test files"""
+        # Create multiple test files
         files = []
         for i in range(3):
             file_path = os.path.join(temp_dir, f"test_file_{i}.txt")
@@ -167,7 +167,7 @@ class TestIntegrityTracker:
         return files
 
     def test_add_file_tracking(self, tracker, test_files):
-        """Test adding files to integrity tracking"""
+        # Test adding files to integrity tracking
         file_path = test_files[0]
 
         # Add file to tracking
@@ -180,7 +180,7 @@ class TestIntegrityTracker:
         assert record['file_path'] == os.path.abspath(file_path)
 
     def test_verify_tracked_file(self, tracker, test_files):
-        """Test verifying tracked file"""
+        # Test verifying tracked file
         file_path = test_files[0]
 
         # Add file to tracking
@@ -194,7 +194,7 @@ class TestIntegrityTracker:
         assert result['checksum_match'] is True
 
     def test_verify_modified_file(self, tracker, test_files, temp_dir):
-        """Test verifying file after modification"""
+        # Test verifying file after modification
         file_path = test_files[0]
 
         # Add file to tracking
@@ -210,7 +210,7 @@ class TestIntegrityTracker:
         assert result['status'] in ['checksum_mismatch', 'size_mismatch']
 
     def test_verify_all_files(self, tracker, test_files):
-        """Test verifying all tracked files"""
+        # Test verifying all tracked files
         # Add multiple files to tracking
         for file_path in test_files:
             tracker.add_file(file_path)
@@ -230,7 +230,7 @@ class TestIntegrityTracker:
             assert results['details'][abs_path]['status'] == 'verified'
 
     def test_missing_file_detection(self, tracker, test_files):
-        """Test detection of missing files"""
+        # Test detection of missing files
         file_path = test_files[0]
 
         # Add file to tracking
@@ -246,7 +246,7 @@ class TestIntegrityTracker:
         assert result['file_exists'] is False
 
     def test_cleanup_missing_files(self, tracker, test_files):
-        """Test cleanup of missing file records"""
+        # Test cleanup of missing file records
         # Add files to tracking
         for file_path in test_files:
             tracker.add_file(file_path)
@@ -266,7 +266,7 @@ class TestIntegrityTracker:
         assert results['total_files'] == len(test_files) - len(files_to_remove)
 
     def test_tracker_statistics(self, tracker, test_files):
-        """Test integrity tracker statistics"""
+        # Test integrity tracker statistics
         # Add files to tracking
         for file_path in test_files:
             tracker.add_file(file_path)
@@ -281,29 +281,29 @@ class TestIntegrityTracker:
 
 
 class TestCheckpointVerifier:
-    """Test checkpoint verification system"""
+    # Test checkpoint verification system
 
     @pytest.fixture
     def temp_dir(self):
-        """Create temporary directory for tests"""
+        # Create temporary directory for tests
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def db_connection(self, temp_dir):
-        """Create test database connection"""
+        # Create test database connection
         db_path = os.path.join(temp_dir, "test_verification.db")
         return EnhancedDatabaseConnection(f"sqlite:///{db_path}")
 
     @pytest.fixture
     def verifier(self, db_connection):
-        """Create checkpoint verifier"""
+        # Create checkpoint verifier
         return CheckpointVerifier(db_connection)
 
     @pytest.fixture
     def test_checkpoint(self, temp_dir, db_connection):
-        """Create test checkpoint with file and database record"""
+        # Create test checkpoint with file and database record
         import torch
 
         # Create checkpoint file
@@ -341,7 +341,7 @@ class TestCheckpointVerifier:
         return checkpoint_record, file_path
 
     def test_verify_valid_checkpoint(self, verifier, test_checkpoint):
-        """Test verification of valid checkpoint"""
+        # Test verification of valid checkpoint
         checkpoint_record, file_path = test_checkpoint
 
         result = verifier.verify_checkpoint(checkpoint_record.id)
@@ -352,7 +352,7 @@ class TestCheckpointVerifier:
         assert len(result['errors']) == 0
 
     def test_verify_missing_file(self, verifier, test_checkpoint):
-        """Test verification of checkpoint with missing file"""
+        # Test verification of checkpoint with missing file
         checkpoint_record, file_path = test_checkpoint
 
         # Remove the file
@@ -365,7 +365,7 @@ class TestCheckpointVerifier:
         assert len(result['errors']) > 0
 
     def test_verify_corrupted_checksum(self, verifier, test_checkpoint):
-        """Test verification of checkpoint with corrupted file"""
+        # Test verification of checkpoint with corrupted file
         checkpoint_record, file_path = test_checkpoint
 
         # Corrupt the file by appending data
@@ -378,7 +378,7 @@ class TestCheckpointVerifier:
         assert not (result['checks']['checksum_match'] and result['checks']['size_match'])
 
     def test_verify_experiment_checkpoints(self, verifier, db_connection, temp_dir):
-        """Test verification of all checkpoints in an experiment"""
+        # Test verification of all checkpoints in an experiment
         import torch
 
         experiment_id = "test_exp_002"
@@ -436,7 +436,7 @@ class TestCheckpointVerifier:
                 assert result['status'] == 'verified'
 
     def test_checkpoint_backup_creation(self, verifier, test_checkpoint, temp_dir):
-        """Test creating checkpoint backups"""
+        # Test creating checkpoint backups
         checkpoint_record, file_path = test_checkpoint
 
         # Create backup
@@ -460,7 +460,7 @@ class TestCheckpointVerifier:
         assert backup_data['epoch'] == 10
 
     def test_nonexistent_checkpoint_verification(self, verifier):
-        """Test verification of non-existent checkpoint"""
+        # Test verification of non-existent checkpoint
         result = verifier.verify_checkpoint("nonexistent_checkpoint")
 
         assert result['status'] == 'database_record_missing'

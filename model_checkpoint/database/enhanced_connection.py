@@ -1,4 +1,4 @@
-"""Enhanced database connection with migration support - optimized to eliminate redundancy"""
+# Enhanced database connection with migration support - optimized to eliminate redundancy
 
 from typing import Any, Dict, List, Optional
 
@@ -8,12 +8,12 @@ from .models import Checkpoint
 
 
 class EnhancedDatabaseConnection(BaseDatabaseConnection):
-    """Enhanced SQLite database connection - inherits all base functionality, adds migrations"""
+    # Enhanced SQLite database connection - inherits all base functionality, adds migrations
 
     def __init__(
         self, database_url: str = "sqlite:///experiments.db", auto_migrate: bool = True
     ):
-        """Initialize enhanced database connection with migration support"""
+        # Initialize enhanced database connection with migration support
         # Initialize base class (includes optimized table creation and CRUD)
         super().__init__(database_url)
 
@@ -25,7 +25,7 @@ class EnhancedDatabaseConnection(BaseDatabaseConnection):
             self._run_migrations()
 
     def _run_migrations(self) -> None:
-        """Run pending database migrations"""
+        # Run pending database migrations
         try:
             result = self.migration_manager.migrate()
             if result["migrations_run"] > 0:
@@ -43,7 +43,7 @@ class EnhancedDatabaseConnection(BaseDatabaseConnection):
         checkpoint_type: Optional[str] = None,
         best_only: bool = False,
     ) -> List[Checkpoint]:
-        """Get checkpoints with advanced filtering - enhanced-specific method"""
+        # Get checkpoints with advanced filtering - enhanced-specific method
         with self._get_connection() as conn:
             query_parts = [
                 """
@@ -79,7 +79,7 @@ class EnhancedDatabaseConnection(BaseDatabaseConnection):
         is_best_val_loss: bool = False,
         is_best_metric: bool = False,
     ) -> None:
-        """Update best model flags - enhanced-specific atomic operation"""
+        # Update best model flags - enhanced-specific atomic operation
         with self._get_connection() as conn:
             # Optimized: clear and set in single transaction
             updates = []
@@ -121,7 +121,7 @@ class EnhancedDatabaseConnection(BaseDatabaseConnection):
             conn.commit()
 
     def get_experiment_statistics(self, experiment_id: str) -> Dict[str, Any]:
-        """Get comprehensive experiment statistics - enhanced-specific analytics"""
+        # Get comprehensive experiment statistics - enhanced-specific analytics
         with self._get_connection() as conn:
             # Optimized: single query for experiment info
             exp_cursor = conn.execute(
@@ -177,7 +177,7 @@ class EnhancedDatabaseConnection(BaseDatabaseConnection):
             }
 
     def _row_to_checkpoint(self, row) -> Checkpoint:
-        """Optimized row-to-checkpoint conversion - eliminate duplication"""
+        # Optimized row-to-checkpoint conversion - eliminate duplication
         import json
 
         return Checkpoint(

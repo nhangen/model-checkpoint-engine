@@ -30,7 +30,7 @@ except ImportError:
 
 @dataclass
 class ValidationResult:
-    """Result of a validation test."""
+    # Result of a validation test.
     name: str
     passed: bool
     message: str
@@ -372,7 +372,7 @@ class SystemValidator:
         }
 
     def print_results(self):
-        """Print validation results in a readable format."""
+        # Print validation results in a readable format.
         print("PE-VIT ECOSYSTEM VALIDATION RESULTS")
         print("=" * 50)
 

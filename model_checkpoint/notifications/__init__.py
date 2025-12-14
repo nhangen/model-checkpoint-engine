@@ -1,4 +1,4 @@
-"""Notification system for experiment events"""
+# Notification system for experiment events
 
 from .handlers.base_handler import BaseNotificationHandler
 from .handlers.email_handler import EmailHandler

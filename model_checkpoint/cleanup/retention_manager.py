@@ -1,4 +1,4 @@
-"""Optimized retention management - zero redundancy design"""
+# Optimized retention management - zero redundancy design
 
 import json
 import os
@@ -12,12 +12,12 @@ from ..utils.checksum import calculate_file_checksum
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class RetentionCriteria(Enum):
-    """Optimized retention criteria enum"""
+    # Optimized retention criteria enum
 
     AGE_BASED = "age_based"
     COUNT_BASED = "count_based"
@@ -28,7 +28,7 @@ class RetentionCriteria(Enum):
 
 @dataclass
 class RetentionRule:
-    """Optimized retention rule - using field defaults"""
+    # Optimized retention rule - using field defaults
 
     name: str
     criteria: RetentionCriteria
@@ -46,7 +46,7 @@ class RetentionRule:
 
 @dataclass
 class CleanupCandidate:
-    """Optimized cleanup candidate"""
+    # Optimized cleanup candidate
 
     checkpoint_id: str
     experiment_id: str
@@ -61,7 +61,7 @@ class CleanupCandidate:
 
 
 class RetentionManager:
-    """Optimized retention management with configurable policies"""
+    # Optimized retention management with configurable policies
 
     def __init__(
         self,
@@ -117,7 +117,7 @@ class RetentionManager:
         }
 
     def add_retention_rule(self, rule: RetentionRule) -> None:
-        """Add a retention rule - optimized insertion"""
+        # Add a retention rule - optimized insertion
         # Remove existing rule with same name
         self._active_rules = [r for r in self._active_rules if r.name != rule.name]
 
@@ -133,7 +133,7 @@ class RetentionManager:
             self._active_rules.append(rule)
 
     def get_retention_rule(self, name: str) -> Optional[RetentionRule]:
-        """Get retention rule by name"""
+        # Get retention rule by name
         # Check active rules first
         for rule in self._active_rules:
             if rule.name == name:
@@ -143,7 +143,7 @@ class RetentionManager:
         return self._default_rules.get(name)
 
     def apply_default_rules(self, rule_names: List[str]) -> None:
-        """Apply multiple default rules efficiently"""
+        # Apply multiple default rules efficiently
         for name in rule_names:
             if name in self._default_rules:
                 self.add_retention_rule(self._default_rules[name])
@@ -260,7 +260,7 @@ class RetentionManager:
     def _apply_rule_to_checkpoints(
         self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
     ) -> List[CleanupCandidate]:
-        """Apply single rule to checkpoint list - optimized application"""
+        # Apply single rule to checkpoint list - optimized application
         candidates = []
 
         if rule.criteria == RetentionCriteria.AGE_BASED:
@@ -279,7 +279,7 @@ class RetentionManager:
     def _apply_age_based_rule(
         self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
     ) -> List[CleanupCandidate]:
-        """Apply age-based retention rule"""
+        # Apply age-based retention rule
         if not rule.max_age_days:
             return []
 
@@ -308,7 +308,7 @@ class RetentionManager:
     def _apply_count_based_rule(
         self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
     ) -> List[CleanupCandidate]:
-        """Apply count-based retention rule"""
+        # Apply count-based retention rule
         if not rule.max_count:
             return []
 
@@ -350,7 +350,7 @@ class RetentionManager:
     def _apply_size_based_rule(
         self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
     ) -> List[CleanupCandidate]:
-        """Apply size-based retention rule"""
+        # Apply size-based retention rule
         if not rule.max_size_mb:
             return []
 
@@ -389,7 +389,7 @@ class RetentionManager:
     def _apply_performance_based_rule(
         self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
     ) -> List[CleanupCandidate]:
-        """Apply performance-based retention rule"""
+        # Apply performance-based retention rule
         if not rule.keep_best_n or not rule.metric_name:
             return []
 
@@ -439,7 +439,7 @@ class RetentionManager:
     def _apply_custom_rule(
         self, rule: RetentionRule, checkpoints: List[Dict[str, Any]]
     ) -> List[CleanupCandidate]:
-        """Apply custom retention rule"""
+        # Apply custom retention rule
         if not rule.custom_function:
             return []
 
@@ -542,7 +542,7 @@ class RetentionManager:
         return results
 
     def _delete_checkpoint(self, candidate: CleanupCandidate) -> bool:
-        """Delete single checkpoint - optimized with proper cleanup"""
+        # Delete single checkpoint - optimized with proper cleanup
         try:
             # Remove file from filesystem
             if os.path.exists(candidate.file_path):
@@ -646,7 +646,7 @@ class RetentionManager:
     def export_cleanup_report(
         self, format_type: str = "json"
     ) -> Union[str, Dict[str, Any]]:
-        """Export comprehensive cleanup report"""
+        # Export comprehensive cleanup report
         # Get candidates for all active rules
         candidates = self.find_cleanup_candidates()
         storage_usage = self.get_storage_usage()

@@ -1,4 +1,4 @@
-"""Optimized automatic best model detection - zero redundancy design"""
+# Optimized automatic best model detection - zero redundancy design
 
 import json
 import time
@@ -11,7 +11,7 @@ from .metrics_collector import MetricsCollector
 
 
 class SelectionCriteria(Enum):
-    """Optimized enum for selection criteria"""
+    # Optimized enum for selection criteria
 
     SINGLE_METRIC = "single_metric"
     COMPOSITE_SCORE = "composite_score"
@@ -20,13 +20,13 @@ class SelectionCriteria(Enum):
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 @dataclass
 class ModelCandidate:
-    """Optimized model candidate - using field defaults"""
+    # Optimized model candidate - using field defaults
 
     checkpoint_id: str
     experiment_id: str
@@ -42,7 +42,7 @@ class ModelCandidate:
 
 @dataclass
 class SelectionConfig:
-    """Optimized selection configuration"""
+    # Optimized selection configuration
 
     criteria: SelectionCriteria
     primary_metric: Optional[str] = None
@@ -57,7 +57,7 @@ class SelectionConfig:
 
 
 class BestModelSelector:
-    """Optimized best model detection with configurable criteria"""
+    # Optimized best model detection with configurable criteria
 
     def __init__(
         self,
@@ -99,7 +99,7 @@ class BestModelSelector:
         self._cache_ttl = 300.0  # 5 minutes
 
     def register_config(self, name: str, config: SelectionConfig) -> None:
-        """Register a custom selection configuration"""
+        # Register a custom selection configuration
         self._default_configs[name] = config
 
     def get_candidates(
@@ -199,7 +199,7 @@ class BestModelSelector:
     def _load_candidates_from_db(
         self, experiment_id: str, config: SelectionConfig
     ) -> List[ModelCandidate]:
-        """Load candidates from database - optimized query"""
+        # Load candidates from database - optimized query
         candidates = []
 
         try:
@@ -268,7 +268,7 @@ class BestModelSelector:
     def _load_candidates_from_metrics(
         self, experiment_id: str, config: SelectionConfig
     ) -> List[ModelCandidate]:
-        """Load candidates from metrics collector - optimized"""
+        # Load candidates from metrics collector - optimized
         candidates = []
 
         try:
@@ -306,7 +306,7 @@ class BestModelSelector:
     def _apply_filters(
         self, candidates: List[ModelCandidate], config: SelectionConfig
     ) -> List[ModelCandidate]:
-        """Apply filters to candidates - optimized single pass"""
+        # Apply filters to candidates - optimized single pass
         filtered = []
 
         for candidate in candidates:
@@ -340,7 +340,7 @@ class BestModelSelector:
     def _select_by_single_metric(
         self, candidates: List[ModelCandidate], config: SelectionConfig
     ) -> Optional[ModelCandidate]:
-        """Select by single metric - optimized comparison"""
+        # Select by single metric - optimized comparison
         if not config.primary_metric:
             return None
 
@@ -378,7 +378,7 @@ class BestModelSelector:
     def _select_by_composite_score(
         self, candidates: List[ModelCandidate], config: SelectionConfig
     ) -> Optional[ModelCandidate]:
-        """Select by composite score - optimized calculation"""
+        # Select by composite score - optimized calculation
         if not config.metric_weights:
             return None
 
@@ -416,7 +416,7 @@ class BestModelSelector:
     def _select_by_custom_function(
         self, candidates: List[ModelCandidate], config: SelectionConfig
     ) -> Optional[ModelCandidate]:
-        """Select using custom function"""
+        # Select using custom function
         if not config.custom_function:
             return None
 
@@ -429,7 +429,7 @@ class BestModelSelector:
     def _select_by_multi_objective(
         self, candidates: List[ModelCandidate], config: SelectionConfig
     ) -> Optional[ModelCandidate]:
-        """Select using Pareto optimality - simplified efficient implementation"""
+        # Select using Pareto optimality - simplified efficient implementation
         if not config.metric_weights:
             return self._select_by_single_metric(candidates, config)
 
@@ -492,7 +492,7 @@ class BestModelSelector:
     def _persist_best_model(
         self, experiment_id: str, config_name: str, model: ModelCandidate
     ) -> None:
-        """Persist best model selection - optimized single operation"""
+        # Persist best model selection - optimized single operation
         try:
             with self.db_connection.get_connection() as conn:
                 conn.execute(
@@ -526,7 +526,7 @@ class BestModelSelector:
     def get_selection_history(
         self, experiment_id: str, config_name: Optional[str] = None
     ) -> List[Dict[str, Any]]:
-        """Get history of best model selections - optimized query"""
+        # Get history of best model selections - optimized query
         if not self.db_connection:
             return []
 
@@ -585,6 +585,6 @@ class BestModelSelector:
             return []
 
     def clear_cache(self) -> None:
-        """Clear candidate cache"""
+        # Clear candidate cache
         self._candidate_cache.clear()
         self._cache_timestamps.clear()

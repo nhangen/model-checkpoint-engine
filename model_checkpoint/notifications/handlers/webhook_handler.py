@@ -1,4 +1,4 @@
-"""Optimized webhook notification handler - zero redundancy design"""
+# Optimized webhook notification handler - zero redundancy design
 
 import json
 import time
@@ -11,7 +11,7 @@ from .base_handler import BaseNotificationHandler, HandlerConfig
 
 @dataclass
 class WebhookConfig(HandlerConfig):
-    """Optimized webhook-specific configuration"""
+    # Optimized webhook-specific configuration
 
     webhook_url: str = ""
     headers: Dict[str, str] = None
@@ -28,7 +28,7 @@ class WebhookConfig(HandlerConfig):
 
 
 class WebhookHandler(BaseNotificationHandler):
-    """Optimized webhook notification handler"""
+    # Optimized webhook notification handler
 
     def __init__(self, config: WebhookConfig):
         """

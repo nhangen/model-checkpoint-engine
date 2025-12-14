@@ -1,4 +1,4 @@
-"""Database connection and operations - optimized legacy compatibility"""
+# Database connection and operations - optimized legacy compatibility
 
 from .base_connection import BaseDatabaseConnection
 
@@ -11,7 +11,7 @@ class DatabaseConnection(BaseDatabaseConnection):
     """
 
     def __init__(self, database_url: str = "sqlite:///experiments.db"):
-        """Initialize database connection with legacy compatibility"""
+        # Initialize database connection with legacy compatibility
         # Initialize base class (includes all optimized functionality)
         super().__init__(database_url)
 

@@ -1,4 +1,4 @@
-"""Optimized dashboard engine - zero redundancy design"""
+# Optimized dashboard engine - zero redundancy design
 
 import json
 import time
@@ -13,12 +13,12 @@ from ..database.enhanced_connection import EnhancedDatabaseConnection
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class ChartType(Enum):
-    """Optimized chart type enum"""
+    # Optimized chart type enum
 
     LINE = "line"
     BAR = "bar"
@@ -31,7 +31,7 @@ class ChartType(Enum):
 
 
 class DashboardLayout(Enum):
-    """Optimized dashboard layout enum"""
+    # Optimized dashboard layout enum
 
     GRID = "grid"
     TABS = "tabs"
@@ -41,7 +41,7 @@ class DashboardLayout(Enum):
 
 @dataclass
 class ChartConfig:
-    """Optimized chart configuration"""
+    # Optimized chart configuration
 
     chart_id: str
     chart_type: ChartType
@@ -59,7 +59,7 @@ class ChartConfig:
 
 @dataclass
 class DashboardConfig:
-    """Optimized dashboard configuration"""
+    # Optimized dashboard configuration
 
     dashboard_id: str
     title: str
@@ -73,7 +73,7 @@ class DashboardConfig:
 
 @dataclass
 class ChartData:
-    """Optimized chart data structure"""
+    # Optimized chart data structure
 
     chart_id: str
     data: List[Dict[str, Any]] = field(default_factory=list)
@@ -83,7 +83,7 @@ class ChartData:
 
 
 class DashboardEngine:
-    """Optimized dashboard engine with zero redundancy"""
+    # Optimized dashboard engine with zero redundancy
 
     def __init__(
         self,
@@ -281,7 +281,7 @@ class DashboardEngine:
     def _get_metrics_data(
         self, chart_config: ChartConfig, experiment_id: Optional[str] = None
     ) -> Optional[List[Dict[str, Any]]]:
-        """Get metrics data - optimized metrics retrieval"""
+        # Get metrics data - optimized metrics retrieval
         if not self.metrics_collector:
             return None
 
@@ -311,7 +311,7 @@ class DashboardEngine:
     def _get_trends_data(
         self, chart_config: ChartConfig, experiment_id: Optional[str] = None
     ) -> Optional[List[Dict[str, Any]]]:
-        """Get trends data - optimized trends retrieval"""
+        # Get trends data - optimized trends retrieval
         if not self.trend_analyzer:
             return None
 
@@ -345,7 +345,7 @@ class DashboardEngine:
     def _get_comparison_data(
         self, chart_config: ChartConfig, experiment_id: Optional[str] = None
     ) -> Optional[List[Dict[str, Any]]]:
-        """Get comparison data - optimized comparison retrieval"""
+        # Get comparison data - optimized comparison retrieval
         if not self.comparison_engine:
             return None
 
@@ -378,7 +378,7 @@ class DashboardEngine:
     def _get_experiments_data(
         self, chart_config: ChartConfig, experiment_id: Optional[str] = None
     ) -> Optional[List[Dict[str, Any]]]:
-        """Get experiments data - optimized experiments retrieval"""
+        # Get experiments data - optimized experiments retrieval
         if not self.db_connection:
             return None
 
@@ -425,7 +425,7 @@ class DashboardEngine:
     def _get_performance_data(
         self, chart_config: ChartConfig, experiment_id: Optional[str] = None
     ) -> Optional[List[Dict[str, Any]]]:
-        """Get performance data - optimized performance retrieval"""
+        # Get performance data - optimized performance retrieval
         # Placeholder for performance monitoring data
         data = [
             {
@@ -449,7 +449,7 @@ class DashboardEngine:
     def _process_chart_data(
         self, raw_data: List[Dict[str, Any]], chart_config: ChartConfig
     ) -> List[Dict[str, Any]]:
-        """Process chart data based on type - optimized processing"""
+        # Process chart data based on type - optimized processing
         if not raw_data:
             return []
 
@@ -481,7 +481,7 @@ class DashboardEngine:
         return processed_data
 
     def _apply_filters(self, data: Dict[str, Any], filters: Dict[str, Any]) -> bool:
-        """Apply filter criteria to data - optimized filtering"""
+        # Apply filter criteria to data - optimized filtering
         for filter_key, filter_value in filters.items():
             if filter_key not in data:
                 return False
@@ -507,7 +507,7 @@ class DashboardEngine:
         return True
 
     def _validate_dashboard_config(self, config: DashboardConfig) -> List[str]:
-        """Validate dashboard configuration - optimized validation"""
+        # Validate dashboard configuration - optimized validation
         errors = []
 
         if not config.dashboard_id:
@@ -574,7 +574,7 @@ class DashboardEngine:
     def _generate_dashboard_html(
         self, dashboard_config: DashboardConfig, chart_data_list: List[ChartData]
     ) -> str:
-        """Generate dashboard HTML - optimized HTML generation"""
+        # Generate dashboard HTML - optimized HTML generation
         html_parts = []
 
         # HTML header
@@ -631,7 +631,7 @@ class DashboardEngine:
         return "".join(html_parts)
 
     def _generate_chart_html(self, chart_data: ChartData) -> str:
-        """Generate HTML for single chart - optimized chart HTML"""
+        # Generate HTML for single chart - optimized chart HTML
         chart_id = f"chart_{chart_data.chart_id}"
 
         # Prepare data for Plotly
@@ -664,7 +664,7 @@ class DashboardEngine:
         return html
 
     def _get_plotly_type(self, chart_type: str) -> str:
-        """Get Plotly chart type - optimized type mapping"""
+        # Get Plotly chart type - optimized type mapping
         type_map = {
             "line": "scatter",
             "bar": "bar",
@@ -677,7 +677,7 @@ class DashboardEngine:
     # Pre-defined dashboard templates
 
     def _create_training_overview_template(self) -> DashboardConfig:
-        """Create training overview dashboard template"""
+        # Create training overview dashboard template
         return DashboardConfig(
             dashboard_id="training_overview_template",
             title="Training Overview",
@@ -705,7 +705,7 @@ class DashboardEngine:
         )
 
     def _create_model_comparison_template(self) -> DashboardConfig:
-        """Create model comparison dashboard template"""
+        # Create model comparison dashboard template
         return DashboardConfig(
             dashboard_id="model_comparison_template",
             title="Model Comparison",
@@ -733,7 +733,7 @@ class DashboardEngine:
         )
 
     def _create_performance_monitoring_template(self) -> DashboardConfig:
-        """Create performance monitoring dashboard template"""
+        # Create performance monitoring dashboard template
         return DashboardConfig(
             dashboard_id="performance_monitoring_template",
             title="Performance Monitoring",
@@ -759,7 +759,7 @@ class DashboardEngine:
         )
 
     def _create_experiment_analytics_template(self) -> DashboardConfig:
-        """Create experiment analytics dashboard template"""
+        # Create experiment analytics dashboard template
         return DashboardConfig(
             dashboard_id="experiment_analytics_template",
             title="Experiment Analytics",
@@ -788,7 +788,7 @@ class DashboardEngine:
     def export_dashboard_config(
         self, dashboard_id: str, format_type: str = "json"
     ) -> Union[str, Dict[str, Any]]:
-        """Export dashboard configuration"""
+        # Export dashboard configuration
         if dashboard_id not in self._dashboards:
             return {}
 
@@ -826,7 +826,7 @@ class DashboardEngine:
             return config_data
 
     def clear_cache(self) -> int:
-        """Clear chart cache"""
+        # Clear chart cache
         cleared_count = len(self._chart_cache)
         self._chart_cache.clear()
         self._cache_timestamps.clear()

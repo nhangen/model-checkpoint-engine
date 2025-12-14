@@ -1,4 +1,4 @@
-"""Optimized base API interface - zero redundancy design"""
+# Optimized base API interface - zero redundancy design
 
 import json
 import time
@@ -11,12 +11,12 @@ from ..hooks import HookContext, HookEvent, HookManager
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class APIStatus(Enum):
-    """Optimized API status enum"""
+    # Optimized API status enum
 
     SUCCESS = "success"
     ERROR = "error"
@@ -25,7 +25,7 @@ class APIStatus(Enum):
 
 
 class HTTPMethod(Enum):
-    """Optimized HTTP method enum"""
+    # Optimized HTTP method enum
 
     GET = "GET"
     POST = "POST"
@@ -37,7 +37,7 @@ class HTTPMethod(Enum):
 
 @dataclass
 class APIResponse:
-    """Optimized API response - using field defaults"""
+    # Optimized API response - using field defaults
 
     status: APIStatus
     data: Any = None
@@ -51,7 +51,7 @@ class APIResponse:
 
 @dataclass
 class APIError(Exception):
-    """Optimized API error - inheriting from Exception"""
+    # Optimized API error - inheriting from Exception
 
     message: str
     error_code: str
@@ -62,7 +62,7 @@ class APIError(Exception):
 
 @dataclass
 class EndpointConfig:
-    """Optimized endpoint configuration"""
+    # Optimized endpoint configuration
 
     path: str
     method: HTTPMethod
@@ -75,7 +75,7 @@ class EndpointConfig:
 
 
 class BaseAPI(ABC):
-    """Optimized base class for API implementations"""
+    # Optimized base class for API implementations
 
     def __init__(self, name: str, version: str = "1.0.0", enable_hooks: bool = True):
         """
@@ -114,12 +114,12 @@ class BaseAPI(ABC):
 
     @abstractmethod
     def start_server(self, host: str = "0.0.0.0", port: int = 8000) -> bool:
-        """Start the API server"""
+        # Start the API server
         pass
 
     @abstractmethod
     def stop_server(self) -> bool:
-        """Stop the API server"""
+        # Stop the API server
         pass
 
     @abstractmethod
@@ -130,7 +130,7 @@ class BaseAPI(ABC):
         data: Optional[Dict[str, Any]] = None,
         headers: Optional[Dict[str, str]] = None,
     ) -> APIResponse:
-        """Handle incoming request - implementation specific"""
+        # Handle incoming request - implementation specific
         pass
 
     def register_endpoint(self, config: EndpointConfig) -> bool:
@@ -159,7 +159,7 @@ class BaseAPI(ABC):
             return False
 
     def add_middleware(self, middleware: Callable) -> None:
-        """Add middleware function - optimized ordering"""
+        # Add middleware function - optimized ordering
         if callable(middleware):
             self._middleware.append(middleware)
 
@@ -313,7 +313,7 @@ class BaseAPI(ABC):
         data: Optional[Dict[str, Any]],
         headers: Optional[Dict[str, str]],
     ) -> APIResponse:
-        """Execute endpoint handler - optimized execution"""
+        # Execute endpoint handler - optimized execution
         try:
             # Prepare handler arguments
             handler_args = {}
@@ -341,7 +341,7 @@ class BaseAPI(ABC):
             )
 
     def _check_rate_limit(self, client_id: str) -> bool:
-        """Check rate limiting - optimized tracking"""
+        # Check rate limiting - optimized tracking
         current_time = _current_time()
 
         # Initialize client tracking if needed
@@ -367,7 +367,7 @@ class BaseAPI(ABC):
     def _get_cached_response(
         self, endpoint_key: str, data: Optional[Dict[str, Any]]
     ) -> Optional[APIResponse]:
-        """Get cached response - optimized retrieval"""
+        # Get cached response - optimized retrieval
         cache_key = self._generate_cache_key(endpoint_key, data)
 
         if cache_key not in self._response_cache:
@@ -397,7 +397,7 @@ class BaseAPI(ABC):
         response: APIResponse,
         ttl: int,
     ) -> None:
-        """Cache response - optimized storage"""
+        # Cache response - optimized storage
         cache_key = self._generate_cache_key(endpoint_key, data)
 
         # Convert response to dict for caching
@@ -423,7 +423,7 @@ class BaseAPI(ABC):
     def _generate_cache_key(
         self, endpoint_key: str, data: Optional[Dict[str, Any]]
     ) -> str:
-        """Generate cache key - optimized key generation"""
+        # Generate cache key - optimized key generation
         if data is None:
             return endpoint_key
 
@@ -436,7 +436,7 @@ class BaseAPI(ABC):
             return f"{endpoint_key}:{hash(str(data))}"
 
     def get_api_info(self) -> Dict[str, Any]:
-        """Get API information - optimized reporting"""
+        # Get API information - optimized reporting
         current_time = _current_time()
 
         endpoint_info = []
@@ -470,14 +470,14 @@ class BaseAPI(ABC):
         }
 
     def clear_cache(self) -> int:
-        """Clear response cache - optimized cleanup"""
+        # Clear response cache - optimized cleanup
         cleared_count = len(self._response_cache)
         self._response_cache.clear()
         self._cache_timestamps.clear()
         return cleared_count
 
     def reset_statistics(self) -> None:
-        """Reset API statistics"""
+        # Reset API statistics
         self._request_count = 0
         self._error_count = 0
         self._last_request_time = 0.0
@@ -513,7 +513,7 @@ class BaseAPI(ABC):
         return errors
 
     def health_check(self) -> APIResponse:
-        """API health check endpoint"""
+        # API health check endpoint
         current_time = _current_time()
 
         health_data = {

@@ -1,4 +1,4 @@
-"""Optimized plugin management system - zero redundancy design"""
+# Optimized plugin management system - zero redundancy design
 
 import importlib.util
 import json
@@ -12,12 +12,12 @@ from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class PluginType(Enum):
-    """Optimized plugin type enum"""
+    # Optimized plugin type enum
 
     STORAGE_BACKEND = "storage_backend"
     NOTIFICATION_HANDLER = "notification_handler"
@@ -30,7 +30,7 @@ class PluginType(Enum):
 
 
 class PluginStatus(Enum):
-    """Optimized plugin status enum"""
+    # Optimized plugin status enum
 
     LOADED = "loaded"
     ACTIVE = "active"
@@ -41,7 +41,7 @@ class PluginStatus(Enum):
 
 @dataclass
 class PluginMetadata:
-    """Optimized plugin metadata"""
+    # Optimized plugin metadata
 
     name: str
     version: str
@@ -58,7 +58,7 @@ class PluginMetadata:
 
 @dataclass
 class PluginInfo:
-    """Optimized plugin information"""
+    # Optimized plugin information
 
     metadata: PluginMetadata
     file_path: str
@@ -70,7 +70,7 @@ class PluginInfo:
 
 
 class BasePlugin(ABC):
-    """Optimized base plugin class"""
+    # Optimized base plugin class
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
@@ -84,30 +84,30 @@ class BasePlugin(ABC):
 
     @abstractmethod
     def get_metadata(self) -> PluginMetadata:
-        """Get plugin metadata"""
+        # Get plugin metadata
         pass
 
     @abstractmethod
     def initialize(self) -> bool:
-        """Initialize plugin"""
+        # Initialize plugin
         pass
 
     @abstractmethod
     def cleanup(self) -> bool:
-        """Clean up plugin resources"""
+        # Clean up plugin resources
         pass
 
     def validate_config(self, config: Dict[str, Any]) -> List[str]:
-        """Validate plugin configuration - default implementation"""
+        # Validate plugin configuration - default implementation
         return []  # No validation errors
 
     def get_status(self) -> Dict[str, Any]:
-        """Get plugin status information"""
+        # Get plugin status information
         return {"active": self.is_active, "config_keys": list(self.config.keys())}
 
 
 class PluginManager:
-    """Optimized plugin manager with zero redundancy"""
+    # Optimized plugin manager with zero redundancy
 
     def __init__(
         self,
@@ -182,7 +182,7 @@ class PluginManager:
         return discovered_count
 
     def _discover_plugin_file(self, file_path: str) -> bool:
-        """Discover plugin from file - optimized file discovery"""
+        # Discover plugin from file - optimized file discovery
         try:
             # Create module spec
             module_name = f"plugin_{int(_current_time() * 1000000)}"
@@ -240,7 +240,7 @@ class PluginManager:
             return False
 
     def _is_compatible_plugin(self, metadata: PluginMetadata) -> bool:
-        """Check plugin compatibility - optimized compatibility check"""
+        # Check plugin compatibility - optimized compatibility check
         # Check minimum version
         if not self._version_satisfies(
             self.engine_version, metadata.min_engine_version, ">="
@@ -257,7 +257,7 @@ class PluginManager:
         return True
 
     def _version_satisfies(self, version: str, requirement: str, operator: str) -> bool:
-        """Check version satisfaction - optimized version comparison"""
+        # Check version satisfaction - optimized version comparison
         try:
             # Simple version comparison (assumes semantic versioning)
             v_parts = [int(x) for x in version.split(".")]
@@ -402,7 +402,7 @@ class PluginManager:
             return False
 
     def get_plugin(self, plugin_name: str) -> Optional[BasePlugin]:
-        """Get loaded plugin instance - optimized retrieval"""
+        # Get loaded plugin instance - optimized retrieval
         with self._lock:
             plugin_info = self._plugins.get(plugin_name)
             if plugin_info and plugin_info.status == PluginStatus.ACTIVE:
@@ -411,7 +411,7 @@ class PluginManager:
         return None
 
     def get_plugins_by_type(self, plugin_type: PluginType) -> List[BasePlugin]:
-        """Get all loaded plugins of specific type - optimized type filtering"""
+        # Get all loaded plugins of specific type - optimized type filtering
         plugins = []
 
         with self._lock:
@@ -590,7 +590,7 @@ class PluginManager:
         return loaded_count
 
     def get_plugin_statistics(self) -> Dict[str, Any]:
-        """Get plugin system statistics - optimized statistics"""
+        # Get plugin system statistics - optimized statistics
         with self._lock:
             stats = {
                 "total_plugins": len(self._plugins),
@@ -631,7 +631,7 @@ class PluginManager:
     def export_plugin_config(
         self, format_type: str = "json"
     ) -> Union[str, Dict[str, Any]]:
-        """Export plugin configuration - optimized export"""
+        # Export plugin configuration - optimized export
         config_data = {
             "metadata": {
                 "exported_at": _current_time(),
@@ -680,7 +680,7 @@ class PluginManager:
         return self.load_plugin(plugin_name, old_config)
 
     def cleanup_all_plugins(self) -> int:
-        """Clean up all active plugins - optimized cleanup"""
+        # Clean up all active plugins - optimized cleanup
         cleanup_count = 0
 
         with self._lock:

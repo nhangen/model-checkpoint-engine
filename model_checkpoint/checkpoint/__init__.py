@@ -1,4 +1,4 @@
-"""Enhanced checkpoint management modules"""
+# Enhanced checkpoint management modules
 
 from .enhanced_manager import EnhancedCheckpointManager
 from .storage import BaseStorageBackend, PyTorchStorageBackend

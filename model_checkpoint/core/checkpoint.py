@@ -1,4 +1,4 @@
-"""Checkpoint management functionality"""
+# Checkpoint management functionality
 
 import json
 import os
@@ -12,7 +12,7 @@ from .experiment import ExperimentTracker
 
 
 class CheckpointManager:
-    """Manage model checkpoints with intelligent saving and retention"""
+    # Manage model checkpoints with intelligent saving and retention
 
     def __init__(
         self,
@@ -130,7 +130,7 @@ class CheckpointManager:
     def _determine_checkpoint_type(
         self, epoch: Optional[int], metrics: Dict[str, float]
     ) -> str:
-        """Determine what type of checkpoint this should be"""
+        # Determine what type of checkpoint this should be
         if not metrics:
             return "manual"
 
@@ -206,7 +206,7 @@ class CheckpointManager:
         return checkpoint_data
 
     def list_checkpoints(self) -> List[Dict]:
-        """List all checkpoints for this experiment"""
+        # List all checkpoints for this experiment
         # This would query the database in a real implementation
         # For now, return a simple structure
         checkpoints = []
@@ -239,7 +239,7 @@ class CheckpointManager:
         return checkpoints
 
     def _cleanup_old_checkpoints(self):
-        """Remove old checkpoints based on retention policy"""
+        # Remove old checkpoints based on retention policy
         checkpoints = self.list_checkpoints()
 
         # Keep best and last checkpoints always

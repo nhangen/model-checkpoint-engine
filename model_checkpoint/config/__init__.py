@@ -1,4 +1,4 @@
-"""Comprehensive configuration management system"""
+# Comprehensive configuration management system
 
 from .config_manager import ConfigManager
 from .environment_loader import EnvironmentLoader

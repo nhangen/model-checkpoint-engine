@@ -1,4 +1,4 @@
-"""Database migration management system"""
+# Database migration management system
 
 import logging
 import os
@@ -11,7 +11,7 @@ from ..utils.checksum import calculate_data_checksum
 
 
 class MigrationManager:
-    """Manages database schema migrations with version control"""
+    # Manages database schema migrations with version control
 
     def __init__(self, db_path: str, migrations_dir: Optional[str] = None):
         """
@@ -34,7 +34,7 @@ class MigrationManager:
         self._init_migration_table()
 
     def _get_connection(self) -> sqlite3.Connection:
-        """Get database connection with optimized settings"""
+        # Get database connection with optimized settings
         conn = sqlite3.connect(self.db_path)
         conn.execute("PRAGMA foreign_keys = ON")
         conn.execute("PRAGMA journal_mode = WAL")
@@ -42,7 +42,7 @@ class MigrationManager:
         return conn
 
     def _init_migration_table(self) -> None:
-        """Initialize migration tracking table"""
+        # Initialize migration tracking table
         with self._get_connection() as conn:
             conn.execute(
                 """
@@ -59,7 +59,7 @@ class MigrationManager:
             conn.commit()
 
     def get_current_version(self) -> Optional[str]:
-        """Get current database schema version"""
+        # Get current database schema version
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
@@ -71,7 +71,7 @@ class MigrationManager:
             return row[0] if row else None
 
     def get_applied_migrations(self) -> List[str]:
-        """Get list of applied migration versions"""
+        # Get list of applied migration versions
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
@@ -82,7 +82,7 @@ class MigrationManager:
             return [row[0] for row in cursor.fetchall()]
 
     def get_pending_migrations(self) -> List[Dict[str, str]]:
-        """Get list of pending migrations"""
+        # Get list of pending migrations
         applied = set(self.get_applied_migrations())
         pending = []
 
@@ -101,7 +101,7 @@ class MigrationManager:
         return pending
 
     def _get_migration_files(self) -> List[str]:
-        """Get sorted list of migration files"""
+        # Get sorted list of migration files
         if not os.path.exists(self.migrations_dir):
             return []
 
@@ -113,12 +113,12 @@ class MigrationManager:
         return sorted(files)
 
     def _extract_version(self, filename: str) -> str:
-        """Extract version from migration filename"""
+        # Extract version from migration filename
         # Expected format: 001_description.sql
         return filename.split("_")[0]
 
     def _calculate_checksum(self, content: str) -> str:
-        """Calculate SHA256 checksum of migration content - uses shared utility"""
+        # Calculate SHA256 checksum of migration content - uses shared utility
         return calculate_data_checksum(content)
 
     def migrate(self, target_version: Optional[str] = None) -> Dict[str, Any]:
@@ -174,7 +174,7 @@ class MigrationManager:
         return results
 
     def _run_migration(self, migration: Dict[str, str]) -> None:
-        """Run a single migration"""
+        # Run a single migration
         with open(migration["path"], "r") as f:
             sql_content = f.read()
 
@@ -207,7 +207,7 @@ class MigrationManager:
             conn.commit()
 
     def _split_sql_statements(self, sql_content: str) -> List[str]:
-        """Split SQL content into individual statements"""
+        # Split SQL content into individual statements
         # Simple split on semicolons (could be enhanced for complex SQL)
         statements = []
         current_statement = []
@@ -250,7 +250,7 @@ class MigrationManager:
         return {"status": "manual", "message": "Rollback requires manual intervention"}
 
     def validate_migrations(self) -> Dict[str, Any]:
-        """Validate applied migrations against their checksums"""
+        # Validate applied migrations against their checksums
         validation_results = {
             "status": "success",
             "validated": [],

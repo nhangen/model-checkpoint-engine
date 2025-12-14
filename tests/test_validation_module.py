@@ -12,10 +12,10 @@ from model_checkpoint.validation import SystemValidator, ValidationResult
 
 
 class TestValidationResult:
-    """Test ValidationResult dataclass."""
+    # Test ValidationResult dataclass.
 
     def test_validation_result_creation(self):
-        """Test creating validation result."""
+        # Test creating validation result.
         result = ValidationResult(
             name="Test",
             passed=True,
@@ -30,31 +30,31 @@ class TestValidationResult:
 
 
 class TestSystemValidator:
-    """Test SystemValidator class."""
+    # Test SystemValidator class.
 
     def test_init_default_path(self):
-        """Test validator initialization with default path."""
+        # Test validator initialization with default path.
         validator = SystemValidator()
         assert validator.base_dir == Path("/workspace/pose-estimation-vit")
         assert validator.data_dir == Path("/workspace/pose-estimation-vit/data")
         assert validator.results == []
 
     def test_init_custom_path(self):
-        """Test validator initialization with custom path."""
+        # Test validator initialization with custom path.
         custom_path = "/custom/path"
         validator = SystemValidator(custom_path)
         assert validator.base_dir == Path(custom_path)
         assert validator.data_dir == Path(custom_path) / "data"
 
     def test_get_summary_empty_results(self):
-        """Test summary with no results."""
+        # Test summary with no results.
         validator = SystemValidator()
         summary = validator.get_summary()
 
         assert summary == {"total": 0, "passed": 0, "failed": 0}
 
     def test_get_summary_with_results(self):
-        """Test summary with mixed results."""
+        # Test summary with mixed results.
         validator = SystemValidator()
         validator.results = [
             ValidationResult("Test1", True, "Passed"),
@@ -67,7 +67,7 @@ class TestSystemValidator:
 
     @patch('pathlib.Path.exists')
     def test_validate_data_structure(self, mock_exists):
-        """Test data structure validation."""
+        # Test data structure validation.
         # Mock some directories exist, some don't
         def side_effect(self):
             path_str = str(self)
@@ -92,7 +92,7 @@ class TestSystemValidator:
     @patch('pathlib.Path.is_symlink')
     @patch('pathlib.Path.exists')
     def test_validate_symlinks(self, mock_exists, mock_is_symlink, mock_readlink):
-        """Test symlink validation."""
+        # Test symlink validation.
         # Setup mocks
         mock_exists.return_value = True
         mock_is_symlink.return_value = True
@@ -108,7 +108,7 @@ class TestSystemValidator:
     @patch('sqlite3.connect')
     @patch('pathlib.Path.exists')
     def test_validate_database_success(self, mock_exists, mock_connect):
-        """Test successful database validation."""
+        # Test successful database validation.
         mock_exists.return_value = True
 
         # Mock database connection and query
@@ -126,7 +126,7 @@ class TestSystemValidator:
 
     @patch('pathlib.Path.exists')
     def test_validate_database_missing(self, mock_exists):
-        """Test database validation when file missing."""
+        # Test database validation when file missing.
         mock_exists.return_value = False
 
         validator = SystemValidator()
@@ -138,7 +138,7 @@ class TestSystemValidator:
     @patch('builtins.open', create=True)
     @patch('pathlib.Path.exists')
     def test_validate_living_index_success(self, mock_exists, mock_open):
-        """Test successful living index validation."""
+        # Test successful living index validation.
         mock_exists.return_value = True
         mock_open.return_value.__enter__.return_value.read.return_value = """
 # Living Index
@@ -157,7 +157,7 @@ Generated: 2025-01-01 12:00:00
 
     @patch('pathlib.Path.exists')
     def test_validate_living_index_missing(self, mock_exists):
-        """Test living index validation when file missing."""
+        # Test living index validation when file missing.
         mock_exists.return_value = False
 
         validator = SystemValidator()
@@ -168,7 +168,7 @@ Generated: 2025-01-01 12:00:00
 
     @patch('model_checkpoint.validation.system_validator.CORE_AVAILABLE', False)
     def test_validate_experiment_lifecycle_no_core(self):
-        """Test experiment lifecycle when core modules unavailable."""
+        # Test experiment lifecycle when core modules unavailable.
         validator = SystemValidator()
         result = validator.validate_experiment_lifecycle()
 
@@ -177,7 +177,7 @@ Generated: 2025-01-01 12:00:00
 
     @patch('model_checkpoint.validation.system_validator.CORE_AVAILABLE', True)
     def test_validate_all(self):
-        """Test validate_all method."""
+        # Test validate_all method.
         validator = SystemValidator()
 
         # Mock individual validation methods
@@ -208,7 +208,7 @@ Generated: 2025-01-01 12:00:00
             assert validator.results == results
 
     def test_print_results(self, capsys):
-        """Test print_results method."""
+        # Test print_results method.
         validator = SystemValidator()
         validator.results = [
             ValidationResult("Test1", True, "Passed", "Details1"),

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Setup script for Model Checkpoint Engine"""
+# Setup script for Model Checkpoint Engine
 
 from setuptools import find_packages, setup
 

@@ -52,20 +52,20 @@ class SmartCheckpointRetentionHook(BaseHook):
         }
 
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         self.logger.info(
             f"Initializing SmartCheckpointRetentionHook with strategy={self.retention_strategy}"
         )
         pass
 
     def handle(self, context: HookContext) -> None:
-        """Handle checkpoint retention events."""
+        # Handle checkpoint retention events.
 
         if context.event == HookEvent.AFTER_CHECKPOINT_SAVE:
             self._evaluate_checkpoint_retention(context)
 
     def _evaluate_checkpoint_retention(self, context: HookContext) -> None:
-        """Evaluate and apply checkpoint retention strategy."""
+        # Evaluate and apply checkpoint retention strategy.
         checkpoint_info = self._extract_checkpoint_info(context)
 
         if checkpoint_info:
@@ -88,7 +88,7 @@ class SmartCheckpointRetentionHook(BaseHook):
     def _extract_checkpoint_info(
         self, context: HookContext
     ) -> Optional[Dict[str, Any]]:
-        """Extract checkpoint information from context."""
+        # Extract checkpoint information from context.
         data = context.data
 
         checkpoint_info = {
@@ -116,7 +116,7 @@ class SmartCheckpointRetentionHook(BaseHook):
         return checkpoint_info
 
     def _is_best_checkpoint(self, checkpoint_info: Dict[str, Any]) -> bool:
-        """Determine if this checkpoint represents a new best model."""
+        # Determine if this checkpoint represents a new best model.
         is_best = False
 
         # Check loss improvement
@@ -153,7 +153,7 @@ class SmartCheckpointRetentionHook(BaseHook):
         return is_best
 
     def _apply_performance_based_retention(self) -> None:
-        """Apply performance-based retention strategy."""
+        # Apply performance-based retention strategy.
         if len(self.checkpoint_history) <= self.max_checkpoints:
             return
 
@@ -183,7 +183,7 @@ class SmartCheckpointRetentionHook(BaseHook):
         self._remove_unwanted_checkpoints(to_keep)
 
     def _apply_time_based_retention(self) -> None:
-        """Apply time-based retention strategy."""
+        # Apply time-based retention strategy.
         if len(self.checkpoint_history) <= self.max_checkpoints:
             return
 
@@ -199,7 +199,7 @@ class SmartCheckpointRetentionHook(BaseHook):
         self._remove_unwanted_checkpoints(to_keep)
 
     def _apply_epoch_based_retention(self) -> None:
-        """Apply epoch-based retention strategy."""
+        # Apply epoch-based retention strategy.
         to_keep = set()
 
         # Keep checkpoints at specific epoch intervals
@@ -232,7 +232,7 @@ class SmartCheckpointRetentionHook(BaseHook):
         self._remove_unwanted_checkpoints(to_keep)
 
     def _apply_hybrid_retention(self) -> None:
-        """Apply hybrid retention strategy combining multiple approaches."""
+        # Apply hybrid retention strategy combining multiple approaches.
         to_keep = set()
 
         # Always keep best performing checkpoints
@@ -276,7 +276,7 @@ class SmartCheckpointRetentionHook(BaseHook):
         self._remove_unwanted_checkpoints(to_keep)
 
     def _calculate_checkpoint_score(self, checkpoint: Dict[str, Any]) -> float:
-        """Calculate a score for checkpoint importance."""
+        # Calculate a score for checkpoint importance.
         score = 0.0
 
         # Performance component
@@ -302,7 +302,7 @@ class SmartCheckpointRetentionHook(BaseHook):
         return score
 
     def _enforce_storage_limits(self) -> None:
-        """Enforce storage size limits."""
+        # Enforce storage size limits.
         total_size_gb = sum(cp["file_size"] for cp in self.checkpoint_history) / (
             1024**3
         )
@@ -338,7 +338,7 @@ class SmartCheckpointRetentionHook(BaseHook):
                 self._remove_unwanted_checkpoints(to_keep)
 
     def _remove_unwanted_checkpoints(self, to_keep: set) -> None:
-        """Remove checkpoints not in the keep set."""
+        # Remove checkpoints not in the keep set.
         to_remove = []
 
         for checkpoint in self.checkpoint_history:
@@ -355,7 +355,7 @@ class SmartCheckpointRetentionHook(BaseHook):
             )
 
     def _remove_checkpoint_file(self, checkpoint: Dict[str, Any]) -> None:
-        """Remove checkpoint file from disk."""
+        # Remove checkpoint file from disk.
         file_path = checkpoint.get("file_path")
 
         if file_path and os.path.exists(file_path):
@@ -399,20 +399,20 @@ class BestModelSelectionHook(BaseHook):
         self.best_models = []  # List of (score, checkpoint_info) tuples
 
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         self.logger.info(
             f"Initializing BestModelSelectionHook with criteria={self.selection_criteria}"
         )
         pass
 
     def handle(self, context: HookContext) -> None:
-        """Handle best model selection events."""
+        # Handle best model selection events.
 
         if context.event == HookEvent.AFTER_CHECKPOINT_SAVE:
             self._evaluate_model_for_best_selection(context)
 
     def _evaluate_model_for_best_selection(self, context: HookContext) -> None:
-        """Evaluate if current checkpoint should be saved as a best model."""
+        # Evaluate if current checkpoint should be saved as a best model.
         checkpoint_info = self._extract_model_info(context)
 
         if checkpoint_info:
@@ -428,7 +428,7 @@ class BestModelSelectionHook(BaseHook):
                 self._update_best_models_index()
 
     def _extract_model_info(self, context: HookContext) -> Optional[Dict[str, Any]]:
-        """Extract model information from context."""
+        # Extract model information from context.
         data = context.data
 
         return {
@@ -446,7 +446,7 @@ class BestModelSelectionHook(BaseHook):
         }
 
     def _calculate_model_score(self, model_info: Dict[str, Any]) -> float:
-        """Calculate composite score for model selection."""
+        # Calculate composite score for model selection.
         score = 0.0
 
         for criterion, weight in self.selection_criteria.items():
@@ -461,7 +461,7 @@ class BestModelSelectionHook(BaseHook):
         return score
 
     def _add_to_best_models(self, score: float, model_info: Dict[str, Any]) -> None:
-        """Add model to best models list."""
+        # Add model to best models list.
         self.best_models.append((score, model_info))
 
         # Sort by score (descending) and keep only top-k
@@ -479,7 +479,7 @@ class BestModelSelectionHook(BaseHook):
         )
 
     def _save_best_model(self, model_info: Dict[str, Any]) -> None:
-        """Save model as a best model."""
+        # Save model as a best model.
         source_path = model_info.get("file_path")
 
         if source_path and os.path.exists(source_path):
@@ -496,7 +496,7 @@ class BestModelSelectionHook(BaseHook):
                 self.logger.warning(f"Failed to save best model: {e}")
 
     def _remove_best_model_file(self, model_info: Dict[str, Any]) -> None:
-        """Remove best model file when it's no longer in top-k."""
+        # Remove best model file when it's no longer in top-k.
         best_model_path = model_info.get("best_model_path")
 
         if best_model_path and os.path.exists(best_model_path):
@@ -507,7 +507,7 @@ class BestModelSelectionHook(BaseHook):
                 self.logger.warning(f"Failed to remove best model file: {e}")
 
     def _update_best_models_index(self) -> None:
-        """Update index file with current best models."""
+        # Update index file with current best models.
         index_file = self.best_model_dir / "best_models_index.json"
 
         index_data = {
@@ -527,14 +527,14 @@ class BestModelSelectionHook(BaseHook):
             self.logger.warning(f"Failed to update best models index: {e}")
 
     def get_best_model_path(self, rank: int = 1) -> Optional[str]:
-        """Get path to the best model by rank (1-indexed)."""
+        # Get path to the best model by rank (1-indexed).
         if 1 <= rank <= len(self.best_models):
             _, model_info = self.best_models[rank - 1]
             return model_info.get("best_model_path")
         return None
 
     def get_best_models_summary(self) -> Dict[str, Any]:
-        """Get summary of current best models."""
+        # Get summary of current best models.
         return {
             "total_best_models": len(self.best_models),
             "selection_criteria": self.selection_criteria,

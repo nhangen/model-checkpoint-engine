@@ -1,4 +1,4 @@
-"""Example hooks for the checkpoint engine pipeline"""
+# Example hooks for the checkpoint engine pipeline
 
 import json
 import logging
@@ -14,14 +14,14 @@ from model_checkpoint.hooks.decorators import (
 
 
 class ValidationHook(BaseHook):
-    """Hook for validating checkpoints before and after save"""
+    # Hook for validating checkpoints before and after save
 
     def on_init(self):
         self.logger = logging.getLogger(__name__)
 
     @hook_handler([HookEvent.BEFORE_CHECKPOINT_SAVE], priority=HookPriority.HIGH)
     def validate_model_state(self, context: HookContext):
-        """Validate model state before saving"""
+        # Validate model state before saving
         model = context.get('model')
 
         if model is None:
@@ -45,7 +45,7 @@ class ValidationHook(BaseHook):
 
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def verify_save_integrity(self, context: HookContext):
-        """Verify checkpoint was saved correctly"""
+        # Verify checkpoint was saved correctly
         file_path = context.get('file_path')
         checksum = context.get('checksum')
 
@@ -57,7 +57,7 @@ class ValidationHook(BaseHook):
 
 
 class NotificationHook(BaseHook):
-    """Hook for sending notifications on checkpoint events"""
+    # Hook for sending notifications on checkpoint events
 
     def __init__(self, webhook_url: str = None, email: str = None):
         self.webhook_url = webhook_url
@@ -69,7 +69,7 @@ class NotificationHook(BaseHook):
     @conditional_hook(lambda ctx: ctx.get('is_best_loss', False))
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def notify_best_model(self, context: HookContext):
-        """Send notification when a new best model is saved"""
+        # Send notification when a new best model is saved
         experiment_id = context.experiment_id
         loss = context.get('loss')
         epoch = context.get('epoch')
@@ -86,18 +86,18 @@ class NotificationHook(BaseHook):
         return {'success': True}
 
     def _send_webhook(self, message: str):
-        """Send webhook notification (placeholder)"""
+        # Send webhook notification (placeholder)
         # Implementation would use requests library
         self.logger.info(f"Webhook sent: {message}")
 
     def _send_email(self, message: str):
-        """Send email notification (placeholder)"""
+        # Send email notification (placeholder)
         # Implementation would use email library
         self.logger.info(f"Email sent: {message}")
 
 
 class MetricsTrackingHook(BaseHook):
-    """Hook for advanced metrics tracking and analysis"""
+    # Hook for advanced metrics tracking and analysis
 
     def __init__(self):
         self.metrics_history = []
@@ -107,7 +107,7 @@ class MetricsTrackingHook(BaseHook):
 
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def track_metrics(self, context: HookContext):
-        """Track metrics for trend analysis"""
+        # Track metrics for trend analysis
         metrics = context.get('metrics', {})
         epoch = context.get('epoch')
         loss = context.get('loss')
@@ -129,7 +129,7 @@ class MetricsTrackingHook(BaseHook):
         return {'success': True}
 
     def _analyze_trends(self):
-        """Analyze metric trends and detect patterns"""
+        # Analyze metric trends and detect patterns
         recent_losses = [entry['loss'] for entry in self.metrics_history[-5:]]
 
         # Check for overfitting (loss increasing)
@@ -150,7 +150,7 @@ class MetricsTrackingHook(BaseHook):
 
 
 class CloudBackupHook(BaseHook):
-    """Hook for automatic cloud backup of important checkpoints"""
+    # Hook for automatic cloud backup of important checkpoints
 
     def __init__(self, cloud_provider=None, backup_best_only: bool = True):
         self.cloud_provider = cloud_provider
@@ -162,7 +162,7 @@ class CloudBackupHook(BaseHook):
     @conditional_hook(lambda ctx: ctx.get('is_best_loss', False) or ctx.get('is_best_val_loss', False))
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE], async_execution=True)
     def backup_to_cloud(self, context: HookContext):
-        """Backup best checkpoints to cloud storage"""
+        # Backup best checkpoints to cloud storage
         if not self.cloud_provider:
             return {'success': True, 'skipped': True}
 
@@ -186,7 +186,7 @@ class CloudBackupHook(BaseHook):
 
 
 class PerformanceMonitoringHook(BaseHook):
-    """Hook for monitoring checkpoint operation performance"""
+    # Hook for monitoring checkpoint operation performance
 
     def __init__(self):
         self.performance_data = []
@@ -197,7 +197,7 @@ class PerformanceMonitoringHook(BaseHook):
     @benchmark_hook("checkpoint_save_performance")
     @hook_handler([HookEvent.AFTER_CHECKPOINT_SAVE])
     def monitor_save_performance(self, context: HookContext):
-        """Monitor checkpoint save performance"""
+        # Monitor checkpoint save performance
         save_time = context.get('save_time', 0)
         file_size = context.get('file_size', 0)
 
@@ -228,7 +228,7 @@ class PerformanceMonitoringHook(BaseHook):
         return {'success': True}
 
     def get_performance_stats(self) -> Dict[str, Any]:
-        """Get performance statistics"""
+        # Get performance statistics
         if not self.performance_data:
             return {}
 
@@ -280,7 +280,7 @@ def setup_comprehensive_hooks(checkpoint_manager):
     # Custom inline hook with decorator
     @hook_handler([HookEvent.BEFORE_CHECKPOINT_SAVE])
     def log_training_progress(context: HookContext):
-        """Simple hook to log training progress"""
+        # Simple hook to log training progress
         epoch = context.get('epoch')
         loss = context.get('loss')
         print(f"💾 Saving checkpoint - Epoch: {epoch}, Loss: {loss:.4f}")

@@ -1,4 +1,4 @@
-"""Base storage backend interface for checkpoint storage"""
+# Base storage backend interface for checkpoint storage
 
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -11,7 +11,7 @@ except ImportError:
 
 
 class BaseStorageBackend(ABC):
-    """Abstract base class for checkpoint storage backends"""
+    # Abstract base class for checkpoint storage backends
 
     def __init__(self, checkpoint_dir: Union[str, Path], compression: bool = True):
         """
@@ -59,7 +59,7 @@ class BaseStorageBackend(ABC):
 
     @abstractmethod
     def get_file_extension(self) -> str:
-        """Get the file extension used by this backend"""
+        # Get the file extension used by this backend
         pass
 
     @abstractmethod
@@ -97,6 +97,6 @@ class BaseStorageBackend(ABC):
         return str(self.checkpoint_dir / filename)
 
     def cleanup_temp_files(self) -> None:
-        """Clean up any temporary files created during save/load operations"""
+        # Clean up any temporary files created during save/load operations
         # Default implementation - can be overridden by backends that need it
         pass

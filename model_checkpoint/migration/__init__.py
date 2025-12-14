@@ -1,4 +1,4 @@
-"""Migration utilities for legacy checkpoint systems"""
+# Migration utilities for legacy checkpoint systems
 
 from .data_migrator import DataMigrator
 from .legacy_adapters import LegacyKerasAdapter, LegacyPickleAdapter, LegacyTorchAdapter

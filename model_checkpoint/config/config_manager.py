@@ -1,4 +1,4 @@
-"""Optimized configuration management system - zero redundancy design"""
+# Optimized configuration management system - zero redundancy design
 
 import json
 import os
@@ -11,12 +11,12 @@ import yaml
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class ConfigFormat(Enum):
-    """Optimized configuration format enum"""
+    # Optimized configuration format enum
 
     JSON = "json"
     YAML = "yaml"
@@ -26,7 +26,7 @@ class ConfigFormat(Enum):
 
 
 class ConfigSource(Enum):
-    """Optimized configuration source enum"""
+    # Optimized configuration source enum
 
     FILE = "file"
     ENVIRONMENT = "environment"
@@ -36,7 +36,7 @@ class ConfigSource(Enum):
 
 @dataclass
 class ConfigEntry:
-    """Optimized configuration entry"""
+    # Optimized configuration entry
 
     key: str
     value: Any
@@ -50,7 +50,7 @@ class ConfigEntry:
 
 @dataclass
 class ConfigSection:
-    """Optimized configuration section"""
+    # Optimized configuration section
 
     name: str
     entries: Dict[str, ConfigEntry] = field(default_factory=dict)
@@ -59,7 +59,7 @@ class ConfigSection:
 
 
 class ConfigManager:
-    """Optimized configuration manager with zero redundancy"""
+    # Optimized configuration manager with zero redundancy
 
     def __init__(self, config_dir: Optional[str] = None, config_file: Optional[str] = None):
         """
@@ -98,7 +98,7 @@ class ConfigManager:
             self.load_config_file(self.config_file)
 
     def _initialize_defaults(self) -> None:
-        """Initialize default configuration - optimized defaults"""
+        # Initialize default configuration - optimized defaults
         # Database configuration
         self.register_section(
             "database",
@@ -284,7 +284,7 @@ class ConfigManager:
     def register_section(
         self, name: str, entries: Optional[Dict[str, ConfigEntry]] = None
     ) -> None:
-        """Register configuration section - optimized registration"""
+        # Register configuration section - optimized registration
         if name not in self._sections:
             self._sections[name] = ConfigSection(name=name)
 
@@ -363,7 +363,7 @@ class ConfigManager:
             return False
 
     def _detect_format(self, file_path: str) -> ConfigFormat:
-        """Detect configuration format - optimized detection"""
+        # Detect configuration format - optimized detection
         ext = os.path.splitext(file_path)[1].lower()
 
         format_map = {
@@ -380,7 +380,7 @@ class ConfigManager:
     def _load_file_content(
         self, file_path: str, format_type: ConfigFormat
     ) -> Optional[Dict[str, Any]]:
-        """Load file content based on format - optimized loading"""
+        # Load file content based on format - optimized loading
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
@@ -431,7 +431,7 @@ class ConfigManager:
             return None
 
     def _parse_env_file(self, content: str) -> Dict[str, Any]:
-        """Parse environment file - optimized parsing"""
+        # Parse environment file - optimized parsing
         config = {}
 
         for line in content.splitlines():
@@ -459,7 +459,7 @@ class ConfigManager:
         return config
 
     def _convert_env_value(self, value: str) -> Any:
-        """Convert environment value to appropriate type - optimized conversion"""
+        # Convert environment value to appropriate type - optimized conversion
         # Boolean conversion
         if value.lower() in ("true", "false"):
             return value.lower() == "true"
@@ -483,7 +483,7 @@ class ConfigManager:
         format_type: ConfigFormat,
         source: ConfigSource,
     ) -> None:
-        """Process configuration content - optimized processing"""
+        # Process configuration content - optimized processing
         section = self._sections[section_name]
 
         for key, value in content.items():
@@ -511,7 +511,7 @@ class ConfigManager:
                 section.entries[key] = entry
 
     def _is_secret_key(self, key: str) -> bool:
-        """Check if key contains sensitive information - optimized detection"""
+        # Check if key contains sensitive information - optimized detection
         secret_patterns = [
             "password",
             "passwd",
@@ -531,7 +531,7 @@ class ConfigManager:
     def load_environment_variables(
         self, prefix: str = "CHECKPOINT_", section_name: str = "environment"
     ) -> None:
-        """Load environment variables - optimized environment loading"""
+        # Load environment variables - optimized environment loading
         if section_name not in self._sections:
             self.register_section(section_name)
 
@@ -669,7 +669,7 @@ class ConfigManager:
         self._notify_watchers(section, key, value)
 
     def get_section(self, section_name: str) -> Dict[str, Any]:
-        """Get entire configuration section - optimized section retrieval"""
+        # Get entire configuration section - optimized section retrieval
         if section_name not in self._sections:
             return {}
 
@@ -710,7 +710,7 @@ class ConfigManager:
     def get_all_sections(
         self, include_secrets: bool = False
     ) -> Dict[str, Dict[str, Any]]:
-        """Get all configuration sections - optimized bulk retrieval"""
+        # Get all configuration sections - optimized bulk retrieval
         result = {}
 
         for section_name, section in self._sections.items():
@@ -726,7 +726,7 @@ class ConfigManager:
         return result
 
     def validate_configuration(self) -> List[str]:
-        """Validate configuration - optimized validation"""
+        # Validate configuration - optimized validation
         errors = []
 
         for section_name, section in self._sections.items():
@@ -744,7 +744,7 @@ class ConfigManager:
         return errors
 
     def _apply_validation_rule(self, value: Any, rule: str) -> bool:
-        """Apply validation rule - optimized rule application"""
+        # Apply validation rule - optimized rule application
         # Simple validation rules
         if rule.startswith("type:"):
             expected_type = rule.split(":", 1)[1]
@@ -777,12 +777,12 @@ class ConfigManager:
         return True
 
     def watch_changes(self, callback: Callable[[str, str, Any], None]) -> None:
-        """Register configuration change watcher - optimized watching"""
+        # Register configuration change watcher - optimized watching
         if callable(callback):
             self._watchers.append(callback)
 
     def _notify_watchers(self, section: str, key: str, value: Any) -> None:
-        """Notify configuration watchers - optimized notification"""
+        # Notify configuration watchers - optimized notification
         for watcher in self._watchers:
             try:
                 watcher(section, key, value)
@@ -790,7 +790,7 @@ class ConfigManager:
                 print(f"Configuration watcher failed: {e}")
 
     def reload_config(self) -> bool:
-        """Reload configuration from files - optimized reloading"""
+        # Reload configuration from files - optimized reloading
         success = True
 
         for section_name, file_path in self._config_files.items():
@@ -809,7 +809,7 @@ class ConfigManager:
         file_path: str,
         format_type: ConfigFormat = ConfigFormat.JSON,
     ) -> bool:
-        """Save configuration section to file - optimized saving"""
+        # Save configuration section to file - optimized saving
         if section_name not in self._sections:
             return False
 
@@ -843,7 +843,7 @@ class ConfigManager:
     def export_configuration(
         self, include_secrets: bool = False, format_type: str = "json"
     ) -> Union[str, Dict[str, Any]]:
-        """Export configuration - optimized export"""
+        # Export configuration - optimized export
         config_data = {
             "metadata": {
                 "exported_at": _current_time(),
@@ -859,7 +859,7 @@ class ConfigManager:
             return config_data
 
     def get_configuration_info(self) -> Dict[str, Any]:
-        """Get configuration system information - optimized info"""
+        # Get configuration system information - optimized info
         total_entries = sum(len(section.entries) for section in self._sections.values())
         secret_entries = sum(
             1

@@ -1,4 +1,4 @@
-"""Optimized experiment comparison and visualization tools - zero redundancy design"""
+# Optimized experiment comparison and visualization tools - zero redundancy design
 
 import json
 import statistics
@@ -12,13 +12,13 @@ from .metrics_collector import MetricsCollector
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 @dataclass
 class ExperimentSummary:
-    """Optimized experiment summary - using field defaults"""
+    # Optimized experiment summary - using field defaults
 
     experiment_id: str
     name: str
@@ -35,7 +35,7 @@ class ExperimentSummary:
 
 @dataclass
 class ComparisonResult:
-    """Optimized comparison result structure"""
+    # Optimized comparison result structure
 
     experiments: List[ExperimentSummary] = field(default_factory=list)
     metric_comparisons: Dict[str, Dict[str, Any]] = field(default_factory=dict)
@@ -46,7 +46,7 @@ class ComparisonResult:
 
 
 class ExperimentComparisonEngine:
-    """Optimized experiment comparison with efficient data processing"""
+    # Optimized experiment comparison with efficient data processing
 
     def __init__(self, db_connection: Optional[EnhancedDatabaseConnection] = None):
         """
@@ -302,7 +302,7 @@ class ExperimentComparisonEngine:
     def _generate_visualization_data(
         self, summaries: List[ExperimentSummary], metrics: List[str]
     ) -> Dict[str, Any]:
-        """Generate data for visualization - optimized format"""
+        # Generate data for visualization - optimized format
         viz_data = {
             "experiment_names": [s.name for s in summaries],
             "experiment_ids": [s.experiment_id for s in summaries],
@@ -455,7 +455,7 @@ class ExperimentComparisonEngine:
             return report_data
 
     def _calculate_improvement(self, comparison_data: Dict[str, Any]) -> float:
-        """Calculate improvement percentage - optimized calculation"""
+        # Calculate improvement percentage - optimized calculation
         values = list(comparison_data["best_values"].values())
         if len(values) < 2:
             return 0.0
@@ -473,7 +473,7 @@ class ExperimentComparisonEngine:
             return ((best_val - worst_val) / worst_val) * 100
 
     def _format_as_markdown(self, report_data: Dict[str, Any]) -> str:
-        """Format report as markdown - optimized string building"""
+        # Format report as markdown - optimized string building
         lines = [
             "# Experiment Comparison Report",
             f"**Generated:** {time.strftime('%Y-%m-%d %H:%M:%S')}",
@@ -571,7 +571,7 @@ class ExperimentComparisonEngine:
     def _calculate_similarity(
         self, exp1: ExperimentSummary, exp2: ExperimentSummary
     ) -> float:
-        """Calculate similarity between experiments - optimized computation"""
+        # Calculate similarity between experiments - optimized computation
         # Optimized: Find common metrics
         common_metrics = set(exp1.best_metrics.keys()) & set(exp2.best_metrics.keys())
 
@@ -601,7 +601,7 @@ class ExperimentComparisonEngine:
         return (cosine_similarity + 1) / 2
 
     def clear_cache(self) -> None:
-        """Clear all caches"""
+        # Clear all caches
         self._experiment_cache.clear()
         self._metrics_cache.clear()
         self._cache_timestamps.clear()

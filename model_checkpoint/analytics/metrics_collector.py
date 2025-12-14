@@ -1,4 +1,4 @@
-"""Optimized metrics collection system - zero redundancy design"""
+# Optimized metrics collection system - zero redundancy design
 
 import json
 import statistics
@@ -14,7 +14,7 @@ from .shared_utils import calculate_statistics, current_time, is_loss_metric
 
 @dataclass
 class MetricDefinition:
-    """Optimized metric definition - using field defaults"""
+    # Optimized metric definition - using field defaults
 
     name: str
     metric_type: str  # 'loss', 'accuracy', 'custom'
@@ -27,7 +27,7 @@ class MetricDefinition:
 
 
 class MetricsCollector:
-    """Optimized metrics collection with zero redundancy"""
+    # Optimized metrics collection with zero redundancy
 
     def __init__(
         self,
@@ -254,7 +254,7 @@ class MetricsCollector:
     def get_metric_values(
         self, name: str, limit: Optional[int] = None
     ) -> List[Dict[str, Any]]:
-        """Get raw metric values - optimized retrieval"""
+        # Get raw metric values - optimized retrieval
         values = self._metrics.get(name, [])
         return values[-limit:] if limit else values
 
@@ -321,7 +321,7 @@ class MetricsCollector:
         return result
 
     def _calculate_aggregation(self, values: List[float], aggregation: str) -> float:
-        """Optimized aggregation calculation"""
+        # Optimized aggregation calculation
         if aggregation == "latest":
             return values[-1]
         elif aggregation == "mean":
@@ -334,7 +334,7 @@ class MetricsCollector:
             return values[-1]  # Default to latest
 
     def get_all_aggregated_metrics(self) -> Dict[str, Dict[str, Any]]:
-        """Get all aggregated metrics - optimized batch processing"""
+        # Get all aggregated metrics - optimized batch processing
         results = {}
 
         # Optimized: Process all metrics in single pass
@@ -408,7 +408,7 @@ class MetricsCollector:
         }
 
     def _persist_metrics(self) -> None:
-        """Persist metrics to database - optimized batch operation"""
+        # Persist metrics to database - optimized batch operation
         if not self.db_connection:
             return
 
@@ -480,7 +480,7 @@ class MetricsCollector:
             return export_data
 
     def clear_metrics(self, metric_names: Optional[List[str]] = None) -> None:
-        """Clear metrics from memory - optimized cleanup"""
+        # Clear metrics from memory - optimized cleanup
         if metric_names is None:
             self._metrics.clear()
             self._aggregated_cache.clear()
@@ -490,7 +490,7 @@ class MetricsCollector:
                 self._aggregated_cache.pop(name, None)
 
     def get_memory_usage(self) -> Dict[str, Any]:
-        """Get memory usage statistics - optimized calculation"""
+        # Get memory usage statistics - optimized calculation
         total_entries = sum(len(values) for values in self._metrics.values())
 
         return {

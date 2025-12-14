@@ -1,4 +1,4 @@
-"""Shared analytics utilities - zero redundancy optimization"""
+# Shared analytics utilities - zero redundancy optimization
 
 import statistics
 import time
@@ -7,20 +7,20 @@ from typing import Any, Dict, List, Optional, Union
 
 # Shared time function used across all analytics modules
 def current_time() -> float:
-    """Single time function for entire analytics system"""
+    # Single time function for entire analytics system
     return time.time()
 
 
 # Shared metric evaluation functions
 def is_loss_metric(metric_name: str) -> bool:
-    """Determine if metric should be minimized - shared logic"""
+    # Determine if metric should be minimized - shared logic
     return "loss" in metric_name.lower() or "error" in metric_name.lower()
 
 
 def calculate_improvement(
     current_value: float, previous_value: float, metric_name: str
 ) -> float:
-    """Calculate improvement percentage - shared across analytics"""
+    # Calculate improvement percentage - shared across analytics
     if previous_value == 0:
         return 0.0
 
@@ -31,7 +31,7 @@ def calculate_improvement(
 
 
 def calculate_linear_regression_slope(values: List[float]) -> float:
-    """Optimized slope calculation - shared across trend analysis"""
+    # Optimized slope calculation - shared across trend analysis
     n = len(values)
     if n < 2:
         return 0.0
@@ -49,7 +49,7 @@ def calculate_linear_regression_slope(values: List[float]) -> float:
 
 
 def exponential_smoothing(values: List[float], alpha: float = 0.3) -> List[float]:
-    """Exponential smoothing - shared smoothing algorithm"""
+    # Exponential smoothing - shared smoothing algorithm
     if not values:
         return []
 
@@ -62,7 +62,7 @@ def exponential_smoothing(values: List[float], alpha: float = 0.3) -> List[float
 
 
 def calculate_statistics(values: List[float]) -> Dict[str, float]:
-    """Calculate standard statistics - shared computation"""
+    # Calculate standard statistics - shared computation
     if not values:
         return {}
 

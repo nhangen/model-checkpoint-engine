@@ -1,4 +1,4 @@
-"""Optimized performance monitoring system - zero redundancy design"""
+# Optimized performance monitoring system - zero redundancy design
 
 import json
 import statistics
@@ -11,12 +11,12 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class MetricType(Enum):
-    """Optimized metric type enum"""
+    # Optimized metric type enum
 
     COUNTER = "counter"
     GAUGE = "gauge"
@@ -26,7 +26,7 @@ class MetricType(Enum):
 
 @dataclass
 class PerformanceMetric:
-    """Optimized performance metric"""
+    # Optimized performance metric
 
     name: str
     metric_type: MetricType
@@ -38,7 +38,7 @@ class PerformanceMetric:
 
 @dataclass
 class TimingRecord:
-    """Optimized timing record"""
+    # Optimized timing record
 
     operation: str
     start_time: float
@@ -50,7 +50,7 @@ class TimingRecord:
 
 
 class PerformanceMonitor:
-    """Optimized performance monitoring with zero redundancy"""
+    # Optimized performance monitoring with zero redundancy
 
     def __init__(self, enable_profiling: bool = True):
         """
@@ -157,7 +157,7 @@ class PerformanceMonitor:
         return duration_ms
 
     def timer_context(self, operation: str, tags: Optional[Dict[str, str]] = None):
-        """Context manager for timing operations - optimized context"""
+        # Context manager for timing operations - optimized context
 
         class TimerContext:
             def __init__(self, monitor, operation, tags):
@@ -182,7 +182,7 @@ class PerformanceMonitor:
     def increment_counter(
         self, name: str, value: int = 1, tags: Optional[Dict[str, str]] = None
     ) -> None:
-        """Increment counter metric - optimized counting"""
+        # Increment counter metric - optimized counting
         with self._lock:
             self._counters[name] += value
 
@@ -192,13 +192,13 @@ class PerformanceMonitor:
     def set_gauge(
         self, name: str, value: Union[int, float], tags: Optional[Dict[str, str]] = None
     ) -> None:
-        """Set gauge metric - optimized gauge setting"""
+        # Set gauge metric - optimized gauge setting
         self._update_metric(name, MetricType.GAUGE, value, tags)
 
     def record_histogram(
         self, name: str, value: Union[int, float], tags: Optional[Dict[str, str]] = None
     ) -> None:
-        """Record histogram value - optimized histogram recording"""
+        # Record histogram value - optimized histogram recording
         # Store in timing history for aggregation
         with self._lock:
             self._timing_history[f"histogram_{name}"].append(
@@ -219,7 +219,7 @@ class PerformanceMonitor:
         value: Union[int, float],
         tags: Optional[Dict[str, str]] = None,
     ) -> None:
-        """Update performance metric - optimized update"""
+        # Update performance metric - optimized update
         metric = PerformanceMetric(
             name=name, metric_type=metric_type, value=value, tags=tags or {}
         )
@@ -233,7 +233,7 @@ class PerformanceMonitor:
     def _update_timer_metrics(
         self, operation: str, duration_ms: float, success: bool
     ) -> None:
-        """Update timer-related metrics - optimized timer metrics"""
+        # Update timer-related metrics - optimized timer metrics
         # Update timing metrics
         self._update_metric(f"{operation}_duration_ms", MetricType.TIMER, duration_ms)
 
@@ -248,12 +248,12 @@ class PerformanceMonitor:
             self.increment_counter(f"{operation}_slow")
 
     def get_metric(self, name: str) -> Optional[PerformanceMetric]:
-        """Get specific metric - optimized retrieval"""
+        # Get specific metric - optimized retrieval
         with self._lock:
             return self._metrics.get(name)
 
     def get_all_metrics(self) -> Dict[str, PerformanceMetric]:
-        """Get all metrics - optimized bulk retrieval"""
+        # Get all metrics - optimized bulk retrieval
         with self._lock:
             return self._metrics.copy()
 
@@ -322,7 +322,7 @@ class PerformanceMonitor:
         return stats
 
     def _calculate_percentile(self, values: List[float], percentile: int) -> float:
-        """Calculate percentile - optimized percentile calculation"""
+        # Calculate percentile - optimized percentile calculation
         if not values:
             return 0.0
 
@@ -345,7 +345,7 @@ class PerformanceMonitor:
             )
 
     def get_system_overview(self) -> Dict[str, Any]:
-        """Get system performance overview - optimized overview"""
+        # Get system performance overview - optimized overview
         current_time = _current_time()
 
         # Collect all operation stats
@@ -430,13 +430,13 @@ class PerformanceMonitor:
         return slow_operations[:limit]
 
     def set_threshold(self, threshold_name: str, value: float) -> None:
-        """Set performance threshold - optimized threshold setting"""
+        # Set performance threshold - optimized threshold setting
         if threshold_name in self._thresholds:
             self._thresholds[threshold_name] = value
             self._invalidate_cache()  # Invalidate all caches
 
     def _invalidate_cache(self, pattern: Optional[str] = None) -> None:
-        """Invalidate performance caches - optimized cache invalidation"""
+        # Invalidate performance caches - optimized cache invalidation
         if pattern is None:
             # Clear all caches
             self._aggregated_cache.clear()
@@ -506,7 +506,7 @@ class PerformanceMonitor:
             return export_data
 
     def _export_prometheus_format(self, data: Dict[str, Any]) -> str:
-        """Export in Prometheus format - optimized Prometheus export"""
+        # Export in Prometheus format - optimized Prometheus export
         lines = []
 
         # Export counters and gauges
@@ -531,7 +531,7 @@ class PerformanceMonitor:
         return "\n".join(lines)
 
     def reset_metrics(self) -> None:
-        """Reset all performance metrics - optimized reset"""
+        # Reset all performance metrics - optimized reset
         with self._lock:
             self._metrics.clear()
             self._timing_history.clear()

@@ -1,4 +1,4 @@
-"""Optimized base cloud provider - zero redundancy design"""
+# Optimized base cloud provider - zero redundancy design
 
 import hashlib
 import os
@@ -10,12 +10,12 @@ from typing import Any, BinaryIO, Dict, List, Optional, Union
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class CloudProvider(Enum):
-    """Optimized cloud provider enum"""
+    # Optimized cloud provider enum
 
     S3 = "s3"
     GCS = "gcs"
@@ -24,7 +24,7 @@ class CloudProvider(Enum):
 
 @dataclass
 class CloudCredentials:
-    """Optimized cloud credentials - using field defaults"""
+    # Optimized cloud credentials - using field defaults
 
     provider: CloudProvider
     access_key: Optional[str] = None
@@ -42,7 +42,7 @@ class CloudCredentials:
 
 @dataclass
 class CloudObject:
-    """Optimized cloud object metadata"""
+    # Optimized cloud object metadata
 
     key: str
     size: int = 0
@@ -55,7 +55,7 @@ class CloudObject:
 
 @dataclass
 class UploadResult:
-    """Optimized upload result"""
+    # Optimized upload result
 
     success: bool
     key: str
@@ -68,7 +68,7 @@ class UploadResult:
 
 @dataclass
 class DownloadResult:
-    """Optimized download result"""
+    # Optimized download result
 
     success: bool
     key: str
@@ -79,7 +79,7 @@ class DownloadResult:
 
 
 class BaseCloudProvider(ABC):
-    """Optimized base class for cloud storage providers"""
+    # Optimized base class for cloud storage providers
 
     def __init__(self, credentials: CloudCredentials, bucket_name: str):
         """
@@ -105,40 +105,40 @@ class BaseCloudProvider(ABC):
 
     @abstractmethod
     def _create_client(self):
-        """Create provider-specific client"""
+        # Create provider-specific client
         pass
 
     @abstractmethod
     def _upload_file_impl(
         self, local_path: str, cloud_key: str, metadata: Optional[Dict[str, Any]] = None
     ) -> UploadResult:
-        """Provider-specific file upload implementation"""
+        # Provider-specific file upload implementation
         pass
 
     @abstractmethod
     def _download_file_impl(self, cloud_key: str, local_path: str) -> DownloadResult:
-        """Provider-specific file download implementation"""
+        # Provider-specific file download implementation
         pass
 
     @abstractmethod
     def _list_objects_impl(
         self, prefix: str = "", max_keys: int = 1000
     ) -> List[CloudObject]:
-        """Provider-specific object listing implementation"""
+        # Provider-specific object listing implementation
         pass
 
     @abstractmethod
     def _delete_object_impl(self, cloud_key: str) -> bool:
-        """Provider-specific object deletion implementation"""
+        # Provider-specific object deletion implementation
         pass
 
     @abstractmethod
     def _object_exists_impl(self, cloud_key: str) -> bool:
-        """Provider-specific object existence check implementation"""
+        # Provider-specific object existence check implementation
         pass
 
     def get_client(self):
-        """Get or create client with connection management"""
+        # Get or create client with connection management
         current_time = _current_time()
 
         if (

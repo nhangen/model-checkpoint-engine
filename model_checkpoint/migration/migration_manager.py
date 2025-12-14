@@ -1,4 +1,4 @@
-"""Optimized migration manager - zero redundancy design"""
+# Optimized migration manager - zero redundancy design
 
 import json
 import os
@@ -14,12 +14,12 @@ from ..utils.checksum import calculate_file_checksum
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class LegacyFormat(Enum):
-    """Optimized legacy format enum"""
+    # Optimized legacy format enum
 
     PYTORCH = "pytorch"
     TENSORFLOW = "tensorflow"
@@ -32,7 +32,7 @@ class LegacyFormat(Enum):
 
 
 class MigrationStatus(Enum):
-    """Optimized migration status enum"""
+    # Optimized migration status enum
 
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
@@ -43,7 +43,7 @@ class MigrationStatus(Enum):
 
 @dataclass
 class LegacyCheckpoint:
-    """Optimized legacy checkpoint representation"""
+    # Optimized legacy checkpoint representation
 
     file_path: str
     format_type: LegacyFormat
@@ -58,7 +58,7 @@ class LegacyCheckpoint:
 
 @dataclass
 class MigrationResult:
-    """Optimized migration result"""
+    # Optimized migration result
 
     source_path: str
     target_checkpoint_id: str
@@ -72,7 +72,7 @@ class MigrationResult:
 
 
 class MigrationManager:
-    """Optimized migration manager with zero redundancy"""
+    # Optimized migration manager with zero redundancy
 
     def __init__(
         self,
@@ -232,7 +232,7 @@ class MigrationManager:
         return discovered
 
     def _matches_patterns(self, filename: str, patterns: List[str]) -> bool:
-        """Check if filename matches any pattern - optimized matching"""
+        # Check if filename matches any pattern - optimized matching
         import fnmatch
 
         return any(
@@ -240,7 +240,7 @@ class MigrationManager:
         )
 
     def _detect_format(self, file_path: str) -> LegacyFormat:
-        """Detect checkpoint format - optimized detection"""
+        # Detect checkpoint format - optimized detection
         file_ext = os.path.splitext(file_path)[1].lower()
 
         # Optimized: Direct extension mapping
@@ -260,7 +260,7 @@ class MigrationManager:
         return extension_map.get(file_ext, LegacyFormat.CUSTOM)
 
     def _extract_experiment_name(self, file_path: str) -> Optional[str]:
-        """Extract experiment name from path - optimized extraction"""
+        # Extract experiment name from path - optimized extraction
         # Common patterns for experiment names
         path_parts = file_path.split(os.sep)
 
@@ -280,7 +280,7 @@ class MigrationManager:
         )
 
     def _extract_model_name(self, file_path: str) -> Optional[str]:
-        """Extract model name from filename - optimized extraction"""
+        # Extract model name from filename - optimized extraction
         filename = os.path.basename(file_path)
         name_without_ext = os.path.splitext(filename)[0]
 
@@ -484,7 +484,7 @@ class MigrationManager:
         return results
 
     def _get_or_create_experiment(self, legacy_checkpoint: LegacyCheckpoint) -> str:
-        """Get or create experiment for checkpoint - optimized lookup"""
+        # Get or create experiment for checkpoint - optimized lookup
         experiment_name = (
             legacy_checkpoint.experiment_name
             or legacy_checkpoint.model_name
@@ -509,7 +509,7 @@ class MigrationManager:
         )
 
     def _create_backup(self, file_path: str) -> str:
-        """Create backup of original file - optimized backup"""
+        # Create backup of original file - optimized backup
         backup_dir = os.path.join(os.path.dirname(file_path), ".migration_backups")
         os.makedirs(backup_dir, exist_ok=True)
 
@@ -524,7 +524,7 @@ class MigrationManager:
     def _validate_migration(
         self, legacy_checkpoint: LegacyCheckpoint, new_checkpoint_id: str
     ) -> bool:
-        """Validate migration integrity - optimized validation"""
+        # Validate migration integrity - optimized validation
         try:
             # Get new checkpoint info
             checkpoint_info = self.checkpoint_manager.get_checkpoint_info(
@@ -555,7 +555,7 @@ class MigrationManager:
             return False
 
     def _persist_migration_record(self, result: MigrationResult) -> None:
-        """Persist migration record to database - optimized storage"""
+        # Persist migration record to database - optimized storage
         try:
             with self.db_connection.get_connection() as conn:
                 conn.execute(
@@ -583,7 +583,7 @@ class MigrationManager:
             print(f"Failed to persist migration record: {e}")
 
     def get_migration_statistics(self) -> Dict[str, Any]:
-        """Get migration statistics - optimized reporting"""
+        # Get migration statistics - optimized reporting
         current_time = _current_time()
         total_duration = (
             current_time - self._stats["migration_start_time"]
@@ -626,7 +626,7 @@ class MigrationManager:
     def export_migration_report(
         self, format_type: str = "json"
     ) -> Union[str, Dict[str, Any]]:
-        """Export comprehensive migration report - optimized export"""
+        # Export comprehensive migration report - optimized export
         report_data = {
             "migration_summary": self.get_migration_statistics(),
             "migration_history": [
@@ -657,7 +657,7 @@ class MigrationManager:
             return report_data
 
     def _get_format_breakdown(self) -> Dict[str, Any]:
-        """Get breakdown by format type - optimized analysis"""
+        # Get breakdown by format type - optimized analysis
         format_stats = {}
 
         for result in self._migration_history:
@@ -686,7 +686,7 @@ class MigrationManager:
         return format_stats
 
     def _generate_recommendations(self) -> List[str]:
-        """Generate migration recommendations - optimized analysis"""
+        # Generate migration recommendations - optimized analysis
         recommendations = []
 
         # Analyze success rate
@@ -720,7 +720,7 @@ class MigrationManager:
         return recommendations
 
     def clear_migration_history(self) -> int:
-        """Clear migration history - optimized cleanup"""
+        # Clear migration history - optimized cleanup
         cleared_count = len(self._migration_history)
         self._migration_history.clear()
 

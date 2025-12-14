@@ -1,4 +1,4 @@
-"""Plugin architecture for extensibility"""
+# Plugin architecture for extensibility
 
 from .base_plugin import BasePlugin, PluginMetadata
 from .plugin_loader import PluginLoader

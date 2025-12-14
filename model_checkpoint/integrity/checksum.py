@@ -1,4 +1,4 @@
-"""Checksum calculation and verification for file integrity"""
+# Checksum calculation and verification for file integrity
 
 import os
 import time
@@ -9,7 +9,7 @@ from ..utils.checksum import calculate_data_checksum, calculate_file_checksum
 
 
 class ChecksumCalculator:
-    """Efficient checksum calculation - now uses shared optimized utilities"""
+    # Efficient checksum calculation - now uses shared optimized utilities
 
     def __init__(self, algorithm: str = "sha256", chunk_size: int = 65536):
         """
@@ -31,14 +31,14 @@ class ChecksumCalculator:
             )
 
     def calculate_file_checksum(self, file_path: str) -> str:
-        """Calculate checksum for a file - uses shared optimized utility"""
+        # Calculate checksum for a file - uses shared optimized utility
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
         return calculate_file_checksum(file_path, self.algorithm, self.chunk_size)
 
     def calculate_data_checksum(self, data: bytes) -> str:
-        """Calculate checksum for raw data - uses shared optimized utility"""
+        # Calculate checksum for raw data - uses shared optimized utility
         return calculate_data_checksum(data, self.algorithm)
 
     def verify_file_checksum(self, file_path: str, expected_checksum: str) -> bool:
@@ -153,7 +153,7 @@ class ChecksumCalculator:
 
 
 class IntegrityTracker:
-    """Track and manage file integrity over time"""
+    # Track and manage file integrity over time
 
     def __init__(self, tracker_file: Optional[str] = None):
         """
@@ -167,7 +167,7 @@ class IntegrityTracker:
         self._load_records()
 
     def _load_records(self) -> None:
-        """Load existing integrity records"""
+        # Load existing integrity records
         import json
 
         self.records = {}
@@ -179,7 +179,7 @@ class IntegrityTracker:
                 self.records = {}
 
     def _save_records(self) -> None:
-        """Save integrity records to file"""
+        # Save integrity records to file
         import json
 
         try:

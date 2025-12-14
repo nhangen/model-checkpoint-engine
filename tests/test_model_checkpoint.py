@@ -1,4 +1,4 @@
-"""Tests for model checkpoint engine components."""
+# Tests for model checkpoint engine components.
 
 import sys
 from pathlib import Path
@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 def test_model_checkpoint_import():
-    """Test that model_checkpoint can be imported."""
+    # Test that model_checkpoint can be imported.
     try:
         import model_checkpoint
         assert hasattr(model_checkpoint, '__version__') or hasattr(model_checkpoint, '__name__')
@@ -19,7 +19,7 @@ def test_model_checkpoint_import():
 
 
 def test_database_import():
-    """Test that database modules can be imported."""
+    # Test that database modules can be imported.
     try:
         from model_checkpoint.database import __init__
         assert hasattr(__init__, '__name__')
@@ -28,7 +28,7 @@ def test_database_import():
 
 
 def test_reporting_import():
-    """Test that reporting modules can be imported."""
+    # Test that reporting modules can be imported.
     try:
         from model_checkpoint.reporting import __init__
         assert hasattr(__init__, '__name__')
@@ -37,7 +37,7 @@ def test_reporting_import():
 
 
 def test_analytics_import():
-    """Test that analytics modules can be imported."""
+    # Test that analytics modules can be imported.
     try:
         from model_checkpoint.analytics import __init__
         assert hasattr(__init__, '__name__')
@@ -46,7 +46,7 @@ def test_analytics_import():
 
 
 def test_analytics_components_import():
-    """Test specific analytics components."""
+    # Test specific analytics components.
     try:
         from model_checkpoint.analytics import (
             comparison_engine,
@@ -62,7 +62,7 @@ def test_analytics_components_import():
 
 
 def test_examples_exist():
-    """Test that example scripts exist."""
+    # Test that example scripts exist.
     examples_dir = Path(__file__).parent.parent / "examples"
     if examples_dir.exists():
         expected_examples = [
@@ -82,7 +82,7 @@ def test_examples_exist():
 
 
 def test_basic_functionality():
-    """Test basic checkpoint functionality if available."""
+    # Test basic checkpoint functionality if available.
     try:
         import model_checkpoint
 
@@ -98,7 +98,7 @@ def test_basic_functionality():
 
 
 def test_package_structure():
-    """Test that the package has expected structure."""
+    # Test that the package has expected structure.
     package_root = Path(__file__).parent.parent
 
     expected_dirs = [

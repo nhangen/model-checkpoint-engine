@@ -1,4 +1,4 @@
-"""Comprehensive checkpoint verification and repair system"""
+# Comprehensive checkpoint verification and repair system
 
 import json
 import os
@@ -12,7 +12,7 @@ from .checksum import ChecksumCalculator, IntegrityTracker
 
 
 class CheckpointVerifier:
-    """Comprehensive checkpoint verification with repair capabilities"""
+    # Comprehensive checkpoint verification with repair capabilities
 
     def __init__(
         self,

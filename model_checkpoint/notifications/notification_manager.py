@@ -1,4 +1,4 @@
-"""Optimized notification management system - zero redundancy design"""
+# Optimized notification management system - zero redundancy design
 
 import json
 import threading
@@ -12,12 +12,12 @@ from ..database.enhanced_connection import EnhancedDatabaseConnection
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class EventType(Enum):
-    """Optimized event type enum"""
+    # Optimized event type enum
 
     EXPERIMENT_STARTED = "experiment_started"
     EXPERIMENT_COMPLETED = "experiment_completed"
@@ -32,7 +32,7 @@ class EventType(Enum):
 
 
 class Priority(Enum):
-    """Optimized priority enum"""
+    # Optimized priority enum
 
     LOW = 1
     NORMAL = 2
@@ -42,7 +42,7 @@ class Priority(Enum):
 
 @dataclass
 class NotificationEvent:
-    """Optimized notification event"""
+    # Optimized notification event
 
     event_type: EventType
     title: str
@@ -57,7 +57,7 @@ class NotificationEvent:
 
 @dataclass
 class NotificationRule:
-    """Optimized notification rule"""
+    # Optimized notification rule
 
     name: str
     event_types: List[EventType] = field(default_factory=list)
@@ -71,7 +71,7 @@ class NotificationRule:
 
 
 class NotificationManager:
-    """Optimized notification manager with event-driven architecture"""
+    # Optimized notification manager with event-driven architecture
 
     def __init__(self, db_connection: Optional[EnhancedDatabaseConnection] = None):
         """
@@ -157,28 +157,28 @@ class NotificationManager:
             return False
 
     def add_rule(self, rule: NotificationRule) -> None:
-        """Add notification rule - thread-safe"""
+        # Add notification rule - thread-safe
         with self._lock:
             self._rules[rule.name] = rule
 
     def get_rule(self, name: str) -> Optional[NotificationRule]:
-        """Get notification rule by name"""
+        # Get notification rule by name
         with self._lock:
             return self._rules.get(name) or self._default_rules.get(name)
 
     def apply_default_rules(self, rule_names: List[str]) -> None:
-        """Apply multiple default rules efficiently"""
+        # Apply multiple default rules efficiently
         for name in rule_names:
             if name in self._default_rules:
                 self.add_rule(self._default_rules[name])
 
     def remove_rule(self, name: str) -> bool:
-        """Remove notification rule - thread-safe"""
+        # Remove notification rule - thread-safe
         with self._lock:
             return self._rules.pop(name, None) is not None
 
     def start_processing(self) -> bool:
-        """Start notification processing thread"""
+        # Start notification processing thread
         with self._lock:
             if self._running:
                 return False
@@ -191,7 +191,7 @@ class NotificationManager:
             return True
 
     def stop_processing(self) -> bool:
-        """Stop notification processing thread"""
+        # Stop notification processing thread
         with self._lock:
             if not self._running:
                 return False
@@ -224,7 +224,7 @@ class NotificationManager:
         experiment_name: str,
         metadata: Optional[Dict[str, Any]] = None,
     ) -> None:
-        """Emit experiment started event - optimized helper"""
+        # Emit experiment started event - optimized helper
         event = NotificationEvent(
             event_type=EventType.EXPERIMENT_STARTED,
             title=f"Experiment Started: {experiment_name}",
@@ -241,7 +241,7 @@ class NotificationManager:
         experiment_name: str,
         final_metrics: Optional[Dict[str, float]] = None,
     ) -> None:
-        """Emit experiment completed event - optimized helper"""
+        # Emit experiment completed event - optimized helper
         message = f"Experiment '{experiment_name}' ({experiment_id}) has completed successfully."
         if final_metrics:
             metrics_str = ", ".join(f"{k}: {v:.4f}" for k, v in final_metrics.items())
@@ -265,7 +265,7 @@ class NotificationManager:
         metric_value: float,
         previous_value: Optional[float] = None,
     ) -> None:
-        """Emit best model updated event - optimized helper"""
+        # Emit best model updated event - optimized helper
         improvement = ""
         if previous_value is not None:
             diff = metric_value - previous_value
@@ -297,7 +297,7 @@ class NotificationManager:
         threshold: float,
         threshold_type: str = "exceeded",
     ) -> None:
-        """Emit metric threshold event - optimized helper"""
+        # Emit metric threshold event - optimized helper
         event = NotificationEvent(
             event_type=EventType.METRIC_THRESHOLD,
             title=f"Metric Threshold {threshold_type.title()}",
@@ -324,7 +324,7 @@ class NotificationManager:
         metadata: Optional[Dict[str, Any]] = None,
         tags: Optional[List[str]] = None,
     ) -> None:
-        """Emit custom event - optimized helper"""
+        # Emit custom event - optimized helper
         event = NotificationEvent(
             event_type=EventType.CUSTOM,
             title=title,
@@ -337,7 +337,7 @@ class NotificationManager:
         self.emit_event(event)
 
     def _processing_loop(self) -> None:
-        """Main event processing loop - optimized batch processing"""
+        # Main event processing loop - optimized batch processing
         while self._running:
             try:
                 # Process events in batches for efficiency
@@ -367,7 +367,7 @@ class NotificationManager:
                 time.sleep(1.0)
 
     def _process_single_event(self, event: NotificationEvent) -> None:
-        """Process single event against all rules - optimized matching"""
+        # Process single event against all rules - optimized matching
         current_time = _current_time()
 
         # Find matching rules
@@ -383,7 +383,7 @@ class NotificationManager:
     def _rule_matches_event(
         self, rule: NotificationRule, event: NotificationEvent, current_time: float
     ) -> bool:
-        """Check if rule matches event - optimized matching"""
+        # Check if rule matches event - optimized matching
         # Check if rule is enabled
         if not rule.enabled:
             return False
@@ -412,7 +412,7 @@ class NotificationManager:
     def _evaluate_conditions(
         self, conditions: Dict[str, Any], event: NotificationEvent
     ) -> bool:
-        """Evaluate custom conditions - optimized evaluation"""
+        # Evaluate custom conditions - optimized evaluation
         for condition_type, condition_value in conditions.items():
             if condition_type == "experiment_id":
                 if event.experiment_id != condition_value:
@@ -440,7 +440,7 @@ class NotificationManager:
     def _execute_rule(
         self, rule: NotificationRule, event: NotificationEvent, current_time: float
     ) -> None:
-        """Execute rule by sending notifications - optimized execution"""
+        # Execute rule by sending notifications - optimized execution
         successful_sends = 0
         failed_sends = 0
 
@@ -463,7 +463,7 @@ class NotificationManager:
         self._stats["notifications_failed"] += failed_sends
 
     def _send_to_handler(self, handler_name: str, event: NotificationEvent) -> bool:
-        """Send event to specific handler - optimized with error handling"""
+        # Send event to specific handler - optimized with error handling
         try:
             handler = self._handlers[handler_name]
 
@@ -488,7 +488,7 @@ class NotificationManager:
             return False
 
     def _persist_event(self, event: NotificationEvent) -> None:
-        """Persist event to database - optimized storage"""
+        # Persist event to database - optimized storage
         try:
             with self.db_connection.get_connection() as conn:
                 conn.execute(
@@ -609,7 +609,7 @@ class NotificationManager:
             return []
 
     def get_statistics(self) -> Dict[str, Any]:
-        """Get notification system statistics"""
+        # Get notification system statistics
         with self._lock:
             stats = self._stats.copy()
 
@@ -662,7 +662,7 @@ class NotificationManager:
             return {"success": False, "error": str(e), "handler_name": handler_name}
 
     def export_configuration(self) -> Dict[str, Any]:
-        """Export notification manager configuration"""
+        # Export notification manager configuration
         with self._lock:
             config = {"handlers": list(self._handlers.keys()), "rules": {}}
 

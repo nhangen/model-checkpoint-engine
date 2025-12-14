@@ -1,4 +1,4 @@
-"""Tests for Phase 2 - Cloud Storage Features"""
+# Tests for Phase 2 - Cloud Storage Features
 
 import hashlib
 import json
@@ -13,7 +13,7 @@ from model_checkpoint.cloud.s3_provider import S3Provider
 
 
 class TestS3Provider:
-    """Test S3 cloud storage provider"""
+    # Test S3 cloud storage provider
 
     @pytest.fixture
     def mock_boto3(self):
@@ -35,7 +35,7 @@ class TestS3Provider:
         return provider
 
     def test_upload_checkpoint(self, s3_provider):
-        """Test uploading checkpoint to S3"""
+        # Test uploading checkpoint to S3
         with tempfile.NamedTemporaryFile() as tmp:
             tmp.write(b"test checkpoint data")
             tmp.flush()
@@ -51,7 +51,7 @@ class TestS3Provider:
             assert success
 
     def test_download_checkpoint(self, s3_provider):
-        """Test downloading checkpoint from S3"""
+        # Test downloading checkpoint from S3
         with tempfile.NamedTemporaryFile() as tmp:
             # Download
             success = s3_provider.download(
@@ -64,7 +64,7 @@ class TestS3Provider:
             assert success
 
     def test_list_checkpoints(self, s3_provider):
-        """Test listing checkpoints in S3"""
+        # Test listing checkpoints in S3
         # Mock list response
         s3_provider.client.list_objects_v2.return_value = {
             'Contents': [
@@ -78,7 +78,7 @@ class TestS3Provider:
         assert files[0]['path'] == 'checkpoints/model_1.pt'
 
     def test_delete_checkpoint(self, s3_provider):
-        """Test deleting checkpoint from S3"""
+        # Test deleting checkpoint from S3
         success = s3_provider.delete("checkpoints/model_1.pt")
 
         s3_provider.client.delete_object.assert_called_once_with(
@@ -88,7 +88,7 @@ class TestS3Provider:
         assert success
 
     def test_multipart_upload(self, s3_provider):
-        """Test multipart upload for large files"""
+        # Test multipart upload for large files
         # Create large fake file
         with tempfile.NamedTemporaryFile() as tmp:
             # Write 10MB of data
@@ -113,7 +113,7 @@ class TestS3Provider:
             assert success
 
     def test_get_metadata(self, s3_provider):
-        """Test getting file metadata"""
+        # Test getting file metadata
         # Mock head object response
         s3_provider.client.head_object.return_value = {
             'ContentLength': 1024,
@@ -126,7 +126,7 @@ class TestS3Provider:
         assert metadata['etag'] == '"abc123"'
 
     def test_presigned_url(self, s3_provider):
-        """Test generating presigned URL"""
+        # Test generating presigned URL
         s3_provider.client.generate_presigned_url.return_value = "https://test-url"
 
         url = s3_provider.generate_presigned_url(
@@ -139,7 +139,7 @@ class TestS3Provider:
 
 
 class TestCloudProviderIntegration:
-    """Test cloud provider integration with checkpoint system"""
+    # Test cloud provider integration with checkpoint system
 
     @pytest.fixture
     def mock_provider(self):
@@ -150,7 +150,7 @@ class TestCloudProviderIntegration:
         return provider
 
     def test_checkpoint_sync(self, mock_provider):
-        """Test syncing checkpoints to cloud"""
+        # Test syncing checkpoints to cloud
         from model_checkpoint.cloud.sync_manager import CloudSyncManager
 
         sync_manager = CloudSyncManager(provider=mock_provider)
@@ -169,7 +169,7 @@ class TestCloudProviderIntegration:
             assert success
 
     def test_automatic_backup(self, mock_provider):
-        """Test automatic cloud backup on checkpoint save"""
+        # Test automatic cloud backup on checkpoint save
         from model_checkpoint.cloud.backup_manager import CloudBackupManager
 
         backup_manager = CloudBackupManager(
@@ -184,7 +184,7 @@ class TestCloudProviderIntegration:
         mock_provider.upload.assert_called_once()
 
     def test_cloud_retention_policy(self, mock_provider):
-        """Test cloud storage retention policies"""
+        # Test cloud storage retention policies
         from model_checkpoint.cloud.retention_manager import CloudRetentionManager
 
         # Mock list response with old files

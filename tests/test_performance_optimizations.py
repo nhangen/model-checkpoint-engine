@@ -1,4 +1,4 @@
-"""Tests for performance optimization components"""
+# Tests for performance optimization components
 
 import os
 import shutil
@@ -22,15 +22,15 @@ from model_checkpoint.performance import (
 
 
 class TestLRUCache:
-    """Test LRU cache functionality"""
+    # Test LRU cache functionality
 
     @pytest.fixture
     def cache(self):
-        """Create LRU cache"""
+        # Create LRU cache
         return LRUCache(max_size=3, default_ttl=1.0)  # Small size and short TTL for testing
 
     def test_basic_get_set(self, cache):
-        """Test basic get/set operations"""
+        # Test basic get/set operations
         # Set values
         cache.set("key1", "value1")
         cache.set("key2", "value2")
@@ -42,7 +42,7 @@ class TestLRUCache:
         assert cache.get("nonexistent", "default") == "default"
 
     def test_lru_eviction(self, cache):
-        """Test LRU eviction policy"""
+        # Test LRU eviction policy
         # Fill cache to capacity
         cache.set("key1", "value1")
         cache.set("key2", "value2")
@@ -63,7 +63,7 @@ class TestLRUCache:
         assert cache.get("key4") == "value4"
 
     def test_lru_access_updates(self, cache):
-        """Test that accessing items updates LRU order"""
+        # Test that accessing items updates LRU order
         # Fill cache
         cache.set("key1", "value1")
         cache.set("key2", "value2")
@@ -81,7 +81,7 @@ class TestLRUCache:
         assert cache.get("key4") == "value4"
 
     def test_ttl_expiration(self, cache):
-        """Test TTL-based expiration"""
+        # Test TTL-based expiration
         # Set value with short TTL
         cache.set("key1", "value1", ttl=0.1)
 
@@ -95,7 +95,7 @@ class TestLRUCache:
         assert cache.get("key1") is None
 
     def test_cache_statistics(self, cache):
-        """Test cache statistics tracking"""
+        # Test cache statistics tracking
         # Perform operations
         cache.set("key1", "value1")
         cache.get("key1")  # Hit
@@ -108,7 +108,7 @@ class TestLRUCache:
         assert stats['hit_rate_percent'] == 50.0
 
     def test_clear_cache(self, cache):
-        """Test cache clearing"""
+        # Test cache clearing
         # Add items
         cache.set("key1", "value1")
         cache.set("key2", "value2")
@@ -124,15 +124,15 @@ class TestLRUCache:
 
 
 class TestCheckpointCache:
-    """Test checkpoint-specific caching"""
+    # Test checkpoint-specific caching
 
     @pytest.fixture
     def checkpoint_cache(self):
-        """Create checkpoint cache"""
+        # Create checkpoint cache
         return CheckpointCache(max_size=10)
 
     def test_metadata_caching(self, checkpoint_cache):
-        """Test checkpoint metadata caching"""
+        # Test checkpoint metadata caching
         metadata = {
             'epoch': 10,
             'step': 1000,
@@ -148,7 +148,7 @@ class TestCheckpointCache:
         assert retrieved == metadata
 
     def test_data_caching_size_limit(self, checkpoint_cache):
-        """Test checkpoint data caching with size limits"""
+        # Test checkpoint data caching with size limits
         # Small data (should be cached)
         small_data = {'model_state': {'layer': [1, 2, 3]}}
         cached = checkpoint_cache.set_checkpoint_data("ckpt_001", small_data, max_size_mb=1.0)
@@ -164,7 +164,7 @@ class TestCheckpointCache:
         assert cached is False
 
     def test_query_caching(self, checkpoint_cache):
-        """Test query result caching"""
+        # Test query result caching
         query_params = {'experiment_id': 'exp_001', 'checkpoint_type': 'best'}
         query_hash = checkpoint_cache.create_query_hash(query_params)
 
@@ -178,7 +178,7 @@ class TestCheckpointCache:
         assert retrieved == result
 
     def test_cache_invalidation(self, checkpoint_cache):
-        """Test cache invalidation"""
+        # Test cache invalidation
         # Cache some data
         metadata = {'epoch': 10, 'loss': 0.5}
         data = {'model_state': {}}
@@ -199,28 +199,28 @@ class TestCheckpointCache:
 
 
 class TestBatchProcessor:
-    """Test batch processing functionality"""
+    # Test batch processing functionality
 
     @pytest.fixture
     def temp_dir(self):
-        """Create temporary directory"""
+        # Create temporary directory
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def db_connection(self, temp_dir):
-        """Create test database connection"""
+        # Create test database connection
         db_path = os.path.join(temp_dir, "test_batch.db")
         return EnhancedDatabaseConnection(f"sqlite:///{db_path}")
 
     @pytest.fixture
     def batch_processor(self, db_connection):
-        """Create batch processor"""
+        # Create batch processor
         return BatchProcessor(db_connection, batch_size=5)
 
     def test_batch_save_metrics(self, batch_processor):
-        """Test batch saving of metrics"""
+        # Test batch saving of metrics
         # Create test metrics
         metrics = []
         for i in range(12):  # More than one batch
@@ -241,7 +241,7 @@ class TestBatchProcessor:
         assert result['metrics_per_second'] > 0
 
     def test_batch_save_checkpoints(self, batch_processor):
-        """Test batch saving of checkpoints"""
+        # Test batch saving of checkpoints
         # Create test checkpoints
         checkpoints = []
         for i in range(8):
@@ -264,7 +264,7 @@ class TestBatchProcessor:
         assert result['error_count'] == 0
 
     def test_batch_update_best_flags(self, batch_processor, db_connection):
-        """Test batch updating of best model flags"""
+        # Test batch updating of best model flags
         # First, create some checkpoints
         checkpoints = []
         for i in range(5):
@@ -300,23 +300,23 @@ class TestBatchProcessor:
 
 
 class TestParallelCheckpointProcessor:
-    """Test parallel checkpoint processing"""
+    # Test parallel checkpoint processing
 
     @pytest.fixture
     def temp_dir(self):
-        """Create temporary directory"""
+        # Create temporary directory
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def processor(self):
-        """Create parallel processor"""
+        # Create parallel processor
         return ParallelCheckpointProcessor(max_workers=2)
 
     @pytest.fixture
     def test_checkpoint_files(self, temp_dir):
-        """Create test checkpoint files"""
+        # Create test checkpoint files
         import torch
 
         files = []
@@ -336,7 +336,7 @@ class TestParallelCheckpointProcessor:
         return files
 
     def test_parallel_metadata_loading(self, processor, test_checkpoint_files):
-        """Test parallel loading of checkpoint metadata"""
+        # Test parallel loading of checkpoint metadata
         # Load metadata in parallel
         result = processor.parallel_load_checkpoint_metadata(test_checkpoint_files)
 
@@ -356,7 +356,7 @@ class TestParallelCheckpointProcessor:
             assert metadata['has_model_state'] is True
 
     def test_parallel_processing_performance(self, processor, test_checkpoint_files):
-        """Test that parallel processing is faster than sequential"""
+        # Test that parallel processing is faster than sequential
         # Time parallel processing
         start_time = time.time()
         parallel_result = processor.parallel_load_checkpoint_metadata(test_checkpoint_files)
@@ -384,18 +384,18 @@ class TestParallelCheckpointProcessor:
 
 
 class TestBulkDataExporter:
-    """Test bulk data export functionality"""
+    # Test bulk data export functionality
 
     @pytest.fixture
     def temp_dir(self):
-        """Create temporary directory"""
+        # Create temporary directory
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def db_connection(self, temp_dir):
-        """Create test database with sample data"""
+        # Create test database with sample data
         db_path = os.path.join(temp_dir, "test_export.db")
         db = EnhancedDatabaseConnection(f"sqlite:///{db_path}")
 
@@ -435,11 +435,11 @@ class TestBulkDataExporter:
 
     @pytest.fixture
     def exporter(self, db_connection):
-        """Create bulk data exporter"""
+        # Create bulk data exporter
         return BulkDataExporter(db_connection)
 
     def test_export_experiment_data(self, exporter):
-        """Test exporting experiment data"""
+        # Test exporting experiment data
         experiment_ids = ["exp_001", "exp_002"]
 
         # Export data
@@ -477,7 +477,7 @@ class TestBulkDataExporter:
             assert len(checkpoints) == 3  # 3 checkpoints per experiment
 
     def test_save_exported_data_json(self, exporter, temp_dir):
-        """Test saving exported data as JSON"""
+        # Test saving exported data as JSON
         # Export data
         export_result = exporter.export_experiment_data(["exp_001"])
 
@@ -502,7 +502,7 @@ class TestBulkDataExporter:
         assert 'exp_001' in loaded_data
 
     def test_save_exported_data_csv(self, exporter, temp_dir):
-        """Test saving exported data as CSV"""
+        # Test saving exported data as CSV
         # Export data
         export_result = exporter.export_experiment_data(["exp_001", "exp_002"])
 
@@ -522,7 +522,7 @@ class TestBulkDataExporter:
         assert os.path.exists(output_path.replace('.csv', '_checkpoints.csv'))
 
     def test_export_without_checkpoints(self, exporter):
-        """Test exporting data without checkpoint metadata"""
+        # Test exporting data without checkpoint metadata
         result = exporter.export_experiment_data(
             experiment_ids=["exp_001"],
             include_checkpoints=False
@@ -536,20 +536,20 @@ class TestBulkDataExporter:
 
 
 class TestCacheManager:
-    """Test cache manager coordination"""
+    # Test cache manager coordination
 
     @pytest.fixture
     def cache_manager(self):
-        """Create cache manager"""
+        # Create cache manager
         return CacheManager(checkpoint_cache_size=100, experiment_cache_size=200)
 
     def test_cache_manager_initialization(self, cache_manager):
-        """Test cache manager initialization"""
+        # Test cache manager initialization
         assert cache_manager.checkpoint_cache is not None
         assert cache_manager.experiment_cache is not None
 
     def test_global_statistics(self, cache_manager):
-        """Test global cache statistics"""
+        # Test global cache statistics
         # Add some data to caches
         cache_manager.checkpoint_cache.set_checkpoint_metadata("ckpt_001", {'epoch': 1})
         cache_manager.experiment_cache.set_experiment_metadata("exp_001", {'name': 'Test'})
@@ -563,7 +563,7 @@ class TestCacheManager:
         assert stats['total_cached_items'] >= 2
 
     def test_clear_all_caches(self, cache_manager):
-        """Test clearing all caches"""
+        # Test clearing all caches
         # Add data
         cache_manager.checkpoint_cache.set_checkpoint_metadata("ckpt_001", {'epoch': 1})
         cache_manager.experiment_cache.set_experiment_metadata("exp_001", {'name': 'Test'})

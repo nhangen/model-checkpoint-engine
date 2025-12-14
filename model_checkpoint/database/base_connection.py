@@ -1,4 +1,4 @@
-"""Base database connection with shared functionality"""
+# Base database connection with shared functionality
 
 import json
 import logging
@@ -10,24 +10,24 @@ from .models import Checkpoint, Experiment, Metric
 
 
 class BaseDatabaseConnection:
-    """Base SQLite database connection with core functionality"""
+    # Base SQLite database connection with core functionality
 
     def __init__(self, database_url: str = "sqlite:///experiments.db"):
-        """Initialize base database connection"""
+        # Initialize base database connection
         self.db_path = self._extract_db_path(database_url)
         self.logger = logging.getLogger(__name__)
         self._init_tables()
 
     @staticmethod
     def _extract_db_path(database_url: str) -> str:
-        """Extract database path from URL - optimized single method"""
+        # Extract database path from URL - optimized single method
         return (
             database_url[10:] if database_url.startswith("sqlite:///") else database_url
         )
 
     @contextmanager
     def _get_connection(self):
-        """Get optimized database connection with context management"""
+        # Get optimized database connection with context management
         conn = sqlite3.connect(self.db_path)
         try:
             # Enable performance optimizations
@@ -41,7 +41,7 @@ class BaseDatabaseConnection:
             conn.close()
 
     def _init_tables(self):
-        """Initialize database tables with enhanced schema"""
+        # Initialize database tables with enhanced schema
         with self._get_connection() as conn:
             self._create_experiments_table(conn)
             self._create_metrics_table(conn)
@@ -49,7 +49,7 @@ class BaseDatabaseConnection:
             conn.commit()
 
     def _create_experiments_table(self, conn):
-        """Create experiments table - centralized definition"""
+        # Create experiments table - centralized definition
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS experiments (
@@ -67,7 +67,7 @@ class BaseDatabaseConnection:
         )
 
     def _create_metrics_table(self, conn):
-        """Create metrics table - centralized definition"""
+        # Create metrics table - centralized definition
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS metrics (
@@ -83,7 +83,7 @@ class BaseDatabaseConnection:
         )
 
     def _create_checkpoints_table(self, conn):
-        """Create checkpoints table - centralized definition"""
+        # Create checkpoints table - centralized definition
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS checkpoints (
@@ -112,7 +112,7 @@ class BaseDatabaseConnection:
 
     # Core CRUD operations - shared between all connection types
     def save_experiment(self, experiment: Experiment) -> None:
-        """Save experiment to database - optimized single implementation"""
+        # Save experiment to database - optimized single implementation
         with self._get_connection() as conn:
             conn.execute(
                 """
@@ -135,11 +135,11 @@ class BaseDatabaseConnection:
             conn.commit()
 
     def update_experiment(self, experiment: Experiment) -> None:
-        """Update existing experiment - optimized to reuse save_experiment"""
+        # Update existing experiment - optimized to reuse save_experiment
         self.save_experiment(experiment)
 
     def get_experiment(self, experiment_id: str) -> Optional[Experiment]:
-        """Get experiment by ID - optimized with proper field handling"""
+        # Get experiment by ID - optimized with proper field handling
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
@@ -166,7 +166,7 @@ class BaseDatabaseConnection:
             )
 
     def save_metric(self, metric: Metric) -> None:
-        """Save metric to database - optimized single implementation"""
+        # Save metric to database - optimized single implementation
         with self._get_connection() as conn:
             conn.execute(
                 """
@@ -190,7 +190,7 @@ class BaseDatabaseConnection:
         metric_name: Optional[str] = None,
         step_range: Optional[tuple] = None,
     ) -> List[Dict]:
-        """Get metrics with enhanced filtering - optimized query building"""
+        # Get metrics with enhanced filtering - optimized query building
         with self._get_connection() as conn:
             query_parts = [
                 "SELECT metric_name, metric_value, step, timestamp FROM metrics WHERE experiment_id = ?"
@@ -220,7 +220,7 @@ class BaseDatabaseConnection:
             ]
 
     def save_checkpoint(self, checkpoint: Checkpoint) -> None:
-        """Save checkpoint with enhanced metadata - optimized single implementation"""
+        # Save checkpoint with enhanced metadata - optimized single implementation
         with self._get_connection() as conn:
             conn.execute(
                 """
@@ -254,7 +254,7 @@ class BaseDatabaseConnection:
             conn.commit()
 
     def get_checkpoint(self, checkpoint_id: str) -> Optional[Checkpoint]:
-        """Get checkpoint by ID with all enhanced fields - optimized"""
+        # Get checkpoint by ID with all enhanced fields - optimized
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """

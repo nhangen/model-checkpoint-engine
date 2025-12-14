@@ -48,14 +48,14 @@ class QuaternionValidationHook(BaseHook):
         }
 
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         self.logger.info(
             f"Initializing QuaternionValidationHook with tolerance={self.tolerance}"
         )
         pass
 
     def handle(self, context: HookContext) -> None:
-        """Handle hook events for quaternion validation."""
+        # Handle hook events for quaternion validation.
 
         if context.event == HookEvent.BEFORE_TRAINING_STEP:
             if self.enable_input_validation:
@@ -70,7 +70,7 @@ class QuaternionValidationHook(BaseHook):
                 self._validate_loss_computation(context)
 
     def _validate_input_quaternions(self, context: HookContext) -> None:
-        """Validate quaternion inputs before training step."""
+        # Validate quaternion inputs before training step.
         data = context.data
 
         # Check if batch contains quaternion data
@@ -102,7 +102,7 @@ class QuaternionValidationHook(BaseHook):
                         )
 
     def _validate_output_quaternions(self, context: HookContext) -> None:
-        """Validate quaternion outputs after forward pass."""
+        # Validate quaternion outputs after forward pass.
         data = context.data
 
         if "outputs" in data:
@@ -121,7 +121,7 @@ class QuaternionValidationHook(BaseHook):
                     self._diagnose_quaternion_issues(quat_outputs)
 
     def _validate_loss_computation(self, context: HookContext) -> None:
-        """Validate loss computation for quaternion-based losses."""
+        # Validate loss computation for quaternion-based losses.
         data = context.data
 
         if "loss" in data and "rotation_loss" in data:
@@ -141,7 +141,7 @@ class QuaternionValidationHook(BaseHook):
                     self._diagnose_loss_issues(data["outputs"], data["targets"])
 
     def _extract_quaternions(self, batch: Dict[str, Any]) -> Optional[torch.Tensor]:
-        """Extract quaternion data from batch."""
+        # Extract quaternion data from batch.
         # Look for quaternion data in common keys
         quat_keys = ["quaternion", "rotation", "pose", "orientation"]
 
@@ -162,7 +162,7 @@ class QuaternionValidationHook(BaseHook):
     def _extract_quaternion_predictions(
         self, outputs: Union[torch.Tensor, Dict[str, torch.Tensor]]
     ) -> Optional[torch.Tensor]:
-        """Extract quaternion predictions from model outputs."""
+        # Extract quaternion predictions from model outputs.
         if isinstance(outputs, torch.Tensor):
             # If outputs is a tensor, assume it contains quaternions
             if outputs.shape[-1] >= 4:
@@ -179,7 +179,7 @@ class QuaternionValidationHook(BaseHook):
         return None
 
     def _is_valid_quaternion_batch(self, quaternions: torch.Tensor) -> bool:
-        """Check if a batch of quaternions is valid."""
+        # Check if a batch of quaternions is valid.
         if quaternions.shape[-1] != 4:
             return False
 
@@ -194,19 +194,19 @@ class QuaternionValidationHook(BaseHook):
         return (norm_diff < self.tolerance).all().item()
 
     def _can_normalize_quaternions(self, quaternions: torch.Tensor) -> bool:
-        """Check if quaternions can be normalized."""
+        # Check if quaternions can be normalized.
         norms = torch.norm(quaternions, dim=-1)
         return (norms > 1e-8).all().item()  # Avoid division by zero
 
     def _normalize_quaternions(self, quaternions: torch.Tensor) -> torch.Tensor:
-        """Normalize quaternions to unit length."""
+        # Normalize quaternions to unit length.
         norms = torch.norm(quaternions, dim=-1, keepdim=True)
         return quaternions / (norms + 1e-8)
 
     def _update_batch_quaternions(
         self, batch: Dict[str, Any], normalized_quaternions: torch.Tensor
     ) -> None:
-        """Update batch with normalized quaternions."""
+        # Update batch with normalized quaternions.
         # This is a simplified implementation - in practice, you'd need to
         # identify exactly which field contains the quaternions and update it
         quat_keys = ["quaternion", "rotation", "pose", "orientation"]
@@ -223,7 +223,7 @@ class QuaternionValidationHook(BaseHook):
                     return
 
     def _diagnose_quaternion_issues(self, quaternions: torch.Tensor) -> None:
-        """Diagnose common quaternion issues."""
+        # Diagnose common quaternion issues.
         norms = torch.norm(quaternions, dim=-1)
 
         self.logger.info(f"Quaternion diagnostics:")
@@ -245,7 +245,7 @@ class QuaternionValidationHook(BaseHook):
     def _diagnose_loss_issues(
         self, outputs: torch.Tensor, targets: torch.Tensor
     ) -> None:
-        """Diagnose issues in loss computation."""
+        # Diagnose issues in loss computation.
         self.logger.info("Loss computation diagnostics:")
 
         if hasattr(outputs, "shape"):
@@ -261,7 +261,7 @@ class QuaternionValidationHook(BaseHook):
             )
 
     def get_validation_summary(self) -> Dict[str, Any]:
-        """Get summary of validation statistics."""
+        # Get summary of validation statistics.
         total = self.validation_stats["total_validations"]
         if total == 0:
             return {"status": "No validations performed"}
@@ -302,14 +302,14 @@ class RotationLossValidationHook(BaseHook):
         self.logger = logging.getLogger(__name__)
 
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         self.logger.info(
             f"Initializing RotationLossValidationHook with supported losses: {self.supported_losses}"
         )
         pass
 
     def handle(self, context: HookContext) -> None:
-        """Handle rotation loss validation."""
+        # Handle rotation loss validation.
 
         if context.event == HookEvent.BEFORE_LOSS_COMPUTATION:
             self._validate_loss_compatibility(context)
@@ -318,7 +318,7 @@ class RotationLossValidationHook(BaseHook):
             self._validate_loss_values(context)
 
     def _validate_loss_compatibility(self, context: HookContext) -> None:
-        """Validate that loss function is compatible with data format."""
+        # Validate that loss function is compatible with data format.
         data = context.data
 
         if "loss_config" in data:
@@ -332,7 +332,7 @@ class RotationLossValidationHook(BaseHook):
                 )
 
     def _validate_loss_values(self, context: HookContext) -> None:
-        """Validate computed loss values."""
+        # Validate computed loss values.
         data = context.data
 
         if "rotation_loss" in data:

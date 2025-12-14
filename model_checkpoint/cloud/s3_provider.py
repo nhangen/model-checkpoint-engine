@@ -1,4 +1,4 @@
-"""Optimized S3 provider implementation - zero redundancy design"""
+# Optimized S3 provider implementation - zero redundancy design
 
 import json
 from typing import Any, Dict, List, Optional
@@ -13,7 +13,7 @@ from .base_provider import (
 
 
 class S3Provider(BaseCloudProvider):
-    """Optimized AWS S3 provider with efficient operations"""
+    # Optimized AWS S3 provider with efficient operations
 
     def __init__(self, credentials: CloudCredentials, bucket_name: str):
         """
@@ -30,7 +30,7 @@ class S3Provider(BaseCloudProvider):
         self._server_side_encryption = "AES256"
 
     def _create_client(self):
-        """Create S3 client - optimized with optional dependencies"""
+        # Create S3 client - optimized with optional dependencies
         try:
             import boto3
             from botocore.config import Config
@@ -66,7 +66,7 @@ class S3Provider(BaseCloudProvider):
     def _upload_file_impl(
         self, local_path: str, cloud_key: str, metadata: Optional[Dict[str, Any]] = None
     ) -> UploadResult:
-        """S3-specific file upload implementation"""
+        # S3-specific file upload implementation
         try:
             client = self.get_client()
 
@@ -115,7 +115,7 @@ class S3Provider(BaseCloudProvider):
             return UploadResult(success=False, key=cloud_key, error=str(e))
 
     def _download_file_impl(self, cloud_key: str, local_path: str) -> DownloadResult:
-        """S3-specific file download implementation"""
+        # S3-specific file download implementation
         try:
             client = self.get_client()
 
@@ -130,7 +130,7 @@ class S3Provider(BaseCloudProvider):
     def _list_objects_impl(
         self, prefix: str = "", max_keys: int = 1000
     ) -> List[CloudObject]:
-        """S3-specific object listing implementation"""
+        # S3-specific object listing implementation
         try:
             client = self.get_client()
             objects = []
@@ -167,7 +167,7 @@ class S3Provider(BaseCloudProvider):
             return []
 
     def _delete_object_impl(self, cloud_key: str) -> bool:
-        """S3-specific object deletion implementation"""
+        # S3-specific object deletion implementation
         try:
             client = self.get_client()
             client.delete_object(Bucket=self.bucket_name, Key=cloud_key)
@@ -178,7 +178,7 @@ class S3Provider(BaseCloudProvider):
             return False
 
     def _object_exists_impl(self, cloud_key: str) -> bool:
-        """S3-specific object existence check implementation"""
+        # S3-specific object existence check implementation
         try:
             client = self.get_client()
             client.head_object(Bucket=self.bucket_name, Key=cloud_key)

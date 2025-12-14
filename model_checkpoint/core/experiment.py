@@ -1,4 +1,4 @@
-"""Experiment tracking and management"""
+# Experiment tracking and management
 
 import time
 import uuid
@@ -10,7 +10,7 @@ from ..database.models import Experiment, Metric
 
 
 class ExperimentTracker:
-    """Track ML experiments with metrics, hyperparameters, and metadata"""
+    # Track ML experiments with metrics, hyperparameters, and metadata
 
     def __init__(
         self,
@@ -78,13 +78,13 @@ class ExperimentTracker:
             self.db.save_metric(metric)
 
     def log_hyperparameters(self, params: Dict[str, Any]):
-        """Log hyperparameters (updates experiment config)"""
+        # Log hyperparameters (updates experiment config)
         self.config.update(params)
         self.experiment.config = self.config
         self.db.update_experiment(self.experiment)
 
     def set_status(self, status: str):
-        """Set experiment status (running, completed, failed)"""
+        # Set experiment status (running, completed, failed)
         self.experiment.status = status
         if status in ["completed", "failed"]:
             self.experiment.end_time = time.time()
@@ -93,7 +93,7 @@ class ExperimentTracker:
         print(f"📊 Experiment {self.experiment_name} status: {status}")
 
     def get_metrics(self, metric_name: Optional[str] = None) -> List[Dict]:
-        """Get logged metrics"""
+        # Get logged metrics
         return self.db.get_metrics(self.experiment_id, metric_name)
 
     def generate_report(self, format_type: str = "html", output_dir: str = ".") -> str:
@@ -119,7 +119,7 @@ class ExperimentTracker:
 
     @classmethod
     def resume(cls, experiment_id: str, database_url: str = "sqlite:///experiments.db"):
-        """Resume an existing experiment"""
+        # Resume an existing experiment
         db = DatabaseConnection(database_url)
         experiment = db.get_experiment(experiment_id)
 

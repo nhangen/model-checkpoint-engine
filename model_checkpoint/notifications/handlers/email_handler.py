@@ -1,4 +1,4 @@
-"""Optimized email notification handler - zero redundancy design"""
+# Optimized email notification handler - zero redundancy design
 
 import smtplib
 import ssl
@@ -14,7 +14,7 @@ from .base_handler import BaseNotificationHandler, HandlerConfig
 
 @dataclass
 class EmailConfig(HandlerConfig):
-    """Optimized email-specific configuration"""
+    # Optimized email-specific configuration
 
     smtp_server: str = ""
     smtp_port: int = 587
@@ -36,7 +36,7 @@ class EmailConfig(HandlerConfig):
 
 
 class EmailHandler(BaseNotificationHandler):
-    """Optimized email notification handler"""
+    # Optimized email notification handler
 
     def __init__(self, config: EmailConfig):
         """
