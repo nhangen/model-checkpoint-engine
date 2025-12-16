@@ -1,11 +1,11 @@
 # ML Model Checkpoint Engine
 
-A high-performance, generic checkpoint management and experiment tracking system for machine learning projects. Built with enterprise-grade scalability and framework-agnostic design.
+A **framework-agnostic** checkpoint management and experiment tracking system for **any** machine learning project. Built to be standalone with no project-specific dependencies.
 
 ## Core Features
 
 ### Enhanced Checkpoint Management
-- **Multi-Backend Storage**: PyTorch, SafeTensors with pluggable architecture
+- **Multi-Backend Storage**: PyTorch, TensorFlow, JAX, SafeTensors - works with any framework
 - **Data Integrity**: SHA256 checksum verification with comprehensive tracking  
 - **Performance Caching**: LRU with TTL, optimized metadata access
 - **Best Model Detection**: Automatic flagging based on configurable metrics
@@ -23,13 +23,13 @@ A high-performance, generic checkpoint management and experiment tracking system
 - **Error Handling**: Robust failure isolation
 - **Async/Sync Support**: Flexible hook execution models
 
-## Architecture Principles
+## Design Principles
 
-- **Framework Agnostic**: Works with any ML framework (PyTorch, TensorFlow, JAX, etc.)
-- **Storage Flexibility**: Pluggable storage backends
-- **Thread Safety**: Concurrent operations with proper locking
-- **Backward Compatibility**: Seamless integration with existing systems
-- **Zero Dependencies**: Minimal external requirements for core functionality
+- **Truly Generic**: No project-specific code or dependencies
+- **Framework Agnostic**: Works with PyTorch, TensorFlow, JAX, scikit-learn, or custom models
+- **Storage Flexible**: Pluggable storage backends
+- **Thread Safe**: Concurrent operations with proper locking
+- **Standalone**: Can be used in any ML project without modifications
 
 ## Quick Start
 
