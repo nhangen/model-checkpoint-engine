@@ -43,7 +43,7 @@ class GridProgressHook(BaseHook):
         self.last_heartbeat = None
 
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         self.logger.info(
             f"Initializing GridProgressHook with progress_file={self.progress_file}"
         )
@@ -68,7 +68,7 @@ class GridProgressHook(BaseHook):
         }
 
     def handle(self, context: HookContext) -> None:
-        """Handle grid monitoring events."""
+        # Handle grid monitoring events.
 
         if context.event == HookEvent.EXPERIMENT_START:
             self._initialize_experiment(context)
@@ -93,7 +93,7 @@ class GridProgressHook(BaseHook):
             self._check_heartbeat()
 
     def _initialize_experiment(self, context: HookContext) -> None:
-        """Initialize experiment tracking."""
+        # Initialize experiment tracking.
         self.experiment_start_time = time.time()
         self.last_heartbeat = self.experiment_start_time
 
@@ -120,7 +120,7 @@ class GridProgressHook(BaseHook):
         self.logger.info(f"Grid experiment {context.experiment_id} started")
 
     def _handle_epoch_start(self, context: HookContext) -> None:
-        """Handle epoch start event."""
+        # Handle epoch start event.
         self.epoch_count += 1
         self.progress_data["current_epoch"] = self.epoch_count
         self.progress_data["last_update"] = datetime.now().isoformat()
@@ -129,7 +129,7 @@ class GridProgressHook(BaseHook):
         self.logger.info(f"Epoch {self.epoch_count} started")
 
     def _handle_training_step(self, context: HookContext) -> None:
-        """Handle training step completion."""
+        # Handle training step completion.
         self.step_count += 1
         self.progress_data["current_step"] = self.step_count
         self.progress_data["last_update"] = datetime.now().isoformat()
@@ -151,7 +151,7 @@ class GridProgressHook(BaseHook):
             self.logger.debug(f"Step {self.step_count} completed")
 
     def _handle_checkpoint_saved(self, context: HookContext) -> None:
-        """Handle checkpoint save event."""
+        # Handle checkpoint save event.
         self.progress_data["checkpoints_saved"] += 1
         self.progress_data["last_update"] = datetime.now().isoformat()
 
@@ -159,7 +159,7 @@ class GridProgressHook(BaseHook):
         self.logger.info(f"Checkpoint saved: {context.checkpoint_id}")
 
     def _handle_experiment_end(self, context: HookContext) -> None:
-        """Handle experiment completion."""
+        # Handle experiment completion.
         self.progress_data["status"] = "completed"
         self.progress_data["end_time"] = datetime.now().isoformat()
         self.progress_data["last_update"] = datetime.now().isoformat()
@@ -174,7 +174,7 @@ class GridProgressHook(BaseHook):
         )
 
     def _handle_experiment_error(self, context: HookContext) -> None:
-        """Handle experiment error."""
+        # Handle experiment error.
         self.progress_data["status"] = "failed"
         self.progress_data["end_time"] = datetime.now().isoformat()
         self.progress_data["last_update"] = datetime.now().isoformat()
@@ -186,7 +186,7 @@ class GridProgressHook(BaseHook):
         self.logger.error(f"Grid experiment {context.experiment_id} failed")
 
     def _check_heartbeat(self) -> None:
-        """Check if heartbeat should be sent."""
+        # Check if heartbeat should be sent.
         current_time = time.time()
 
         if (
@@ -198,7 +198,7 @@ class GridProgressHook(BaseHook):
             self._log_progress("heartbeat")
 
     def _update_completion_estimate(self) -> None:
-        """Update estimated completion time."""
+        # Update estimated completion time.
         if (
             self.experiment_start_time
             and self.progress_data["total_steps"]
@@ -219,7 +219,7 @@ class GridProgressHook(BaseHook):
                 self.progress_data["estimated_completion"] = estimated_completion
 
     def _log_progress(self, event_type: str) -> None:
-        """Log progress to file."""
+        # Log progress to file.
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "event": event_type,
@@ -257,14 +257,14 @@ class ExperimentRecoveryHook(BaseHook):
         self.experiment_state = {}
 
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         self.logger.info(
             f"Initializing ExperimentRecoveryHook with recovery_file={self.recovery_file}"
         )
         pass
 
     def handle(self, context: HookContext) -> None:
-        """Handle recovery tracking events."""
+        # Handle recovery tracking events.
 
         if context.event == HookEvent.EXPERIMENT_START:
             self._record_experiment_start(context)
@@ -276,7 +276,7 @@ class ExperimentRecoveryHook(BaseHook):
             self._record_failure(context)
 
     def _record_experiment_start(self, context: HookContext) -> None:
-        """Record experiment start for recovery purposes."""
+        # Record experiment start for recovery purposes.
         self.experiment_state = {
             "experiment_id": context.experiment_id,
             "start_time": datetime.now().isoformat(),
@@ -293,7 +293,7 @@ class ExperimentRecoveryHook(BaseHook):
         }
 
     def _record_checkpoint(self, context: HookContext) -> None:
-        """Record checkpoint save for recovery."""
+        # Record checkpoint save for recovery.
         if context.checkpoint_id:
             checkpoint_info = {
                 "checkpoint_id": context.checkpoint_id,
@@ -307,7 +307,7 @@ class ExperimentRecoveryHook(BaseHook):
             self.experiment_state["last_successful_step"] = context.data.get("step", 0)
 
     def _record_failure(self, context: HookContext) -> None:
-        """Record experiment failure with recovery information."""
+        # Record experiment failure with recovery information.
         failure_info = {
             "experiment_id": context.experiment_id,
             "failure_time": datetime.now().isoformat(),
@@ -330,7 +330,7 @@ class ExperimentRecoveryHook(BaseHook):
             self.logger.warning(f"Failed to write recovery log: {e}")
 
     def _generate_recovery_suggestions(self) -> List[str]:
-        """Generate suggestions for recovering from failure."""
+        # Generate suggestions for recovering from failure.
         suggestions = []
 
         if len(self.experiment_state.get("checkpoints", [])) > 0:
@@ -380,7 +380,7 @@ class GridCoordinatorHook(BaseHook):
         }
 
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         self.logger.info(
             f"Initializing GridCoordinatorHook with grid_config_file={self.grid_config_file}"
         )
@@ -389,7 +389,7 @@ class GridCoordinatorHook(BaseHook):
         self._load_grid_config()
 
     def handle(self, context: HookContext) -> None:
-        """Handle grid coordination events."""
+        # Handle grid coordination events.
 
         if context.event == HookEvent.EXPERIMENT_START:
             self._register_experiment_start(context)
@@ -401,7 +401,7 @@ class GridCoordinatorHook(BaseHook):
             self._register_experiment_failure(context)
 
     def _load_grid_config(self) -> None:
-        """Load grid configuration if available."""
+        # Load grid configuration if available.
         try:
             if Path(self.grid_config_file).exists():
                 with open(self.grid_config_file, "r") as f:
@@ -414,7 +414,7 @@ class GridCoordinatorHook(BaseHook):
             self.logger.warning(f"Could not load grid config: {e}")
 
     def _register_experiment_start(self, context: HookContext) -> None:
-        """Register experiment start in grid."""
+        # Register experiment start in grid.
         exp_id = context.experiment_id
         self.grid_state["running_experiments"] += 1
         self.grid_state["experiments"][exp_id] = {
@@ -429,7 +429,7 @@ class GridCoordinatorHook(BaseHook):
         )
 
     def _register_experiment_completion(self, context: HookContext) -> None:
-        """Register experiment completion in grid."""
+        # Register experiment completion in grid.
         exp_id = context.experiment_id
         self.grid_state["running_experiments"] -= 1
         self.grid_state["completed_experiments"] += 1
@@ -445,7 +445,7 @@ class GridCoordinatorHook(BaseHook):
         )
 
     def _register_experiment_failure(self, context: HookContext) -> None:
-        """Register experiment failure in grid."""
+        # Register experiment failure in grid.
         exp_id = context.experiment_id
         self.grid_state["running_experiments"] -= 1
         self.grid_state["failed_experiments"] += 1
@@ -465,7 +465,7 @@ class GridCoordinatorHook(BaseHook):
         )
 
     def _get_progress_string(self) -> str:
-        """Get human-readable progress string."""
+        # Get human-readable progress string.
         completed = self.grid_state["completed_experiments"]
         failed = self.grid_state["failed_experiments"]
         running = self.grid_state["running_experiments"]
@@ -480,7 +480,7 @@ class GridCoordinatorHook(BaseHook):
             return f"{completed} completed, {failed} failed, {running} running"
 
     def _update_grid_summary(self) -> None:
-        """Update grid summary file."""
+        # Update grid summary file.
         summary = {
             "last_updated": datetime.now().isoformat(),
             "progress": self.grid_state.copy(),

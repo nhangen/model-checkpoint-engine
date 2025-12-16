@@ -1,4 +1,4 @@
-"""Performance optimization modules for efficient checkpoint and experiment operations"""
+# Performance optimization modules for efficient checkpoint and experiment operations
 
 from .batch_operations import (
     BatchProcessor,

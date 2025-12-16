@@ -1,4 +1,4 @@
-"""Unit tests for experiment tracking functionality"""
+# Unit tests for experiment tracking functionality
 
 import os
 import tempfile
@@ -10,16 +10,16 @@ from model_checkpoint.database.models import Experiment, Metric
 
 
 class TestExperimentTracker(unittest.TestCase):
-    """Test experiment tracking functionality"""
+    # Test experiment tracking functionality
 
     def setUp(self):
-        """Set up test fixtures"""
+        # Set up test fixtures
         self.temp_dir = tempfile.mkdtemp()
         self.db_path = os.path.join(self.temp_dir, "test_experiments.db")
         self.db_url = f"sqlite:///{self.db_path}"
 
     def test_tracker_initialization(self):
-        """Test experiment tracker initialization"""
+        # Test experiment tracker initialization
         tracker = ExperimentTracker(
             experiment_name="test_experiment",
             project_name="test_project",
@@ -40,7 +40,7 @@ class TestExperimentTracker(unittest.TestCase):
         self.assertEqual(experiment.name, "test_experiment")
 
     def test_tracker_minimal_initialization(self):
-        """Test tracker with minimal parameters"""
+        # Test tracker with minimal parameters
         tracker = ExperimentTracker(
             experiment_name="minimal_test", database_url=self.db_url
         )
@@ -51,7 +51,7 @@ class TestExperimentTracker(unittest.TestCase):
         self.assertEqual(tracker.config, {})
 
     def test_log_metrics(self):
-        """Test metric logging"""
+        # Test metric logging
         tracker = ExperimentTracker(
             experiment_name="metrics_test", database_url=self.db_url
         )
@@ -76,7 +76,7 @@ class TestExperimentTracker(unittest.TestCase):
         self.assertEqual(train_loss_metrics[1]["metric_value"], 0.4)
 
     def test_log_hyperparameters(self):
-        """Test hyperparameter logging"""
+        # Test hyperparameter logging
         tracker = ExperimentTracker(
             experiment_name="hyperparams_test",
             config={"initial_lr": 0.001},
@@ -99,7 +99,7 @@ class TestExperimentTracker(unittest.TestCase):
         self.assertEqual(experiment.config["batch_size"], 32)
 
     def test_set_status(self):
-        """Test experiment status updates"""
+        # Test experiment status updates
         tracker = ExperimentTracker(
             experiment_name="status_test", database_url=self.db_url
         )
@@ -118,7 +118,7 @@ class TestExperimentTracker(unittest.TestCase):
 
     @patch("model_checkpoint.reporting.html.HTMLReportGenerator")
     def test_generate_report(self, mock_html_generator):
-        """Test report generation"""
+        # Test report generation
         # Mock the report generator
         mock_generator_instance = MagicMock()
         mock_generator_instance.generate_training_report.return_value = (
@@ -142,7 +142,7 @@ class TestExperimentTracker(unittest.TestCase):
         self.assertEqual(report_path, "/path/to/report.html")
 
     def test_resume_experiment(self):
-        """Test resuming an existing experiment"""
+        # Test resuming an existing experiment
         # Create initial experiment
         original_tracker = ExperimentTracker(
             experiment_name="resume_test",
@@ -173,12 +173,12 @@ class TestExperimentTracker(unittest.TestCase):
         self.assertEqual(metrics[0]["metric_value"], 0.5)
 
     def test_resume_nonexistent_experiment(self):
-        """Test resuming non-existent experiment raises error"""
+        # Test resuming non-existent experiment raises error
         with self.assertRaises(ValueError):
             ExperimentTracker.resume("nonexistent-id", self.db_url)
 
     def test_metric_validation(self):
-        """Test that metrics are properly validated"""
+        # Test that metrics are properly validated
         tracker = ExperimentTracker(
             experiment_name="validation_test", database_url=self.db_url
         )

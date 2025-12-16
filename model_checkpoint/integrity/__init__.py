@@ -1,4 +1,4 @@
-"""Data integrity modules for checkpoint verification and monitoring"""
+# Data integrity modules for checkpoint verification and monitoring
 
 from .checksum import ChecksumCalculator, IntegrityTracker
 from .verification import CheckpointVerifier

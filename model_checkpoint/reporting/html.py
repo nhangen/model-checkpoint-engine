@@ -1,4 +1,4 @@
-"""HTML report generation"""
+# HTML report generation
 
 import os
 from datetime import datetime
@@ -6,10 +6,10 @@ from typing import Any, Dict
 
 
 class HTMLReportGenerator:
-    """Generate HTML training reports"""
+    # Generate HTML training reports
 
     def __init__(self, tracker):
-        """Initialize with experiment tracker"""
+        # Initialize with experiment tracker
         self.tracker = tracker
 
     def generate_training_report(
@@ -42,7 +42,7 @@ class HTMLReportGenerator:
         return report_path
 
     def _generate_html_content(self, experiment, metrics) -> str:
-        """Generate HTML report content"""
+        # Generate HTML report content
         # Group metrics by name
         metrics_by_name = {}
         for metric in metrics:

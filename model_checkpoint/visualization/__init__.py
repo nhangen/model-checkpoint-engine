@@ -1,4 +1,4 @@
-"""Advanced visualization dashboard components"""
+# Advanced visualization dashboard components
 
 from .chart_generator import ChartGenerator
 from .dashboard_engine import DashboardEngine

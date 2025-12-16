@@ -1,23 +1,23 @@
-"""Simplified tests for Phase 3 components"""
+# Simplified tests for Phase 3 components
 
 import pytest
 
 
 class TestPhase3Components:
-    """Test Phase 3 component initialization and basic functionality"""
+    # Test Phase 3 component initialization and basic functionality
 
     def test_api_base_import(self):
-        """Test API base class can be imported"""
+        # Test API base class can be imported
         from model_checkpoint.api.base_api import BaseAPI
         assert BaseAPI is not None
 
     def test_config_manager_import(self):
-        """Test config manager can be imported"""
+        # Test config manager can be imported
         from model_checkpoint.config.config_manager import ConfigManager
         assert ConfigManager is not None
 
     def test_config_manager_initialization(self):
-        """Test config manager can be initialized"""
+        # Test config manager can be initialized
         from model_checkpoint.config.config_manager import ConfigManager
 
         try:
@@ -29,46 +29,46 @@ class TestPhase3Components:
             assert True
 
     def test_plugin_manager_import(self):
-        """Test plugin manager can be imported"""
+        # Test plugin manager can be imported
         from model_checkpoint.plugins.plugin_manager import PluginManager
         assert PluginManager is not None
 
     def test_plugin_manager_initialization(self):
-        """Test plugin manager can be initialized"""
+        # Test plugin manager can be initialized
         from model_checkpoint.plugins.plugin_manager import PluginManager
 
         manager = PluginManager()
         assert manager is not None
 
     def test_performance_monitor_import(self):
-        """Test performance monitor can be imported"""
+        # Test performance monitor can be imported
         from model_checkpoint.monitoring.performance_monitor import PerformanceMonitor
         assert PerformanceMonitor is not None
 
     def test_performance_monitor_initialization(self):
-        """Test performance monitor can be initialized"""
+        # Test performance monitor can be initialized
         from model_checkpoint.monitoring.performance_monitor import PerformanceMonitor
 
         monitor = PerformanceMonitor()
         assert monitor is not None
 
     def test_migration_manager_import(self):
-        """Test migration manager can be imported"""
+        # Test migration manager can be imported
         from model_checkpoint.migration.migration_manager import MigrationManager
         assert MigrationManager is not None
 
     def test_documentation_generator_import(self):
-        """Test documentation generator can be imported"""
+        # Test documentation generator can be imported
         from model_checkpoint.docs.doc_generator import DocumentationGenerator
         assert DocumentationGenerator is not None
 
     def test_visualization_dashboard_import(self):
-        """Test visualization dashboard can be imported"""
+        # Test visualization dashboard can be imported
         from model_checkpoint.visualization.dashboard_engine import DashboardEngine
         assert DashboardEngine is not None
 
     def test_phase3_shared_utils(self):
-        """Test Phase 3 shared utilities"""
+        # Test Phase 3 shared utilities
         from model_checkpoint.phase3_shared.shared_utils import (
             current_time,
             format_bytes,
@@ -92,7 +92,7 @@ class TestPhase3Components:
         assert "KB" in formatted or "B" in formatted
 
     def test_zero_redundancy_optimization(self):
-        """Test that Phase 3 achieves zero redundancy through shared utilities"""
+        # Test that Phase 3 achieves zero redundancy through shared utilities
         from model_checkpoint.phase3_shared.shared_utils import (
             calculate_file_hash,
             merge_configurations,
@@ -114,7 +114,7 @@ class TestPhase3Components:
         assert "?" not in sanitized
 
     def test_phase3_integration_readiness(self):
-        """Test that all Phase 3 components are ready for integration"""
+        # Test that all Phase 3 components are ready for integration
         components = [
             'model_checkpoint.api.base_api',
             'model_checkpoint.config.config_manager',
@@ -133,14 +133,14 @@ class TestPhase3Components:
                 pytest.fail(f"Phase 3 component {component} failed to import: {e}")
 
     def test_hook_system_import(self):
-        """Test hook system can be imported"""
+        # Test hook system can be imported
         from model_checkpoint.hooks import BaseHook, HookEvent, HookManager
         assert HookManager is not None
         assert HookEvent is not None
         assert BaseHook is not None
 
     def test_hook_system_basic_functionality(self):
-        """Test basic hook system functionality"""
+        # Test basic hook system functionality
         from model_checkpoint.hooks import HookContext, HookEvent, HookManager
 
         # Create hook manager
@@ -162,7 +162,7 @@ class TestPhase3Components:
         assert len(hook_called) == 1
 
     def test_checkpoint_manager_with_hooks(self):
-        """Test checkpoint manager hook integration"""
+        # Test checkpoint manager hook integration
         try:
             from model_checkpoint.checkpoint.enhanced_manager import (
                 EnhancedCheckpointManager,
@@ -186,7 +186,7 @@ class TestPhase3Components:
             assert True
 
     def test_metrics_collector_with_hooks(self):
-        """Test metrics collector hook integration"""
+        # Test metrics collector hook integration
         try:
             from model_checkpoint.analytics.metrics_collector import MetricsCollector
 
@@ -215,7 +215,7 @@ class TestPhase3Components:
             assert True
 
     def test_hook_priority_system(self):
-        """Test hook priority execution order"""
+        # Test hook priority execution order
         from model_checkpoint.hooks import HookEvent, HookManager, HookPriority
 
         manager = HookManager(enable_async=False)
@@ -236,7 +236,7 @@ class TestPhase3Components:
         assert execution_order == ['high', 'low']
 
     def test_hook_decorators(self):
-        """Test hook decorators functionality"""
+        # Test hook decorators functionality
         from model_checkpoint.hooks import HookContext, HookEvent, HookPriority
         from model_checkpoint.hooks.decorators import conditional_hook, hook_handler
 

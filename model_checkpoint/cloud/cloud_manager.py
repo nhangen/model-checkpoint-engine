@@ -1,4 +1,4 @@
-"""Optimized cloud manager for unified multi-provider operations - zero redundancy design"""
+# Optimized cloud manager for unified multi-provider operations - zero redundancy design
 
 import json
 import os
@@ -19,12 +19,12 @@ from .s3_provider import S3Provider
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class SyncOperation(Enum):
-    """Optimized sync operation enum"""
+    # Optimized sync operation enum
 
     UPLOAD_ONLY = "upload_only"
     DOWNLOAD_ONLY = "download_only"
@@ -34,7 +34,7 @@ class SyncOperation(Enum):
 
 @dataclass
 class SyncResult:
-    """Optimized sync result"""
+    # Optimized sync result
 
     operation: SyncOperation
     total_files: int = 0
@@ -48,10 +48,10 @@ class SyncResult:
 
 
 class CloudManager:
-    """Optimized unified cloud storage manager with multi-provider support"""
+    # Optimized unified cloud storage manager with multi-provider support
 
     def __init__(self):
-        """Initialize cloud manager"""
+        # Initialize cloud manager
         # Optimized: Provider registry
         self._providers: Dict[str, BaseCloudProvider] = {}
         self._default_provider: Optional[str] = None
@@ -108,14 +108,14 @@ class CloudManager:
             return False
 
     def get_provider(self, name: Optional[str] = None) -> Optional[BaseCloudProvider]:
-        """Get provider by name or default provider"""
+        # Get provider by name or default provider
         if name is None:
             name = self._default_provider
 
         return self._providers.get(name) if name else None
 
     def list_providers(self) -> List[Dict[str, Any]]:
-        """List all registered providers"""
+        # List all registered providers
         providers = []
 
         for name, provider in self._providers.items():
@@ -214,7 +214,7 @@ class CloudManager:
     def _find_checkpoint_key(
         self, checkpoint_id: str, provider: BaseCloudProvider
     ) -> Optional[str]:
-        """Find checkpoint cloud key - optimized search"""
+        # Find checkpoint cloud key - optimized search
         # Search in standard checkpoint location
         prefix = f"checkpoints/{checkpoint_id}/"
         objects = provider.list_objects(prefix=prefix, max_keys=10)

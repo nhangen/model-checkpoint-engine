@@ -1,4 +1,4 @@
-"""Optimized REST API implementation - zero redundancy design"""
+# Optimized REST API implementation - zero redundancy design
 
 import json
 import threading
@@ -21,7 +21,7 @@ from .base_api import (
 
 
 class RestAPI(BaseAPI):
-    """Optimized REST API for checkpoint engine with zero redundancy"""
+    # Optimized REST API for checkpoint engine with zero redundancy
 
     def __init__(self, checkpoint_manager: Optional[EnhancedCheckpointManager] = None,
                  metrics_collector: Optional[MetricsCollector] = None,
@@ -50,7 +50,7 @@ class RestAPI(BaseAPI):
         self._register_endpoints()
 
     def start_server(self, host: str = "0.0.0.0", port: int = 8000) -> bool:
-        """Start REST API server - optimized Flask integration"""
+        # Start REST API server - optimized Flask integration
         try:
             # Optional Flask import
             from flask import Flask, jsonify, request
@@ -85,7 +85,7 @@ class RestAPI(BaseAPI):
             return False
 
     def stop_server(self) -> bool:
-        """Stop REST API server"""
+        # Stop REST API server
         if not self._running:
             return False
 
@@ -97,11 +97,11 @@ class RestAPI(BaseAPI):
     def _handle_request(self, path: str, method: HTTPMethod,
                        data: Optional[Dict[str, Any]] = None,
                        headers: Optional[Dict[str, str]] = None) -> APIResponse:
-        """Handle request through base API processing"""
+        # Handle request through base API processing
         return self.process_request(path, method, data, headers)
 
     def _register_endpoints(self) -> None:
-        """Register all REST endpoints - optimized registration"""
+        # Register all REST endpoints - optimized registration
         # Experiment endpoints
         self.register_endpoint(EndpointConfig(
             path="/api/experiments",
@@ -206,7 +206,7 @@ class RestAPI(BaseAPI):
         ))
 
     def _register_flask_routes(self) -> None:
-        """Register Flask routes - optimized route mapping"""
+        # Register Flask routes - optimized route mapping
         from flask import jsonify, request
 
         @self._server.route('/api/experiments', methods=['GET', 'POST'])
@@ -246,7 +246,7 @@ class RestAPI(BaseAPI):
             return self._handle_flask_request('/api/info')
 
     def _handle_flask_request(self, path: str) -> Any:
-        """Handle Flask request conversion - optimized conversion"""
+        # Handle Flask request conversion - optimized conversion
         from flask import jsonify, request
 
         try:
@@ -297,7 +297,7 @@ class RestAPI(BaseAPI):
     # Endpoint handlers - optimized implementations
 
     def _list_experiments(self, **kwargs) -> APIResponse:
-        """List all experiments"""
+        # List all experiments
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -311,7 +311,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to list experiments: {e}", "DATABASE_ERROR")
 
     def _create_experiment(self, data: Optional[Dict[str, Any]] = None, **kwargs) -> APIResponse:
-        """Create new experiment"""
+        # Create new experiment
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -334,7 +334,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to create experiment: {e}", "DATABASE_ERROR")
 
     def _get_experiment(self, **kwargs) -> APIResponse:
-        """Get experiment details"""
+        # Get experiment details
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -357,7 +357,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to get experiment: {e}", "DATABASE_ERROR")
 
     def _list_checkpoints(self, **kwargs) -> APIResponse:
-        """List experiment checkpoints"""
+        # List experiment checkpoints
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -373,7 +373,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to list checkpoints: {e}", "DATABASE_ERROR")
 
     def _save_checkpoint(self, data: Optional[Dict[str, Any]] = None, **kwargs) -> APIResponse:
-        """Save new checkpoint"""
+        # Save new checkpoint
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -401,7 +401,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to save checkpoint: {e}", "SAVE_ERROR")
 
     def _get_checkpoint(self, **kwargs) -> APIResponse:
-        """Get checkpoint details"""
+        # Get checkpoint details
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -424,7 +424,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to get checkpoint: {e}", "DATABASE_ERROR")
 
     def _delete_checkpoint(self, **kwargs) -> APIResponse:
-        """Delete checkpoint"""
+        # Delete checkpoint
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -447,7 +447,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to delete checkpoint: {e}", "DELETE_ERROR")
 
     def _get_metrics(self, **kwargs) -> APIResponse:
-        """Get experiment metrics"""
+        # Get experiment metrics
         if not self.metrics_collector:
             raise APIError("Metrics collector not available", "SERVICE_UNAVAILABLE")
 
@@ -463,7 +463,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to get metrics: {e}", "METRICS_ERROR")
 
     def _log_metrics(self, data: Optional[Dict[str, Any]] = None, **kwargs) -> APIResponse:
-        """Log experiment metrics"""
+        # Log experiment metrics
         if not self.metrics_collector:
             raise APIError("Metrics collector not available", "SERVICE_UNAVAILABLE")
 
@@ -487,7 +487,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to log metrics: {e}", "METRICS_ERROR")
 
     def _get_best_models(self, **kwargs) -> APIResponse:
-        """Get best models for experiment"""
+        # Get best models for experiment
         if not self.checkpoint_manager:
             raise APIError("Checkpoint manager not available", "SERVICE_UNAVAILABLE")
 
@@ -505,7 +505,7 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to get best models: {e}", "SELECTION_ERROR")
 
     def _sync_experiment(self, data: Optional[Dict[str, Any]] = None, **kwargs) -> APIResponse:
-        """Sync experiment to cloud"""
+        # Sync experiment to cloud
         if not self.cloud_manager:
             raise APIError("Cloud manager not available", "SERVICE_UNAVAILABLE")
 
@@ -525,11 +525,11 @@ class RestAPI(BaseAPI):
             raise APIError(f"Failed to sync experiment: {e}", "SYNC_ERROR")
 
     def _health_check(self, **kwargs) -> APIResponse:
-        """API health check"""
+        # API health check
         return self.health_check()
 
     def _api_info(self, **kwargs) -> APIResponse:
-        """Get API information"""
+        # Get API information
         info = self.get_api_info()
         return APIResponse(
             status=APIStatus.SUCCESS,

@@ -1,4 +1,4 @@
-"""Optimized base notification handler - zero redundancy design"""
+# Optimized base notification handler - zero redundancy design
 
 import time
 from abc import ABC, abstractmethod
@@ -9,13 +9,13 @@ from ..notification_manager import NotificationEvent
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 @dataclass
 class HandlerConfig:
-    """Optimized handler configuration"""
+    # Optimized handler configuration
 
     name: str
     enabled: bool = True
@@ -27,7 +27,7 @@ class HandlerConfig:
 
 
 class BaseNotificationHandler(ABC):
-    """Optimized base class for notification handlers"""
+    # Optimized base class for notification handlers
 
     def __init__(self, config: HandlerConfig):
         """
@@ -103,7 +103,7 @@ class BaseNotificationHandler(ABC):
         return False
 
     def _check_rate_limit(self) -> bool:
-        """Check if request is within rate limit"""
+        # Check if request is within rate limit
         current_time = _current_time()
 
         # Remove old timestamps outside the window
@@ -121,19 +121,19 @@ class BaseNotificationHandler(ABC):
         return True
 
     def _record_success(self) -> None:
-        """Record successful notification"""
+        # Record successful notification
         self._stats["total_sent"] += 1
         self._stats["last_success"] = _current_time()
         self._stats["consecutive_failures"] = 0
 
     def _record_failure(self) -> None:
-        """Record failed notification"""
+        # Record failed notification
         self._stats["total_failed"] += 1
         self._stats["last_failure"] = _current_time()
         self._stats["consecutive_failures"] += 1
 
     def get_statistics(self) -> Dict[str, Any]:
-        """Get handler statistics"""
+        # Get handler statistics
         stats = self._stats.copy()
         stats.update(
             {
@@ -147,7 +147,7 @@ class BaseNotificationHandler(ABC):
         return stats
 
     def _calculate_success_rate(self) -> float:
-        """Calculate success rate percentage"""
+        # Calculate success rate percentage
         total = self._stats["total_sent"] + self._stats["total_failed"]
         if total == 0:
             return 100.0
@@ -183,7 +183,7 @@ class BaseNotificationHandler(ABC):
             return {"success": False, "error": str(e), "handler_name": self.config.name}
 
     def reset_statistics(self) -> None:
-        """Reset handler statistics"""
+        # Reset handler statistics
         self._stats = {
             "total_sent": 0,
             "total_failed": 0,

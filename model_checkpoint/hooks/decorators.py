@@ -1,4 +1,4 @@
-"""Decorators for easy hook registration and configuration"""
+# Decorators for easy hook registration and configuration
 
 from functools import wraps
 from typing import Any, Callable, List, Optional

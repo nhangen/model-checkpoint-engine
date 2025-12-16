@@ -1,4 +1,4 @@
-"""Central hook management system with event-driven architecture"""
+# Central hook management system with event-driven architecture
 
 import asyncio
 import logging
@@ -14,7 +14,7 @@ from .base_hook import BaseHook, HookContext, HookResult
 
 
 class HookEvent(Enum):
-    """Enumeration of all hook events throughout the checkpoint pipeline"""
+    # Enumeration of all hook events throughout the checkpoint pipeline
 
     # Phase 1: Core Checkpoint Operations
     BEFORE_CHECKPOINT_SAVE = auto()
@@ -108,7 +108,7 @@ class HookEvent(Enum):
 
 
 class HookPriority(Enum):
-    """Hook execution priority levels"""
+    # Hook execution priority levels
 
     CRITICAL = 0  # Executed first, can block operations
     HIGH = 10
@@ -119,7 +119,7 @@ class HookPriority(Enum):
 
 @dataclass
 class HookRegistration:
-    """Registration information for a hook"""
+    # Registration information for a hook
 
     name: str
     handler: Callable
@@ -250,12 +250,12 @@ class HookManager:
         self.logger.info(f"Unregistered hook '{name}'")
 
     def enable_hook(self, name: str) -> None:
-        """Enable a specific hook"""
+        # Enable a specific hook
         if name in self._hook_registry:
             self._hook_registry[name].enabled = True
 
     def disable_hook(self, name: str) -> None:
-        """Disable a specific hook"""
+        # Disable a specific hook
         if name in self._hook_registry:
             self._hook_registry[name].enabled = False
 
@@ -397,7 +397,7 @@ class HookManager:
     def _track_performance(
         self, hook_name: str, execution_time: float, success: bool
     ) -> None:
-        """Track hook performance statistics"""
+        # Track hook performance statistics
         stats = self._performance_stats[hook_name]
 
         if "total_calls" not in stats:
@@ -417,13 +417,13 @@ class HookManager:
         stats["avg_time"] = stats["total_time"] / stats["total_calls"]
 
     def get_performance_stats(self, hook_name: Optional[str] = None) -> Dict[str, Any]:
-        """Get performance statistics for hooks"""
+        # Get performance statistics for hooks
         if hook_name:
             return self._performance_stats.get(hook_name, {})
         return dict(self._performance_stats)
 
     def list_hooks(self, event: Optional[HookEvent] = None) -> List[Dict[str, Any]]:
-        """List registered hooks"""
+        # List registered hooks
         if event:
             hooks = self._hooks.get(event, [])
             return [
@@ -450,7 +450,7 @@ class HookManager:
         ]
 
     def clear_hooks(self, event: Optional[HookEvent] = None) -> None:
-        """Clear all hooks or hooks for a specific event"""
+        # Clear all hooks or hooks for a specific event
         if event:
             self._hooks[event].clear()
             # Update registry
@@ -464,6 +464,6 @@ class HookManager:
             self._hook_registry.clear()
 
     def __del__(self):
-        """Cleanup executor on deletion"""
+        # Cleanup executor on deletion
         if self._executor:
             self._executor.shutdown(wait=False)

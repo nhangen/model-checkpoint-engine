@@ -1,4 +1,4 @@
-"""Performance monitoring and profiling tools"""
+# Performance monitoring and profiling tools
 
 from .metrics_tracker import MetricsTracker
 from .performance_monitor import PerformanceMonitor

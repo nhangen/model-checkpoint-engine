@@ -32,14 +32,14 @@ class SimpleModel(nn.Module):
 
 
 def create_dummy_data(num_samples=1000, input_size=784, num_classes=10):
-    """Create dummy dataset for demonstration"""
+    # Create dummy dataset for demonstration
     X = torch.randn(num_samples, input_size)
     y = torch.randint(0, num_classes, (num_samples,))
     return TensorDataset(X, y)
 
 
 def main():
-    """Demonstrate PyTorch integration with checkpoint engine"""
+    # Demonstrate PyTorch integration with checkpoint engine
     
     print("🚀 Model Checkpoint Engine - PyTorch Integration Example")
     print("=" * 60)

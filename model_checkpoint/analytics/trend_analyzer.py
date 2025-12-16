@@ -1,4 +1,4 @@
-"""Optimized trend analysis and visualization - zero redundancy design"""
+# Optimized trend analysis and visualization - zero redundancy design
 
 import json
 import statistics
@@ -12,12 +12,12 @@ from ..database.enhanced_connection import EnhancedDatabaseConnection
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class TrendDirection(Enum):
-    """Optimized enum for trend directions"""
+    # Optimized enum for trend directions
 
     IMPROVING = "improving"
     DECLINING = "declining"
@@ -27,7 +27,7 @@ class TrendDirection(Enum):
 
 @dataclass
 class TrendAnalysis:
-    """Optimized trend analysis result"""
+    # Optimized trend analysis result
 
     metric_name: str
     direction: TrendDirection
@@ -43,7 +43,7 @@ class TrendAnalysis:
 
 @dataclass
 class VisualizationData:
-    """Optimized visualization data structure"""
+    # Optimized visualization data structure
 
     experiment_id: str
     metric_name: str
@@ -56,7 +56,7 @@ class VisualizationData:
 
 
 class TrendAnalyzer:
-    """Optimized trend analysis with efficient computation"""
+    # Optimized trend analysis with efficient computation
 
     def __init__(self, db_connection: Optional[EnhancedDatabaseConnection] = None):
         """
@@ -172,7 +172,7 @@ class TrendAnalyzer:
         metric_name: str,
         window_size: int,
     ) -> TrendAnalysis:
-        """Calculate all trend metrics efficiently - single pass computation"""
+        # Calculate all trend metrics efficiently - single pass computation
         n = len(values)
 
         # Optimized: Pre-compute sums for linear regression
@@ -587,7 +587,7 @@ class TrendAnalyzer:
             return {}
 
     def _calculate_simple_slope(self, values: List[float]) -> float:
-        """Calculate simple linear regression slope - optimized"""
+        # Calculate simple linear regression slope - optimized
         n = len(values)
         if n < 2:
             return 0.0
@@ -660,7 +660,7 @@ class TrendAnalyzer:
             return export_data
 
     def clear_cache(self) -> None:
-        """Clear all caches"""
+        # Clear all caches
         self._trend_cache.clear()
         self._data_cache.clear()
         self._cache_timestamps.clear()

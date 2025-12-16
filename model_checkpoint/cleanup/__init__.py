@@ -1,4 +1,4 @@
-"""Automated cleanup and retention policies"""
+# Automated cleanup and retention policies
 
 from .cleanup_scheduler import CleanupScheduler
 from .policy_engine import PolicyEngine

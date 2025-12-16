@@ -1,4 +1,4 @@
-"""Optimized checksum utilities - centralized to eliminate duplication"""
+# Optimized checksum utilities - centralized to eliminate duplication
 
 import hashlib
 from typing import Union

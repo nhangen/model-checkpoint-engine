@@ -1,4 +1,4 @@
-"""PyTorch-optimized storage backend for efficient checkpoint handling"""
+# PyTorch-optimized storage backend for efficient checkpoint handling
 
 import os
 import time
@@ -15,7 +15,7 @@ from .base_backend import BaseStorageBackend
 
 
 class PyTorchStorageBackend(BaseStorageBackend):
-    """Optimized PyTorch checkpoint storage with .pth format"""
+    # Optimized PyTorch checkpoint storage with .pth format
 
     def __init__(
         self,
@@ -48,7 +48,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
     def save_checkpoint(
         self, checkpoint_data: Dict[str, Any], file_path: str
     ) -> Dict[str, Any]:
-        """Save checkpoint using PyTorch's optimized format - streamlined implementation"""
+        # Save checkpoint using PyTorch's optimized format - streamlined implementation
         start_time = time.time()
 
         try:
@@ -133,7 +133,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
             ) from e
 
     def get_file_extension(self) -> str:
-        """Get the file extension for PyTorch checkpoints"""
+        # Get the file extension for PyTorch checkpoints
         return ".pth"
 
     def verify_checkpoint(self, file_path: str) -> bool:
@@ -174,7 +174,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
     def _save_with_safetensors(
         self, checkpoint_data: Dict[str, Any], file_path: str
     ) -> None:
-        """Save using safetensors for the model state"""
+        # Save using safetensors for the model state
         model_state = checkpoint_data.get("model_state_dict", {})
 
         # Save model state with safetensors
@@ -191,7 +191,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
     def _load_with_safetensors(
         self, file_path: str, device: Optional[Any] = None
     ) -> Dict[str, Any]:
-        """Load using safetensors for the model state"""
+        # Load using safetensors for the model state
         # Load main checkpoint
         checkpoint_data = torch.load(file_path, map_location="cpu")
 
@@ -204,7 +204,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
         return checkpoint_data
 
     def _is_safetensors_file(self, file_path: str) -> bool:
-        """Check if checkpoint was saved with safetensors"""
+        # Check if checkpoint was saved with safetensors
         try:
             checkpoint_data = torch.load(file_path, map_location="cpu")
             return "_safetensors_model_path" in checkpoint_data
@@ -212,7 +212,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
             return False
 
     def _calculate_checksum(self, file_path: str) -> str:
-        """Legacy method - redirects to shared optimized utility"""
+        # Legacy method - redirects to shared optimized utility
         return calculate_file_checksum(file_path)
 
     def get_model_info(self, file_path: str) -> Dict[str, Any]:

@@ -1,4 +1,4 @@
-"""Shared utility functions for Phase 3 - eliminating redundancy"""
+# Shared utility functions for Phase 3 - eliminating redundancy
 
 import hashlib
 import importlib
@@ -9,12 +9,12 @@ from typing import Any, Dict, List, Optional, Type, Union
 
 
 def current_time() -> float:
-    """Single time function for entire Phase 3 system"""
+    # Single time function for entire Phase 3 system
     return time.time()
 
 
 def validate_json_structure(data: Any, schema: Dict[str, Any]) -> List[str]:
-    """Validate JSON data against schema - shared validation logic"""
+    # Validate JSON data against schema - shared validation logic
     errors = []
 
     def validate_field(
@@ -68,7 +68,7 @@ def validate_json_structure(data: Any, schema: Dict[str, Any]) -> List[str]:
 
 
 def safe_import(module_name: str, package: Optional[str] = None) -> Optional[Any]:
-    """Safely import module with error handling - shared import logic"""
+    # Safely import module with error handling - shared import logic
     try:
         return importlib.import_module(module_name, package)
     except ImportError as e:
@@ -80,7 +80,7 @@ def safe_import(module_name: str, package: Optional[str] = None) -> Optional[Any
 
 
 def format_bytes(bytes_value: Union[int, float], precision: int = 2) -> str:
-    """Format bytes into human readable string - shared formatting"""
+    # Format bytes into human readable string - shared formatting
     if bytes_value == 0:
         return "0 B"
 
@@ -98,7 +98,7 @@ def format_bytes(bytes_value: Union[int, float], precision: int = 2) -> str:
 def calculate_file_hash(
     file_path: str, algorithm: str = "sha256", chunk_size: int = 8192
 ) -> Optional[str]:
-    """Calculate file hash - shared hashing logic"""
+    # Calculate file hash - shared hashing logic
     try:
         hasher = hashlib.new(algorithm)
 
@@ -114,7 +114,7 @@ def calculate_file_hash(
 
 
 def merge_configurations(*configs: Dict[str, Any]) -> Dict[str, Any]:
-    """Merge multiple configuration dictionaries - shared merging logic"""
+    # Merge multiple configuration dictionaries - shared merging logic
     merged = {}
 
     for config in configs:
@@ -137,7 +137,7 @@ def merge_configurations(*configs: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def sanitize_filename(filename: str, replacement: str = "_") -> str:
-    """Sanitize filename for safe filesystem usage - shared sanitization"""
+    # Sanitize filename for safe filesystem usage - shared sanitization
     # Remove or replace invalid characters
     invalid_chars = r'[<>:"/\\|?*\x00-\x1f]'
     sanitized = re.sub(invalid_chars, replacement, filename)
@@ -182,7 +182,7 @@ def sanitize_filename(filename: str, replacement: str = "_") -> str:
 
 
 def parse_version(version_string: str) -> Optional[tuple]:
-    """Parse version string into comparable tuple - shared version parsing"""
+    # Parse version string into comparable tuple - shared version parsing
     try:
         # Handle semantic versioning (major.minor.patch)
         parts = version_string.split(".")
@@ -192,7 +192,7 @@ def parse_version(version_string: str) -> Optional[tuple]:
 
 
 def compare_versions(version1: str, version2: str) -> int:
-    """Compare two version strings - shared version comparison"""
+    # Compare two version strings - shared version comparison
     v1 = parse_version(version1)
     v2 = parse_version(version2)
 
@@ -208,14 +208,14 @@ def compare_versions(version1: str, version2: str) -> int:
 
 
 def deep_copy_dict(original: Dict[str, Any]) -> Dict[str, Any]:
-    """Deep copy dictionary - optimized copying"""
+    # Deep copy dictionary - optimized copying
     import copy
 
     return copy.deepcopy(original)
 
 
 def flatten_dict(nested_dict: Dict[str, Any], separator: str = ".") -> Dict[str, Any]:
-    """Flatten nested dictionary - shared flattening logic"""
+    # Flatten nested dictionary - shared flattening logic
 
     def _flatten(obj: Any, parent_key: str = "") -> Dict[str, Any]:
         items = []
@@ -237,7 +237,7 @@ def flatten_dict(nested_dict: Dict[str, Any], separator: str = ".") -> Dict[str,
 
 
 def unflatten_dict(flat_dict: Dict[str, Any], separator: str = ".") -> Dict[str, Any]:
-    """Unflatten dictionary - shared unflattening logic"""
+    # Unflatten dictionary - shared unflattening logic
     result = {}
 
     for key, value in flat_dict.items():
@@ -255,7 +255,7 @@ def unflatten_dict(flat_dict: Dict[str, Any], separator: str = ".") -> Dict[str,
 
 
 def ensure_directory(path: str) -> bool:
-    """Ensure directory exists - shared directory creation"""
+    # Ensure directory exists - shared directory creation
     try:
         os.makedirs(path, exist_ok=True)
         return True
@@ -265,12 +265,12 @@ def ensure_directory(path: str) -> bool:
 
 
 def is_valid_identifier(name: str) -> bool:
-    """Check if string is valid Python identifier - shared validation"""
+    # Check if string is valid Python identifier - shared validation
     return name.isidentifier() and not name.startswith("_")
 
 
 def convert_size_to_bytes(size_str: str) -> Optional[int]:
-    """Convert size string to bytes - shared size conversion"""
+    # Convert size string to bytes - shared size conversion
     try:
         size_str = size_str.strip().upper()
 
@@ -297,7 +297,7 @@ def convert_size_to_bytes(size_str: str) -> Optional[int]:
 def batch_process(
     items: List[Any], batch_size: int = 100, processor: callable = None
 ) -> List[Any]:
-    """Process items in batches - shared batch processing"""
+    # Process items in batches - shared batch processing
     if not processor:
         return items
 

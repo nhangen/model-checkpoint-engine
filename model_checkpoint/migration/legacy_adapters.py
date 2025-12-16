@@ -1,4 +1,4 @@
-"""Optimized legacy format adapters - zero redundancy design"""
+# Optimized legacy format adapters - zero redundancy design
 
 import json
 import os
@@ -10,45 +10,45 @@ from .migration_manager import LegacyCheckpoint, LegacyFormat
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class BaseLegacyAdapter(ABC):
-    """Optimized base adapter with shared functionality"""
+    # Optimized base adapter with shared functionality
 
     def __init__(self, format_type: LegacyFormat):
-        """Initialize base adapter"""
+        # Initialize base adapter
         self.format_type = format_type
 
     @abstractmethod
     def can_handle(self, file_path: str) -> bool:
-        """Check if adapter can handle the file"""
+        # Check if adapter can handle the file
         pass
 
     @abstractmethod
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata from legacy checkpoint"""
+        # Extract metadata from legacy checkpoint
         pass
 
     @abstractmethod
     def convert_to_enhanced(
         self, legacy_checkpoint: LegacyCheckpoint
     ) -> Dict[str, Any]:
-        """Convert legacy checkpoint to enhanced format"""
+        # Convert legacy checkpoint to enhanced format
         pass
 
     def validate_migration(
         self, legacy_checkpoint: LegacyCheckpoint, new_checkpoint_info: Dict[str, Any]
     ) -> bool:
-        """Validate migration (default implementation)"""
+        # Validate migration (default implementation)
         # Basic validation - check if conversion preserved essential data
         return new_checkpoint_info.get(
             "file_size", 0
         ) > 0 and "migrated_from" in new_checkpoint_info.get("metadata", {})
 
     def _safe_load_file(self, file_path: str, loader_func: callable) -> Optional[Any]:
-        """Safely load file with error handling - shared utility"""
+        # Safely load file with error handling - shared utility
         try:
             return loader_func(file_path)
         except Exception as e:
@@ -56,7 +56,7 @@ class BaseLegacyAdapter(ABC):
             return None
 
     def _extract_training_info(self, state_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Extract training information from state dict - shared utility"""
+        # Extract training information from state dict - shared utility
         training_info = {}
 
         # Common training state keys
@@ -77,13 +77,13 @@ class BaseLegacyAdapter(ABC):
 
 
 class LegacyTorchAdapter(BaseLegacyAdapter):
-    """Optimized PyTorch checkpoint adapter"""
+    # Optimized PyTorch checkpoint adapter
 
     def __init__(self):
         super().__init__(LegacyFormat.PYTORCH)
 
     def can_handle(self, file_path: str) -> bool:
-        """Check if file is a PyTorch checkpoint"""
+        # Check if file is a PyTorch checkpoint
         if not file_path.lower().endswith((".pth", ".pt")):
             return False
 
@@ -103,7 +103,7 @@ class LegacyTorchAdapter(BaseLegacyAdapter):
             return False
 
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata from PyTorch checkpoint - optimized extraction"""
+        # Extract metadata from PyTorch checkpoint - optimized extraction
         try:
             import torch
 
@@ -156,7 +156,7 @@ class LegacyTorchAdapter(BaseLegacyAdapter):
             return {"error": str(e), "framework": "pytorch"}
 
     def _analyze_torch_state_dict(self, state_dict: Dict[str, Any]) -> Dict[str, Any]:
-        """Analyze PyTorch state dict - optimized analysis"""
+        # Analyze PyTorch state dict - optimized analysis
         analysis = {
             "parameter_count": len(state_dict),
             "layer_types": set(),
@@ -188,7 +188,7 @@ class LegacyTorchAdapter(BaseLegacyAdapter):
     def convert_to_enhanced(
         self, legacy_checkpoint: LegacyCheckpoint
     ) -> Dict[str, Any]:
-        """Convert PyTorch checkpoint to enhanced format - optimized conversion"""
+        # Convert PyTorch checkpoint to enhanced format - optimized conversion
         try:
             import torch
 
@@ -257,13 +257,13 @@ class LegacyTorchAdapter(BaseLegacyAdapter):
 
 
 class LegacyKerasAdapter(BaseLegacyAdapter):
-    """Optimized Keras/TensorFlow checkpoint adapter"""
+    # Optimized Keras/TensorFlow checkpoint adapter
 
     def __init__(self):
         super().__init__(LegacyFormat.KERAS)
 
     def can_handle(self, file_path: str) -> bool:
-        """Check if file is a Keras checkpoint"""
+        # Check if file is a Keras checkpoint
         if not file_path.lower().endswith((".h5", ".hdf5")):
             return False
 
@@ -276,7 +276,7 @@ class LegacyKerasAdapter(BaseLegacyAdapter):
             return False
 
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata from Keras checkpoint - optimized extraction"""
+        # Extract metadata from Keras checkpoint - optimized extraction
         try:
             # Try h5py first (more lightweight)
             try:
@@ -301,7 +301,7 @@ class LegacyKerasAdapter(BaseLegacyAdapter):
             return {"error": str(e), "framework": "keras"}
 
     def _extract_with_h5py(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata using h5py - optimized h5py extraction"""
+        # Extract metadata using h5py - optimized h5py extraction
         import h5py
 
         metadata = {
@@ -346,7 +346,7 @@ class LegacyKerasAdapter(BaseLegacyAdapter):
         return metadata
 
     def _extract_with_tf(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata using TensorFlow - optimized TF extraction"""
+        # Extract metadata using TensorFlow - optimized TF extraction
         import tensorflow as tf
 
         metadata = {
@@ -388,7 +388,7 @@ class LegacyKerasAdapter(BaseLegacyAdapter):
         return metadata
 
     def _count_h5_parameters(self, group) -> int:
-        """Count parameters in h5 group - optimized counting"""
+        # Count parameters in h5 group - optimized counting
         total = 0
         for item in group.values():
             if hasattr(item, "shape"):
@@ -405,7 +405,7 @@ class LegacyKerasAdapter(BaseLegacyAdapter):
     def convert_to_enhanced(
         self, legacy_checkpoint: LegacyCheckpoint
     ) -> Dict[str, Any]:
-        """Convert Keras checkpoint to enhanced format - optimized conversion"""
+        # Convert Keras checkpoint to enhanced format - optimized conversion
         try:
             import pickle
             import tempfile
@@ -457,13 +457,13 @@ class LegacyKerasAdapter(BaseLegacyAdapter):
 
 
 class LegacyPickleAdapter(BaseLegacyAdapter):
-    """Optimized Pickle checkpoint adapter"""
+    # Optimized Pickle checkpoint adapter
 
     def __init__(self):
         super().__init__(LegacyFormat.PICKLE)
 
     def can_handle(self, file_path: str) -> bool:
-        """Check if file is a pickle checkpoint"""
+        # Check if file is a pickle checkpoint
         if not file_path.lower().endswith((".pkl", ".pickle")):
             return False
 
@@ -478,7 +478,7 @@ class LegacyPickleAdapter(BaseLegacyAdapter):
             return False
 
     def extract_metadata(self, file_path: str) -> Dict[str, Any]:
-        """Extract metadata from pickle checkpoint - optimized extraction"""
+        # Extract metadata from pickle checkpoint - optimized extraction
         try:
             import pickle
 
@@ -522,7 +522,7 @@ class LegacyPickleAdapter(BaseLegacyAdapter):
     def convert_to_enhanced(
         self, legacy_checkpoint: LegacyCheckpoint
     ) -> Dict[str, Any]:
-        """Convert pickle checkpoint to enhanced format - optimized conversion"""
+        # Convert pickle checkpoint to enhanced format - optimized conversion
         try:
             import pickle
 
@@ -584,7 +584,7 @@ class LegacyPickleAdapter(BaseLegacyAdapter):
 
 # Factory function for creating adapters
 def create_adapter(format_type: LegacyFormat) -> Optional[BaseLegacyAdapter]:
-    """Create appropriate adapter for format type - optimized factory"""
+    # Create appropriate adapter for format type - optimized factory
     adapter_map = {
         LegacyFormat.PYTORCH: LegacyTorchAdapter,
         LegacyFormat.KERAS: LegacyKerasAdapter,

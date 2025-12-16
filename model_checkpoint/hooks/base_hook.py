@@ -1,4 +1,4 @@
-"""Base classes for hook implementation"""
+# Base classes for hook implementation
 
 import copy
 from abc import ABC, abstractmethod
@@ -29,7 +29,7 @@ class HookContext:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
     def copy(self) -> "HookContext":
-        """Create a deep copy of the context"""
+        # Create a deep copy of the context
         return HookContext(
             event=self.event,
             data=copy.deepcopy(self.data),
@@ -40,15 +40,15 @@ class HookContext:
         )
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get value from data dictionary"""
+        # Get value from data dictionary
         return self.data.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
-        """Set value in data dictionary"""
+        # Set value in data dictionary
         self.data[key] = value
 
     def update(self, updates: Dict[str, Any]) -> None:
-        """Update data dictionary"""
+        # Update data dictionary
         self.data.update(updates)
 
 
@@ -70,21 +70,21 @@ class HookResult:
         self.errors: List[str] = []
 
     def add_result(self, hook_name: str, result: Dict[str, Any]) -> None:
-        """Add a hook execution result"""
+        # Add a hook execution result
         self.results[hook_name] = result
         if not result.get("success", True):
             self.errors.append(f"{hook_name}: {result.get('error', 'Unknown error')}")
 
     def get_result(self, hook_name: str) -> Optional[Dict[str, Any]]:
-        """Get result for a specific hook"""
+        # Get result for a specific hook
         return self.results.get(hook_name)
 
     def has_errors(self) -> bool:
-        """Check if any errors occurred"""
+        # Check if any errors occurred
         return len(self.errors) > 0
 
     def __bool__(self) -> bool:
-        """Boolean evaluation returns success status"""
+        # Boolean evaluation returns success status
         return self.success
 
 
@@ -141,11 +141,11 @@ class BaseHook(ABC):
 
     @abstractmethod
     def on_init(self) -> None:
-        """Initialize the hook (called once when registered)"""
+        # Initialize the hook (called once when registered)
         pass
 
     def on_cleanup(self) -> None:
-        """Cleanup resources (called when unregistered)"""
+        # Cleanup resources (called when unregistered)
         pass
 
 

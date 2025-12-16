@@ -1,4 +1,4 @@
-"""Unified API interface for external tool integration"""
+# Unified API interface for external tool integration
 
 from .api_manager import APIManager
 from .base_api import APIError, APIResponse, BaseAPI

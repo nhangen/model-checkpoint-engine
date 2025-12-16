@@ -1,4 +1,4 @@
-"""Shared utilities for Phase 3 components - zero redundancy optimization"""
+# Shared utilities for Phase 3 components - zero redundancy optimization
 
 from .shared_utils import (
     calculate_file_hash,

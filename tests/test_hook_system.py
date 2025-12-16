@@ -1,4 +1,4 @@
-"""Tests for the hook system"""
+# Tests for the hook system
 
 import time
 from unittest.mock import MagicMock, Mock
@@ -17,20 +17,20 @@ from model_checkpoint.hooks.decorators import conditional_hook, hook_handler
 
 
 class TestHookManager:
-    """Test the central hook manager"""
+    # Test the central hook manager
 
     @pytest.fixture
     def hook_manager(self):
         return HookManager(enable_async=False)  # Disable async for simpler testing
 
     def test_hook_manager_initialization(self, hook_manager):
-        """Test hook manager initializes correctly"""
+        # Test hook manager initializes correctly
         assert hook_manager is not None
         assert hook_manager._global_enabled is True
         assert len(hook_manager._hooks) == 0
 
     def test_register_simple_hook(self, hook_manager):
-        """Test registering a simple hook"""
+        # Test registering a simple hook
         def test_handler(context: HookContext):
             return {'test': 'success'}
 
@@ -44,7 +44,7 @@ class TestHookManager:
         assert len(hook_manager._hooks[HookEvent.BEFORE_CHECKPOINT_SAVE]) == 1
 
     def test_fire_hook(self, hook_manager):
-        """Test firing a hook"""
+        # Test firing a hook
         results = []
 
         def test_handler(context: HookContext):
@@ -68,7 +68,7 @@ class TestHookManager:
         assert results[0] == 'hello world'
 
     def test_hook_priority_order(self, hook_manager):
-        """Test that hooks execute in priority order"""
+        # Test that hooks execute in priority order
         execution_order = []
 
         def high_priority_handler(context):
@@ -101,7 +101,7 @@ class TestHookManager:
         assert execution_order == ['high', 'normal', 'low']
 
     def test_hook_can_stop_execution(self, hook_manager):
-        """Test that a hook can stop execution chain"""
+        # Test that a hook can stop execution chain
         results = []
 
         def stopping_handler(context):
@@ -128,7 +128,7 @@ class TestHookManager:
         assert results == ['stopping']  # Second handler should not run
 
     def test_unregister_hook(self, hook_manager):
-        """Test unregistering hooks"""
+        # Test unregistering hooks
         def test_handler(context):
             return True
 
@@ -145,10 +145,10 @@ class TestHookManager:
 
 
 class TestHookContext:
-    """Test the hook context object"""
+    # Test the hook context object
 
     def test_context_creation(self):
-        """Test creating a hook context"""
+        # Test creating a hook context
         context = HookContext(
             event=HookEvent.BEFORE_CHECKPOINT_SAVE,
             data={'key': 'value'},
@@ -160,7 +160,7 @@ class TestHookContext:
         assert context.checkpoint_id == 'test-id'
 
     def test_context_copy(self):
-        """Test copying a context"""
+        # Test copying a context
         original = HookContext(
             event=HookEvent.BEFORE_CHECKPOINT_SAVE,
             data={'key': 'value'},
@@ -176,7 +176,7 @@ class TestHookContext:
         assert copied.data is not original.data
 
     def test_context_updates(self):
-        """Test updating context data"""
+        # Test updating context data
         context = HookContext(event=HookEvent.BEFORE_CHECKPOINT_SAVE)
 
         context.set('new_key', 'new_value')
@@ -188,10 +188,10 @@ class TestHookContext:
 
 
 class TestBaseHook:
-    """Test the base hook class"""
+    # Test the base hook class
 
     def test_hook_method_discovery(self):
-        """Test that hook methods are discovered correctly"""
+        # Test that hook methods are discovered correctly
 
         class TestHook(BaseHook):
             def on_init(self):
@@ -219,10 +219,10 @@ class TestBaseHook:
 
 
 class TestHookDecorators:
-    """Test hook decorators"""
+    # Test hook decorators
 
     def test_hook_handler_decorator(self):
-        """Test the hook_handler decorator"""
+        # Test the hook_handler decorator
 
         @hook_handler([HookEvent.BEFORE_CHECKPOINT_SAVE], priority=HookPriority.HIGH)
         def decorated_handler(context):
@@ -233,7 +233,7 @@ class TestHookDecorators:
         assert decorated_handler._priority == HookPriority.HIGH
 
     def test_conditional_hook_decorator(self):
-        """Test the conditional_hook decorator"""
+        # Test the conditional_hook decorator
 
         @conditional_hook(lambda ctx: ctx.get('condition') == True)
         def conditional_handler(context):
@@ -251,10 +251,10 @@ class TestHookDecorators:
 
 
 class TestHookIntegration:
-    """Test hook integration with checkpoint engine components"""
+    # Test hook integration with checkpoint engine components
 
     def test_checkpoint_manager_hooks(self):
-        """Test that checkpoint manager fires hooks correctly"""
+        # Test that checkpoint manager fires hooks correctly
         from model_checkpoint.checkpoint.enhanced_manager import (
             EnhancedCheckpointManager,
         )
@@ -280,7 +280,7 @@ class TestHookIntegration:
         assert any(h['name'] == 'test' for h in hooks)
 
     def test_metrics_collector_hooks(self):
-        """Test that metrics collector fires hooks correctly"""
+        # Test that metrics collector fires hooks correctly
         from model_checkpoint.analytics.metrics_collector import MetricsCollector
 
         # Create collector with hooks enabled
@@ -315,10 +315,10 @@ class TestHookIntegration:
 
 
 class TestHookPerformance:
-    """Test hook system performance"""
+    # Test hook system performance
 
     def test_hook_performance_tracking(self):
-        """Test that hook performance is tracked"""
+        # Test that hook performance is tracked
         hook_manager = HookManager(enable_async=False)
 
         def slow_handler(context):
@@ -339,7 +339,7 @@ class TestHookPerformance:
         assert stats['avg_time'] >= 0.01
 
     def test_multiple_hooks_performance(self):
-        """Test performance with multiple hooks"""
+        # Test performance with multiple hooks
         hook_manager = HookManager(enable_async=False)
 
         # Register multiple hooks
@@ -363,10 +363,10 @@ class TestHookPerformance:
 
 
 class TestHookErrorHandling:
-    """Test hook error handling"""
+    # Test hook error handling
 
     def test_hook_error_handling(self):
-        """Test that hook errors are handled gracefully"""
+        # Test that hook errors are handled gracefully
         hook_manager = HookManager(enable_async=False)
 
         def failing_handler(context):

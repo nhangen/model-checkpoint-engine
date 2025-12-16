@@ -1,4 +1,4 @@
-"""Advanced analytics and metrics system"""
+# Advanced analytics and metrics system
 
 from .metrics_collector import MetricsCollector
 from .model_selector import BestModelSelector

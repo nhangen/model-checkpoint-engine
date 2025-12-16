@@ -1,4 +1,4 @@
-"""Batch operations for efficient bulk checkpoint and experiment management"""
+# Batch operations for efficient bulk checkpoint and experiment management
 
 import queue
 import threading
@@ -11,7 +11,7 @@ from ..database.models import Checkpoint, Experiment, Metric
 
 
 class BatchProcessor:
-    """Efficient batch processing for database operations"""
+    # Efficient batch processing for database operations
 
     def __init__(
         self,
@@ -191,7 +191,7 @@ class BatchProcessor:
         }
 
     def _save_metrics_batch(self, metrics: List[Metric]) -> None:
-        """Save a batch of metrics with transaction"""
+        # Save a batch of metrics with transaction
         with self.db._get_connection() as conn:
             conn.execute("BEGIN TRANSACTION")
             try:
@@ -216,7 +216,7 @@ class BatchProcessor:
                 raise
 
     def _save_checkpoints_batch(self, checkpoints: List[Checkpoint]) -> None:
-        """Save a batch of checkpoints with transaction"""
+        # Save a batch of checkpoints with transaction
         with self.db._get_connection() as conn:
             conn.execute("BEGIN TRANSACTION")
             try:
@@ -257,7 +257,7 @@ class BatchProcessor:
 
 
 class ParallelCheckpointProcessor:
-    """Process multiple checkpoints in parallel for verification, loading, etc."""
+    # Process multiple checkpoints in parallel for verification, loading, etc.
 
     def __init__(self, max_workers: int = 4):
         """
@@ -350,7 +350,7 @@ class ParallelCheckpointProcessor:
         total = len(checkpoint_paths)
 
         def load_metadata(path: str) -> Dict[str, Any]:
-            """Load metadata for a single checkpoint"""
+            # Load metadata for a single checkpoint
             import os
 
             import torch
@@ -417,7 +417,7 @@ class ParallelCheckpointProcessor:
 
 
 class BulkDataExporter:
-    """Export large amounts of experiment and checkpoint data efficiently"""
+    # Export large amounts of experiment and checkpoint data efficiently
 
     def __init__(self, db_connection: EnhancedDatabaseConnection):
         """
@@ -572,7 +572,7 @@ class BulkDataExporter:
             return {"success": False, "error": str(e), "output_path": output_path}
 
     def _save_as_csv(self, data: Dict[str, Any], output_path: str) -> None:
-        """Save data as CSV files (multiple files for different data types)"""
+        # Save data as CSV files (multiple files for different data types)
         import csv
         import os
 

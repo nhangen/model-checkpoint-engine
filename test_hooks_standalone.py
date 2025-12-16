@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Standalone test for hook system - no external dependencies"""
+# Standalone test for hook system - no external dependencies
 
 import os
 import sys
@@ -14,7 +14,7 @@ from model_checkpoint.hooks.hook_manager import HookEvent, HookManager, HookPrio
 
 
 def test_basic_hook_functionality():
-    """Test basic hook registration and firing"""
+    # Test basic hook registration and firing
     print("Testing basic hook functionality...")
 
     manager = HookManager(enable_async=False)
@@ -36,7 +36,7 @@ def test_basic_hook_functionality():
 
 
 def test_priority_system():
-    """Test priority-based execution"""
+    # Test priority-based execution
     print("Testing priority system...")
 
     execution_order = []
@@ -69,7 +69,7 @@ def test_priority_system():
 
 
 def test_decorators():
-    """Test hook decorators"""
+    # Test hook decorators
     print("Testing decorators...")
 
     @hook_handler([HookEvent.BEFORE_CHECKPOINT_SAVE], priority=HookPriority.HIGH)
@@ -82,7 +82,7 @@ def test_decorators():
 
 
 def test_conditional_hooks():
-    """Test conditional execution"""
+    # Test conditional execution
     print("Testing conditional hooks...")
 
     @conditional_hook(lambda ctx: ctx.get("condition") == True)
@@ -104,7 +104,7 @@ def test_conditional_hooks():
 
 
 def test_error_handling():
-    """Test error handling"""
+    # Test error handling
     print("Testing error handling...")
 
     def failing_hook(context):
@@ -126,7 +126,7 @@ def test_error_handling():
 
 
 def test_hook_cancellation():
-    """Test hook cancellation"""
+    # Test hook cancellation
     print("Testing hook cancellation...")
 
     execution_log = []
@@ -161,7 +161,7 @@ def test_hook_cancellation():
 
 
 def test_performance_tracking():
-    """Test performance tracking"""
+    # Test performance tracking
     print("Testing performance tracking...")
 
     manager = HookManager(enable_async=False)
@@ -183,7 +183,7 @@ def test_performance_tracking():
 
 
 def test_all_events_exist():
-    """Test that all expected events are defined"""
+    # Test that all expected events are defined
     print("Testing event definitions...")
 
     # Test some key events from each phase
@@ -220,7 +220,7 @@ def test_all_events_exist():
 
 
 def main():
-    """Run all tests"""
+    # Run all tests
     print("🎣 Hook System Test Suite")
     print("=" * 50)
 

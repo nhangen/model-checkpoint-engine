@@ -1,4 +1,4 @@
-"""Optimized documentation generation system - zero redundancy design"""
+# Optimized documentation generation system - zero redundancy design
 
 import ast
 import inspect
@@ -11,12 +11,12 @@ from typing import Any, Callable, Dict, List, Optional, Type, Union
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class DocumentationType(Enum):
-    """Optimized documentation type enum"""
+    # Optimized documentation type enum
 
     API = "api"
     MODULE = "module"
@@ -27,7 +27,7 @@ class DocumentationType(Enum):
 
 
 class OutputFormat(Enum):
-    """Optimized output format enum"""
+    # Optimized output format enum
 
     MARKDOWN = "markdown"
     HTML = "html"
@@ -37,7 +37,7 @@ class OutputFormat(Enum):
 
 @dataclass
 class DocumentationSection:
-    """Optimized documentation section"""
+    # Optimized documentation section
 
     title: str
     content: str
@@ -49,7 +49,7 @@ class DocumentationSection:
 
 @dataclass
 class FunctionDocumentation:
-    """Optimized function documentation"""
+    # Optimized function documentation
 
     name: str
     signature: str
@@ -64,7 +64,7 @@ class FunctionDocumentation:
 
 @dataclass
 class ClassDocumentation:
-    """Optimized class documentation"""
+    # Optimized class documentation
 
     name: str
     docstring: str
@@ -77,7 +77,7 @@ class ClassDocumentation:
 
 
 class DocumentationGenerator:
-    """Optimized documentation generator with zero redundancy"""
+    # Optimized documentation generator with zero redundancy
 
     def __init__(self, project_root: str, output_dir: str = "docs"):
         """
@@ -201,7 +201,7 @@ class DocumentationGenerator:
             )
 
     def _import_module(self, module_path: str) -> Optional[Any]:
-        """Import module dynamically - optimized import"""
+        # Import module dynamically - optimized import
         try:
             # Handle relative imports
             if module_path.startswith("."):
@@ -221,12 +221,12 @@ class DocumentationGenerator:
             return None
 
     def _extract_module_docstring(self, module: Any) -> str:
-        """Extract module docstring - optimized extraction"""
+        # Extract module docstring - optimized extraction
         docstring = getattr(module, "__doc__", "")
         return self._clean_docstring(docstring) if docstring else ""
 
     def _extract_module_functions(self, module: Any) -> List[FunctionDocumentation]:
-        """Extract module functions - optimized function extraction"""
+        # Extract module functions - optimized function extraction
         functions = []
 
         for name, obj in inspect.getmembers(module, inspect.isfunction):
@@ -245,7 +245,7 @@ class DocumentationGenerator:
         return functions
 
     def _extract_module_classes(self, module: Any) -> List[ClassDocumentation]:
-        """Extract module classes - optimized class extraction"""
+        # Extract module classes - optimized class extraction
         classes = []
 
         for name, obj in inspect.getmembers(module, inspect.isclass):
@@ -266,7 +266,7 @@ class DocumentationGenerator:
     def _extract_function_documentation(
         self, func: Callable, name: str
     ) -> Optional[FunctionDocumentation]:
-        """Extract function documentation - optimized function analysis"""
+        # Extract function documentation - optimized function analysis
         cache_key = f"func_{id(func)}"
         if cache_key in self._function_cache:
             return self._function_cache[cache_key]
@@ -312,7 +312,7 @@ class DocumentationGenerator:
     def _extract_class_documentation(
         self, cls: Type, name: str
     ) -> Optional[ClassDocumentation]:
-        """Extract class documentation - optimized class analysis"""
+        # Extract class documentation - optimized class analysis
         cache_key = f"class_{id(cls)}"
         if cache_key in self._class_cache:
             return self._class_cache[cache_key]
@@ -379,7 +379,7 @@ class DocumentationGenerator:
             return None
 
     def _extract_class_attributes(self, cls: Type) -> List[Dict[str, Any]]:
-        """Extract class attributes - optimized attribute extraction"""
+        # Extract class attributes - optimized attribute extraction
         attributes = []
 
         # Get class annotations
@@ -400,7 +400,7 @@ class DocumentationGenerator:
         return attributes
 
     def _extract_class_properties(self, cls: Type) -> List[Dict[str, Any]]:
-        """Extract class properties - optimized property extraction"""
+        # Extract class properties - optimized property extraction
         properties = []
 
         for prop_name, prop_obj in inspect.getmembers(
@@ -424,7 +424,7 @@ class DocumentationGenerator:
         return properties
 
     def _parse_docstring(self, docstring: str) -> Dict[str, Any]:
-        """Parse docstring for structured information - optimized parsing"""
+        # Parse docstring for structured information - optimized parsing
         parsed = {"parameters": [], "returns": None, "raises": [], "examples": []}
 
         if not docstring:
@@ -475,7 +475,7 @@ class DocumentationGenerator:
     def _process_docstring_section(
         self, section: str, content: List[str], parsed: Dict[str, Any]
     ) -> None:
-        """Process docstring section - optimized section processing"""
+        # Process docstring section - optimized section processing
         if section == "parameters":
             for line in content:
                 if ":" in line:
@@ -517,7 +517,7 @@ class DocumentationGenerator:
             parsed["examples"].append("\n".join(content))
 
     def _clean_docstring(self, docstring: str) -> str:
-        """Clean and format docstring - optimized cleaning"""
+        # Clean and format docstring - optimized cleaning
         if not docstring:
             return ""
 
@@ -543,14 +543,14 @@ class DocumentationGenerator:
         return "\n".join(lines)
 
     def _format_type(self, type_hint: Any) -> str:
-        """Format type hint as string - optimized type formatting"""
+        # Format type hint as string - optimized type formatting
         if hasattr(type_hint, "__name__"):
             return type_hint.__name__
         else:
             return str(type_hint)
 
     def _find_submodules(self, module_path: str) -> List[str]:
-        """Find submodules of a module - optimized submodule discovery"""
+        # Find submodules of a module - optimized submodule discovery
         submodules = []
 
         try:
@@ -585,7 +585,7 @@ class DocumentationGenerator:
     def _create_function_section(
         self, func_doc: FunctionDocumentation
     ) -> DocumentationSection:
-        """Create documentation section for function - optimized section creation"""
+        # Create documentation section for function - optimized section creation
         content_parts = []
 
         # Function signature
@@ -644,7 +644,7 @@ class DocumentationGenerator:
     def _create_class_section(
         self, class_doc: ClassDocumentation
     ) -> DocumentationSection:
-        """Create documentation section for class - optimized section creation"""
+        # Create documentation section for class - optimized section creation
         content_parts = []
 
         # Class header
@@ -725,7 +725,7 @@ class DocumentationGenerator:
         return class_section
 
     def _get_markdown_templates(self) -> Dict[str, str]:
-        """Get Markdown templates - optimized template system"""
+        # Get Markdown templates - optimized template system
         return {
             "header": "# {title}\n\n{content}\n\n",
             "section": "{'#' * level} {title}\n\n{content}\n\n",
@@ -734,7 +734,7 @@ class DocumentationGenerator:
         }
 
     def _get_html_templates(self) -> Dict[str, str]:
-        """Get HTML templates - optimized template system"""
+        # Get HTML templates - optimized template system
         return {
             "header": "<h1>{title}</h1>\n<div>{content}</div>\n",
             "section": "<h{level}>{title}</h{level}>\n<div>{content}</div>\n",
@@ -743,7 +743,7 @@ class DocumentationGenerator:
         }
 
     def _get_rst_templates(self) -> Dict[str, str]:
-        """Get RST templates - optimized template system"""
+        # Get RST templates - optimized template system
         return {
             "header": "{title}\n{'=' * len(title)}\n\n{content}\n\n",
             "section": "{title}\n{'-' * len(title)}\n\n{content}\n\n",
@@ -793,7 +793,7 @@ class DocumentationGenerator:
         doc_section: DocumentationSection,
         output_format: OutputFormat = OutputFormat.MARKDOWN,
     ) -> str:
-        """Generate table of contents - optimized TOC generation"""
+        # Generate table of contents - optimized TOC generation
         templates = self._templates.get(
             output_format, self._templates[OutputFormat.MARKDOWN]
         )
@@ -818,7 +818,7 @@ class DocumentationGenerator:
         output_format: OutputFormat,
         level: int = 0,
     ) -> None:
-        """Collect table of contents items - optimized TOC collection"""
+        # Collect table of contents items - optimized TOC collection
         templates = self._templates.get(
             output_format, self._templates[OutputFormat.MARKDOWN]
         )
@@ -883,7 +883,7 @@ class DocumentationGenerator:
             return False
 
     def clear_cache(self) -> None:
-        """Clear documentation cache"""
+        # Clear documentation cache
         self._doc_cache.clear()
         self._function_cache.clear()
         self._class_cache.clear()

@@ -1,4 +1,4 @@
-"""Comprehensive tests for Enhanced Checkpoint Manager"""
+# Comprehensive tests for Enhanced Checkpoint Manager
 
 import os
 import shutil
@@ -15,7 +15,7 @@ from model_checkpoint.database.models import Experiment
 
 
 class SimpleModel(nn.Module):
-    """Simple model for testing"""
+    # Simple model for testing
     def __init__(self):
         super().__init__()
         self.linear = nn.Linear(10, 1)
@@ -25,30 +25,30 @@ class SimpleModel(nn.Module):
 
 
 class TestEnhancedCheckpointManager:
-    """Test suite for Enhanced Checkpoint Manager"""
+    # Test suite for Enhanced Checkpoint Manager
 
     @pytest.fixture
     def temp_dir(self):
-        """Create temporary directory for tests"""
+        # Create temporary directory for tests
         temp_dir = tempfile.mkdtemp()
         yield temp_dir
         shutil.rmtree(temp_dir, ignore_errors=True)
 
     @pytest.fixture
     def db_path(self, temp_dir):
-        """Create test database path"""
+        # Create test database path
         return os.path.join(temp_dir, "test_experiments.db")
 
     @pytest.fixture
     def checkpoint_dir(self, temp_dir):
-        """Create checkpoint directory"""
+        # Create checkpoint directory
         ckpt_dir = os.path.join(temp_dir, "checkpoints")
         os.makedirs(ckpt_dir, exist_ok=True)
         return ckpt_dir
 
     @pytest.fixture
     def manager(self, db_path, checkpoint_dir):
-        """Create enhanced checkpoint manager"""
+        # Create enhanced checkpoint manager
         return EnhancedCheckpointManager(
             checkpoint_dir=checkpoint_dir,
             database_url=f"sqlite:///{db_path}",
@@ -58,14 +58,14 @@ class TestEnhancedCheckpointManager:
 
     @pytest.fixture
     def model_and_optimizer(self):
-        """Create model and optimizer for testing"""
+        # Create model and optimizer for testing
         model = SimpleModel()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
         return model, optimizer
 
     @pytest.fixture
     def experiment_tracker(self, db_path):
-        """Create experiment tracker"""
+        # Create experiment tracker
         return ExperimentTracker(
             experiment_name="test_experiment",
             project_name="test_project",
@@ -73,7 +73,7 @@ class TestEnhancedCheckpointManager:
         )
 
     def test_manager_initialization(self, manager, checkpoint_dir):
-        """Test manager initialization"""
+        # Test manager initialization
         assert manager.checkpoint_dir == checkpoint_dir
         assert manager.enable_integrity_checks is True
         assert manager.cache_manager is not None
@@ -82,7 +82,7 @@ class TestEnhancedCheckpointManager:
         assert os.path.exists(checkpoint_dir)
 
     def test_save_checkpoint_basic(self, manager, model_and_optimizer):
-        """Test basic checkpoint saving"""
+        # Test basic checkpoint saving
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_001"
 
@@ -113,7 +113,7 @@ class TestEnhancedCheckpointManager:
         assert os.path.exists(checkpoint_record.file_path)
 
     def test_save_checkpoint_with_best_flags(self, manager, model_and_optimizer):
-        """Test checkpoint saving with best model detection"""
+        # Test checkpoint saving with best model detection
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_002"
 
@@ -142,7 +142,7 @@ class TestEnhancedCheckpointManager:
         assert record_2.is_best_val_loss is False  # Val loss is worse
 
     def test_load_checkpoint_by_id(self, manager, model_and_optimizer):
-        """Test loading checkpoint by ID"""
+        # Test loading checkpoint by ID
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_003"
 
@@ -173,7 +173,7 @@ class TestEnhancedCheckpointManager:
         assert metadata['epoch'] == 5
 
     def test_load_checkpoint_by_type(self, manager, model_and_optimizer):
-        """Test loading checkpoint by type"""
+        # Test loading checkpoint by type
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_004"
 
@@ -197,7 +197,7 @@ class TestEnhancedCheckpointManager:
         assert latest_data['_checkpoint_metadata']['epoch'] == 3
 
     def test_integrity_verification(self, manager, model_and_optimizer):
-        """Test checkpoint integrity verification"""
+        # Test checkpoint integrity verification
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_005"
 
@@ -222,7 +222,7 @@ class TestEnhancedCheckpointManager:
         assert checkpoint_results[checkpoint_id]['status'] == 'verified'
 
     def test_list_checkpoints(self, manager, model_and_optimizer):
-        """Test listing checkpoints"""
+        # Test listing checkpoints
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_006"
 
@@ -257,7 +257,7 @@ class TestEnhancedCheckpointManager:
         assert len(best_ids) >= 1
 
     def test_experiment_statistics(self, manager, model_and_optimizer):
-        """Test experiment statistics"""
+        # Test experiment statistics
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_007"
 
@@ -278,7 +278,7 @@ class TestEnhancedCheckpointManager:
         assert 'duration_seconds' is None or isinstance(stats['duration_seconds'], float)
 
     def test_performance_statistics(self, manager):
-        """Test performance statistics"""
+        # Test performance statistics
         stats = manager.get_performance_statistics()
 
         assert 'storage_backend' in stats
@@ -289,7 +289,7 @@ class TestEnhancedCheckpointManager:
         assert 'cache_statistics' in stats
 
     def test_caching_functionality(self, manager, model_and_optimizer):
-        """Test caching functionality"""
+        # Test caching functionality
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_008"
 
@@ -309,7 +309,7 @@ class TestEnhancedCheckpointManager:
         assert cache_stats['checkpoint_cache']['metadata_cache']['total_requests'] >= 2
 
     def test_cleanup_old_checkpoints(self, manager, model_and_optimizer):
-        """Test automatic cleanup of old checkpoints"""
+        # Test automatic cleanup of old checkpoints
         model, optimizer = model_and_optimizer
         manager.experiment_id = "test_exp_009"
         manager.max_checkpoints = 3  # Keep only 3 checkpoints
@@ -333,7 +333,7 @@ class TestEnhancedCheckpointManager:
         assert len(remaining_files) <= manager.max_checkpoints
 
     def test_backward_compatibility(self, experiment_tracker, checkpoint_dir):
-        """Test backward compatibility with legacy ExperimentTracker"""
+        # Test backward compatibility with legacy ExperimentTracker
         # Create manager with legacy tracker
         manager = EnhancedCheckpointManager(
             experiment_tracker=experiment_tracker,
@@ -354,7 +354,7 @@ class TestEnhancedCheckpointManager:
         assert checkpoint_id is not None
 
     def test_storage_backend_selection(self, db_path, checkpoint_dir):
-        """Test different storage backend selection"""
+        # Test different storage backend selection
         # PyTorch backend
         manager_pytorch = EnhancedCheckpointManager(
             checkpoint_dir=checkpoint_dir + "_pytorch",
@@ -376,7 +376,7 @@ class TestEnhancedCheckpointManager:
             pass
 
     def test_error_handling(self, manager, model_and_optimizer):
-        """Test error handling scenarios"""
+        # Test error handling scenarios
         model, optimizer = model_and_optimizer
 
         # Test saving without experiment_id
@@ -392,7 +392,7 @@ class TestEnhancedCheckpointManager:
             manager.load_checkpoint(checkpoint_type='latest')
 
     def test_migration_integration(self, db_path):
-        """Test database migration integration"""
+        # Test database migration integration
         # Create enhanced database connection
         db = EnhancedDatabaseConnection(f"sqlite:///{db_path}")
 

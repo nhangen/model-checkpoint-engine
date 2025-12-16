@@ -1,4 +1,4 @@
-"""Enhanced CheckpointManager with comprehensive features and performance optimizations"""
+# Enhanced CheckpointManager with comprehensive features and performance optimizations
 
 import logging
 import os
@@ -130,7 +130,7 @@ class EnhancedCheckpointManager:
 
     def _initialize_storage_backend(self, backend_type: str,
                                   compression: bool) -> BaseStorageBackend:
-        """Initialize the specified storage backend"""
+        # Initialize the specified storage backend
         if backend_type.lower() == 'pytorch':
             return PyTorchStorageBackend(
                 self.checkpoint_dir,
@@ -352,12 +352,12 @@ class EnhancedCheckpointManager:
             self.logger.warning("Hook system disabled, cannot register hook")
 
     def unregister_hook(self, name: str):
-        """Unregister a hook by name"""
+        # Unregister a hook by name
         if self.hook_manager:
             self.hook_manager.unregister_hook(name)
 
     def list_hooks(self):
-        """List all registered hooks"""
+        # List all registered hooks
         if self.hook_manager:
             return self.hook_manager.list_hooks()
         return []
@@ -444,7 +444,7 @@ class EnhancedCheckpointManager:
                                            loss: float, val_loss: Optional[float],
                                            metrics: Optional[Dict[str, float]],
                                            update_best: bool) -> tuple:
-        """Determine checkpoint type and best model flags"""
+        # Determine checkpoint type and best model flags
         checkpoint_type = 'manual'
         best_flags = {'is_best_loss': False, 'is_best_val_loss': False, 'is_best_metric': False}
 
@@ -501,7 +501,7 @@ class EnhancedCheckpointManager:
         return checkpoint_type, best_flags
 
     def _get_checkpoint_record(self, checkpoint_id: str) -> Optional[Checkpoint]:
-        """Get checkpoint record from database or cache"""
+        # Get checkpoint record from database or cache
         # Try cache first
         if self.cache_manager:
             cached = self.cache_manager.checkpoint_cache.get_checkpoint_metadata(checkpoint_id)
@@ -520,7 +520,7 @@ class EnhancedCheckpointManager:
         return record
 
     def _find_checkpoint_by_type(self, experiment_id: str, checkpoint_type: str) -> Optional[Checkpoint]:
-        """Find checkpoint by type for an experiment"""
+        # Find checkpoint by type for an experiment
         if checkpoint_type == 'latest':
             checkpoints = self.db.get_checkpoints_by_experiment(experiment_id)
             if checkpoints:
@@ -547,7 +547,7 @@ class EnhancedCheckpointManager:
         return None
 
     def _cleanup_old_checkpoints(self, experiment_id: str) -> None:
-        """Remove old checkpoints based on retention policy"""
+        # Remove old checkpoints based on retention policy
         checkpoints = self.db.get_checkpoints_by_experiment(experiment_id)
 
         # Group by type
@@ -648,7 +648,7 @@ class EnhancedCheckpointManager:
         return result
 
     def get_experiment_statistics(self, experiment_id: Optional[str] = None) -> Dict[str, Any]:
-        """Get comprehensive experiment statistics"""
+        # Get comprehensive experiment statistics
         exp_id = experiment_id or self.experiment_id
         if not exp_id:
             raise ValueError("Must provide experiment_id")
@@ -657,7 +657,7 @@ class EnhancedCheckpointManager:
 
     def verify_experiment_integrity(self, experiment_id: Optional[str] = None,
                                   repair_on_failure: bool = False) -> Dict[str, Any]:
-        """Verify integrity of all checkpoints in an experiment"""
+        # Verify integrity of all checkpoints in an experiment
         if not self.enable_integrity_checks:
             return {'error': 'Integrity checks not enabled'}
 
@@ -668,7 +668,7 @@ class EnhancedCheckpointManager:
         return self.verifier.verify_experiment_checkpoints(exp_id, repair_on_failure)
 
     def get_performance_statistics(self) -> Dict[str, Any]:
-        """Get performance statistics for the checkpoint manager"""
+        # Get performance statistics for the checkpoint manager
         stats = {
             'storage_backend': type(self.storage_backend).__name__,
             'checkpoint_directory': self.checkpoint_dir,

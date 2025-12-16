@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 
 def run_tests():
-    """Run all unit tests"""
+    # Run all unit tests
     print("🧪 Running Model Checkpoint Engine Tests")
     print("=" * 50)
     
@@ -54,7 +54,7 @@ def run_tests():
 
 
 def verify_installation():
-    """Verify package can be imported and basic functionality works"""
+    # Verify package can be imported and basic functionality works
     print("\n🔍 Verifying Installation")
     print("-" * 30)
     
@@ -98,7 +98,7 @@ def verify_installation():
 
 
 def verify_modular_design():
-    """Verify modular design principles"""
+    # Verify modular design principles
     print("\n🏗️  Verifying Modular Design")
     print("-" * 30)
     
@@ -135,7 +135,7 @@ def verify_modular_design():
 
 
 def main():
-    """Main test runner"""
+    # Main test runner
     print("📊 Model Checkpoint Engine - Test Suite")
     print("=" * 50)
     

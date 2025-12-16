@@ -1,4 +1,4 @@
-"""Optimized cleanup scheduler - zero redundancy design"""
+# Optimized cleanup scheduler - zero redundancy design
 
 import json
 import threading
@@ -11,12 +11,12 @@ from .retention_manager import RetentionManager, RetentionRule
 
 
 def _current_time() -> float:
-    """Shared time function"""
+    # Shared time function
     return time.time()
 
 
 class ScheduleType(Enum):
-    """Optimized schedule type enum"""
+    # Optimized schedule type enum
 
     INTERVAL = "interval"
     DAILY = "daily"
@@ -27,7 +27,7 @@ class ScheduleType(Enum):
 
 @dataclass
 class ScheduledTask:
-    """Optimized scheduled task"""
+    # Optimized scheduled task
 
     name: str
     schedule_type: ScheduleType
@@ -45,7 +45,7 @@ class ScheduledTask:
 
 
 class CleanupScheduler:
-    """Optimized cleanup scheduler with thread-safe execution"""
+    # Optimized cleanup scheduler with thread-safe execution
 
     def __init__(self, retention_manager: RetentionManager):
         """
@@ -89,30 +89,30 @@ class CleanupScheduler:
         }
 
     def add_scheduled_task(self, task: ScheduledTask) -> None:
-        """Add a scheduled task - thread-safe"""
+        # Add a scheduled task - thread-safe
         with self._lock:
             task.next_run = self._calculate_next_run(task)
             self._tasks[task.name] = task
 
     def get_scheduled_task(self, name: str) -> Optional[ScheduledTask]:
-        """Get scheduled task by name"""
+        # Get scheduled task by name
         with self._lock:
             return self._tasks.get(name) or self._default_schedules.get(name)
 
     def apply_default_schedule(self, schedule_name: str) -> bool:
-        """Apply a default schedule"""
+        # Apply a default schedule
         if schedule_name in self._default_schedules:
             self.add_scheduled_task(self._default_schedules[schedule_name])
             return True
         return False
 
     def remove_scheduled_task(self, name: str) -> bool:
-        """Remove a scheduled task - thread-safe"""
+        # Remove a scheduled task - thread-safe
         with self._lock:
             return self._tasks.pop(name, None) is not None
 
     def start_scheduler(self) -> bool:
-        """Start the scheduler thread - optimized startup"""
+        # Start the scheduler thread - optimized startup
         with self._lock:
             if self._running:
                 return False
@@ -125,7 +125,7 @@ class CleanupScheduler:
             return True
 
     def stop_scheduler(self) -> bool:
-        """Stop the scheduler thread - optimized shutdown"""
+        # Stop the scheduler thread - optimized shutdown
         with self._lock:
             if not self._running:
                 return False
@@ -139,7 +139,7 @@ class CleanupScheduler:
         return True
 
     def _scheduler_loop(self) -> None:
-        """Main scheduler loop - optimized polling"""
+        # Main scheduler loop - optimized polling
         while self._running:
             try:
                 current_time = _current_time()
@@ -163,7 +163,7 @@ class CleanupScheduler:
                 time.sleep(30.0)  # Longer sleep on error
 
     def _execute_task(self, task: ScheduledTask) -> None:
-        """Execute a scheduled task - optimized execution"""
+        # Execute a scheduled task - optimized execution
         try:
             current_time = _current_time()
 
@@ -187,7 +187,7 @@ class CleanupScheduler:
             print(f"Task execution error for '{task.name}': {e}")
 
     def _calculate_next_run(self, task: ScheduledTask) -> float:
-        """Calculate next run time - optimized calculation"""
+        # Calculate next run time - optimized calculation
         current_time = _current_time()
 
         if task.schedule_type == ScheduleType.INTERVAL:
@@ -260,7 +260,7 @@ class CleanupScheduler:
             return current_time + 3600
 
     def get_task_status(self) -> Dict[str, Any]:
-        """Get status of all scheduled tasks - optimized reporting"""
+        # Get status of all scheduled tasks - optimized reporting
         with self._lock:
             current_time = _current_time()
 
@@ -392,7 +392,7 @@ class CleanupScheduler:
     def export_schedule_config(
         self, format_type: str = "json"
     ) -> Union[str, Dict[str, Any]]:
-        """Export scheduler configuration"""
+        # Export scheduler configuration
         with self._lock:
             config_data = {
                 "scheduler_status": {
@@ -422,7 +422,7 @@ class CleanupScheduler:
             return config_data
 
     def load_schedule_config(self, config_data: Dict[str, Any]) -> bool:
-        """Load scheduler configuration from data"""
+        # Load scheduler configuration from data
         try:
             with self._lock:
                 self._tasks.clear()

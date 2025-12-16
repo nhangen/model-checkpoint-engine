@@ -1,4 +1,4 @@
-"""Hook system for checkpoint engine extensibility"""
+# Hook system for checkpoint engine extensibility
 
 from .base_hook import BaseHook, HookContext, HookResult
 from .checkpoint_strategies import BestModelSelectionHook, SmartCheckpointRetentionHook

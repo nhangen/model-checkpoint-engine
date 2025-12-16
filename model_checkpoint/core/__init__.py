@@ -1,4 +1,4 @@
-"""Core checkpoint and experiment tracking functionality"""
+# Core checkpoint and experiment tracking functionality
 
 from .checkpoint import CheckpointManager
 from .experiment import ExperimentTracker

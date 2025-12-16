@@ -1,4 +1,4 @@
-"""Tests for Phase 2 - Advanced Analytics Features"""
+# Tests for Phase 2 - Advanced Analytics Features
 
 import json
 import tempfile
@@ -12,14 +12,14 @@ from model_checkpoint.analytics.model_selector import BestModelSelector
 
 
 class TestMetricsCollector:
-    """Test the metrics collection system"""
+    # Test the metrics collection system
 
     @pytest.fixture
     def collector(self):
         return MetricsCollector()
 
     def test_add_metric(self, collector):
-        """Test adding metrics"""
+        # Test adding metrics
         collector.collect_metric("train_loss", 0.5, step=100)
         collector.collect_metric("val_loss", 0.3, step=100)
 
@@ -28,7 +28,7 @@ class TestMetricsCollector:
         # Basic test to ensure metrics are collected
 
     def test_aggregate_metrics(self, collector):
-        """Test metric aggregation"""
+        # Test metric aggregation
         # Add multiple metrics
         for i in range(10):
             collector.collect_metric("loss", 1.0 - i * 0.1, step=i)
@@ -39,7 +39,7 @@ class TestMetricsCollector:
         # Basic test to ensure aggregation works
 
     def test_get_latest_metrics(self, collector):
-        """Test getting latest metrics"""
+        # Test getting latest metrics
         collector.add_metric("accuracy", 0.8, step=1)
         collector.add_metric("accuracy", 0.9, step=2)
         collector.add_metric("accuracy", 0.95, step=3)
@@ -48,7 +48,7 @@ class TestMetricsCollector:
         assert latest == 0.95
 
     def test_export_metrics(self, collector):
-        """Test metrics export"""
+        # Test metrics export
         collector.add_metric("loss", 0.5, step=1)
         collector.add_metric("accuracy", 0.9, step=1)
 
@@ -59,23 +59,23 @@ class TestMetricsCollector:
 
 
 class TestBestModelSelector:
-    """Test the best model selection system"""
+    # Test the best model selection system
 
     @pytest.fixture
     def selector(self):
         return BestModelSelector()
 
     def test_initialization(self, selector):
-        """Test selector initialization"""
+        # Test selector initialization
         assert selector is not None
         # Basic test to verify class instantiation
 
 
 class TestPhase2Integration:
-    """Test integration of Phase 2 components"""
+    # Test integration of Phase 2 components
 
     def test_analytics_pipeline(self):
-        """Test complete analytics pipeline"""
+        # Test complete analytics pipeline
         collector = MetricsCollector()
         selector = ModelSelector()
         detector = BestModelDetector()
@@ -106,7 +106,7 @@ class TestPhase2Integration:
                 assert avg_loss == pytest.approx(0.6, rel=1e-2)
 
     def test_zero_redundancy_optimization(self):
-        """Test that Phase 2 components follow zero redundancy principle"""
+        # Test that Phase 2 components follow zero redundancy principle
         # Check that shared utilities are used
         from model_checkpoint.analytics.shared_utils import format_metric_value
 

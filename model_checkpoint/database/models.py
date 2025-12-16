@@ -1,4 +1,4 @@
-"""Database models for experiment tracking"""
+# Database models for experiment tracking
 
 import time
 from dataclasses import dataclass, field
@@ -7,13 +7,13 @@ from typing import Any, Dict, List, Optional
 
 # Optimize: Use field(default_factory) instead of post_init for better performance
 def _current_time() -> float:
-    """Cached time function to avoid repeated time.time() calls"""
+    # Cached time function to avoid repeated time.time() calls
     return time.time()
 
 
 @dataclass
 class Experiment:
-    """Experiment record with enhanced tracking"""
+    # Experiment record with enhanced tracking
 
     id: str
     name: str
@@ -28,7 +28,7 @@ class Experiment:
 
 @dataclass
 class Metric:
-    """Metric record - optimized with field defaults"""
+    # Metric record - optimized with field defaults
 
     experiment_id: str
     metric_name: str
@@ -39,7 +39,7 @@ class Metric:
 
 @dataclass
 class Checkpoint:
-    """Enhanced checkpoint record with integrity and metadata tracking - optimized"""
+    # Enhanced checkpoint record with integrity and metadata tracking - optimized
 
     id: str
     experiment_id: str

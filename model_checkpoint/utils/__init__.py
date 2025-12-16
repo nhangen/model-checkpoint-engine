@@ -1,4 +1,4 @@
-"""Shared utilities for the model checkpoint engine"""
+# Shared utilities for the model checkpoint engine
 
 from .checksum import calculate_data_checksum, calculate_file_checksum
 

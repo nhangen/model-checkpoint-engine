@@ -1,4 +1,4 @@
-"""Intelligent caching system for checkpoint and experiment data"""
+# Intelligent caching system for checkpoint and experiment data
 
 import hashlib
 import pickle
@@ -9,7 +9,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 
 class LRUCache:
-    """Thread-safe LRU cache with TTL support"""
+    # Thread-safe LRU cache with TTL support
 
     def __init__(self, max_size: int = 1000, default_ttl: Optional[float] = None):
         """
@@ -29,7 +29,7 @@ class LRUCache:
         self._misses = 0
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get item from cache - optimized single-pass implementation"""
+        # Get item from cache - optimized single-pass implementation
         with self._lock:
             if key not in self._cache:
                 self._misses += 1
@@ -47,7 +47,7 @@ class LRUCache:
             return self._cache[key]
 
     def set(self, key: str, value: Any, ttl: Optional[float] = None) -> None:
-        """Set item in cache - optimized bulk operations"""
+        # Set item in cache - optimized bulk operations
         with self._lock:
             current_time = time.time()
 
@@ -86,7 +86,7 @@ class LRUCache:
             return False
 
     def clear(self) -> None:
-        """Clear all items from cache"""
+        # Clear all items from cache
         with self._lock:
             self._cache.clear()
             self._timestamps.clear()
@@ -95,7 +95,7 @@ class LRUCache:
             self._misses = 0
 
     def _is_expired(self, key: str) -> bool:
-        """Check if a key has expired"""
+        # Check if a key has expired
         if key not in self._ttls:
             return False
 
@@ -104,13 +104,13 @@ class LRUCache:
         return time.time() - timestamp > ttl
 
     def _remove_key(self, key: str) -> None:
-        """Remove key from all internal structures"""
+        # Remove key from all internal structures
         self._cache.pop(key, None)
         self._timestamps.pop(key, None)
         self._ttls.pop(key, None)
 
     def _cleanup_expired(self) -> None:
-        """Remove all expired items"""
+        # Remove all expired items
         expired_keys = []
         current_time = time.time()
 
@@ -125,7 +125,7 @@ class LRUCache:
             self._remove_key(key)
 
     def get_stats(self) -> Dict[str, Any]:
-        """Get cache statistics"""
+        # Get cache statistics
         with self._lock:
             total_requests = self._hits + self._misses
             hit_rate = (self._hits / total_requests * 100) if total_requests > 0 else 0
@@ -140,17 +140,17 @@ class LRUCache:
             }
 
     def size(self) -> int:
-        """Get current cache size"""
+        # Get current cache size
         return len(self._cache)
 
 
 class CheckpointCache:
-    """Specialized cache for checkpoint metadata and lightweight data - optimized"""
+    # Specialized cache for checkpoint metadata and lightweight data - optimized
 
     def __init__(
         self, max_size: int = 500, metadata_ttl: float = 3600, data_ttl: float = 1800
     ):
-        """Initialize optimized checkpoint cache with efficient key prefixes"""
+        # Initialize optimized checkpoint cache with efficient key prefixes
         # Optimized: pre-allocate caches with efficient sizing
         self.metadata_cache = LRUCache(
             max_size >> 1, metadata_ttl
@@ -163,23 +163,23 @@ class CheckpointCache:
         self._data_prefix = "d:"
 
     def get_checkpoint_metadata(self, checkpoint_id: str) -> Optional[Dict[str, Any]]:
-        """Get cached checkpoint metadata - optimized key formatting"""
+        # Get cached checkpoint metadata - optimized key formatting
         return self.metadata_cache.get(self._metadata_prefix + checkpoint_id)
 
     def set_checkpoint_metadata(
         self, checkpoint_id: str, metadata: Dict[str, Any]
     ) -> None:
-        """Cache checkpoint metadata - optimized key formatting"""
+        # Cache checkpoint metadata - optimized key formatting
         self.metadata_cache.set(self._metadata_prefix + checkpoint_id, metadata)
 
     def get_checkpoint_data(self, checkpoint_id: str) -> Optional[Dict[str, Any]]:
-        """Get cached checkpoint data - optimized key formatting"""
+        # Get cached checkpoint data - optimized key formatting
         return self.data_cache.get(self._data_prefix + checkpoint_id)
 
     def set_checkpoint_data(
         self, checkpoint_id: str, data: Dict[str, Any], max_size_mb: float = 50
     ) -> bool:
-        """Cache checkpoint data if small enough - optimized size estimation"""
+        # Cache checkpoint data if small enough - optimized size estimation
         try:
             # Optimized: estimate size without full serialization for large objects
             import sys
@@ -201,33 +201,33 @@ class CheckpointCache:
             return False
 
     def get_query_result(self, query_hash: str) -> Optional[Any]:
-        """Get cached query result"""
+        # Get cached query result
         return self.query_cache.get(query_hash)
 
     def set_query_result(self, query_hash: str, result: Any) -> None:
-        """Cache query result"""
+        # Cache query result
         self.query_cache.set(query_hash, result)
 
     def create_query_hash(self, query_params: Dict[str, Any]) -> str:
-        """Create a hash for query parameters"""
+        # Create a hash for query parameters
         # Sort parameters for consistent hashing
         sorted_params = sorted(query_params.items())
         param_str = str(sorted_params)
         return hashlib.md5(param_str.encode()).hexdigest()
 
     def invalidate_checkpoint(self, checkpoint_id: str) -> None:
-        """Invalidate all cached data for a checkpoint"""
+        # Invalidate all cached data for a checkpoint
         self.metadata_cache.delete(self._metadata_prefix + checkpoint_id)
         self.data_cache.delete(self._data_prefix + checkpoint_id)
 
     def invalidate_experiment(self, experiment_id: str) -> None:
-        """Invalidate all cached data related to an experiment"""
+        # Invalidate all cached data related to an experiment
         # This is a simple implementation - in practice, you might want
         # to track experiment->checkpoint relationships for efficient invalidation
         self.query_cache.clear()
 
     def get_statistics(self) -> Dict[str, Any]:
-        """Get comprehensive cache statistics"""
+        # Get comprehensive cache statistics
         return {
             "metadata_cache": self.metadata_cache.get_stats(),
             "data_cache": self.data_cache.get_stats(),
@@ -241,7 +241,7 @@ class CheckpointCache:
 
 
 class ExperimentCache:
-    """Specialized cache for experiment tracking data"""
+    # Specialized cache for experiment tracking data
 
     def __init__(self, max_size: int = 1000, default_ttl: float = 1800):
         """
@@ -254,39 +254,39 @@ class ExperimentCache:
         self.cache = LRUCache(max_size, default_ttl)
 
     def get_experiment_metadata(self, experiment_id: str) -> Optional[Dict[str, Any]]:
-        """Get cached experiment metadata"""
+        # Get cached experiment metadata
         return self.cache.get(f"exp_meta:{experiment_id}")
 
     def set_experiment_metadata(
         self, experiment_id: str, metadata: Dict[str, Any]
     ) -> None:
-        """Cache experiment metadata"""
+        # Cache experiment metadata
         self.cache.set(f"exp_meta:{experiment_id}", metadata)
 
     def get_metrics_data(
         self, experiment_id: str, metric_filter: str = ""
     ) -> Optional[List[Dict]]:
-        """Get cached metrics data"""
+        # Get cached metrics data
         cache_key = f"metrics:{experiment_id}:{metric_filter}"
         return self.cache.get(cache_key)
 
     def set_metrics_data(
         self, experiment_id: str, metrics: List[Dict], metric_filter: str = ""
     ) -> None:
-        """Cache metrics data"""
+        # Cache metrics data
         cache_key = f"metrics:{experiment_id}:{metric_filter}"
         self.cache.set(cache_key, metrics)
 
     def get_statistics(self, experiment_id: str) -> Optional[Dict[str, Any]]:
-        """Get cached experiment statistics"""
+        # Get cached experiment statistics
         return self.cache.get(f"stats:{experiment_id}")
 
     def set_statistics(self, experiment_id: str, stats: Dict[str, Any]) -> None:
-        """Cache experiment statistics"""
+        # Cache experiment statistics
         self.cache.set(f"stats:{experiment_id}", stats)
 
     def invalidate_experiment(self, experiment_id: str) -> None:
-        """Invalidate all cached data for an experiment"""
+        # Invalidate all cached data for an experiment
         # Remove all keys that start with this experiment ID
         keys_to_remove = []
         for key in self.cache._cache.keys():
@@ -297,12 +297,12 @@ class ExperimentCache:
             self.cache.delete(key)
 
     def get_cache_stats(self) -> Dict[str, Any]:
-        """Get cache statistics"""
+        # Get cache statistics
         return self.cache.get_stats()
 
 
 class CacheManager:
-    """Central cache management system"""
+    # Central cache management system
 
     def __init__(
         self, checkpoint_cache_size: int = 500, experiment_cache_size: int = 1000
@@ -318,14 +318,14 @@ class CacheManager:
         self.experiment_cache = ExperimentCache(experiment_cache_size)
 
     def clear_all(self) -> None:
-        """Clear all caches"""
+        # Clear all caches
         self.checkpoint_cache.metadata_cache.clear()
         self.checkpoint_cache.data_cache.clear()
         self.checkpoint_cache.query_cache.clear()
         self.experiment_cache.cache.clear()
 
     def get_global_statistics(self) -> Dict[str, Any]:
-        """Get statistics for all caches"""
+        # Get statistics for all caches
         checkpoint_stats = self.checkpoint_cache.get_statistics()
         experiment_stats = self.experiment_cache.get_cache_stats()
 
@@ -339,7 +339,7 @@ class CacheManager:
         }
 
     def _estimate_memory_efficiency(self) -> Dict[str, Any]:
-        """Estimate memory efficiency of caching"""
+        # Estimate memory efficiency of caching
         # This is a simplified estimation
         checkpoint_stats = self.checkpoint_cache.get_statistics()
         experiment_stats = self.experiment_cache.get_cache_stats()
