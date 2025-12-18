@@ -9,6 +9,7 @@ required by pose-estimation-vit and core-export projects.
 import sys
 from pathlib import Path
 
+
 def test_core_imports():
     """Test that all required imports work."""
     print("Testing Core Imports...")
@@ -21,7 +22,9 @@ def test_core_imports():
         return False
     
     try:
-        from model_checkpoint.checkpoint.enhanced_manager import EnhancedCheckpointManager
+        from model_checkpoint.checkpoint.enhanced_manager import (
+            EnhancedCheckpointManager,
+        )
         print("  ✓ EnhancedCheckpointManager")
     except ImportError as e:
         print(f"  ✗ EnhancedCheckpointManager: {e}")
@@ -71,7 +74,7 @@ def test_basic_functionality():
     
     try:
         from model_checkpoint import ExperimentTracker
-        
+
         # Create tracker
         tracker = ExperimentTracker(
             experiment_name="test",
@@ -92,7 +95,7 @@ def test_basic_functionality():
     
     try:
         from model_checkpoint.hooks.base_hook import BaseHook, HookContext
-        
+
         # Create test hook
         class TestHook(BaseHook):
             def on_epoch_end(self, context: HookContext):

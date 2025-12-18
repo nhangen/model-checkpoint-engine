@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-
 from model_checkpoint.api.base_api import APIResponse, BaseAPI, HTTPMethod
 from model_checkpoint.api.flask_integration import FlaskCheckpointAPI
 from model_checkpoint.config.config_manager import ConfigManager

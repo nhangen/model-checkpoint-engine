@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-
 from model_checkpoint.analytics.metrics_collector import MetricsCollector
 from model_checkpoint.analytics.model_selector import BestModelSelector
 

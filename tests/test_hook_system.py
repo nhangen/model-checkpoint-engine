@@ -4,7 +4,6 @@ import time
 from unittest.mock import MagicMock, Mock
 
 import pytest
-
 from model_checkpoint.hooks import (
     BaseHook,
     HookContext,

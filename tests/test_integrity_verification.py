@@ -6,7 +6,6 @@ import shutil
 import tempfile
 
 import pytest
-
 from model_checkpoint.database.enhanced_connection import EnhancedDatabaseConnection
 from model_checkpoint.database.models import Checkpoint
 from model_checkpoint.integrity import (

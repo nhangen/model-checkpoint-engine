@@ -7,7 +7,6 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
-
 from model_checkpoint.database.enhanced_connection import EnhancedDatabaseConnection
 from model_checkpoint.database.models import Checkpoint, Experiment, Metric
 from model_checkpoint.performance import (

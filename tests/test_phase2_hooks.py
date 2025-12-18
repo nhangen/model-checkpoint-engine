@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 import torch
-
 from model_checkpoint.hooks.base_hook import BaseHook, HookContext
 from model_checkpoint.hooks.checkpoint_strategies import (
     BestModelSelectionHook,

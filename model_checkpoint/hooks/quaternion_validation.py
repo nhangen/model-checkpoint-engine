@@ -10,7 +10,6 @@ from typing import Any, Dict, Optional, Union
 
 import numpy as np
 import torch
-
 from model_checkpoint.hooks.base_hook import BaseHook, HookContext
 from model_checkpoint.hooks.hook_manager import HookEvent
 

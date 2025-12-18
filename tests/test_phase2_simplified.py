@@ -1,7 +1,6 @@
 # Simplified tests for Phase 2 components
 
 import pytest
-
 from model_checkpoint.analytics.metrics_collector import MetricsCollector
 from model_checkpoint.analytics.model_selector import BestModelSelector
 

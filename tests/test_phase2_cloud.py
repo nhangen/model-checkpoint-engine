@@ -7,7 +7,6 @@ from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
-
 from model_checkpoint.cloud.base_provider import BaseCloudProvider
 from model_checkpoint.cloud.s3_provider import S3Provider
 
