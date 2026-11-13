@@ -73,3 +73,42 @@ corruption detection, rejected code-execution payloads, all62 original enum IDs,
 real REST metadata/delete/auth/cache behavior, and safetensors retention/deletion.
 Model smoke tests and transport stubs establish execution, not model accuracy,
 generalization, live AWS interoperability or a global security audit.
+
+## Explicit legacy conversion
+
+Ordinary pose resume/inference uses the restricted reader and never calls this
+converter automatically. For a supported legacy tensor/state-dict checkpoint
+whose provenance you trust:
+
+```sh
+python -m model_checkpoint.migration.convert_legacy \
+  --input /path/to/trusted-legacy-file \
+  --output /path/to/new-checkpoint.pt --trust-input
+```
+
+**This opt-in conversion can execute arbitrary Python code from the input.**
+It does not make untrusted pickle safe. The guard runs before input I/O or
+unpickling and the warning is printed before deserialization. There is no
+environment variable, remembered trust decision or automatic fallback. Originals
+and existing outputs are preserved. The supported converted tensor, optimizer,
+scheduler and primitive metadata are verified with restricted loading before an
+atomic, exclusive output publication. Unsupported objects/mapping attributes fail
+instead of being silently discarded; the result must not be claimed to preserve
+arbitrary Python object semantics.
+
+The converter intentionally contains unrestricted read operations behind this
+explicit opt-in. Their static security findings are not suppressed; this is not
+a claim that a global engine Bandit scan is clean. Normal pose loading has no
+unrestricted read or converter call. Existing generic legacy core/adapters have
+separate security issues that this bounded downstream repair does not conceal.
+
+The restricted checkpoint feature requires stable **Torch>=2.15.0** (and thus
+Python3.11+ for current Torch wheels). Metadata APIs are not given a new global
+Python floor. Install `requirements-restricted.txt` or the
+`restricted-checkpoints` extra for this feature. A runtime guard rejects older
+or unrecognized/prerelease versions before deserialization, including conversion
+preflight. The dependency constraint alone is insufficient for existing installs.
+The floor addresses the official [restricted-loader RCE advisory](https://github.com/pytorch/pytorch/security/advisories/GHSA-63cw-57p8-fm3p)
+and [file-disclosure advisory](https://github.com/pytorch/pytorch/security/advisories/GHSA-v32g-mr63-3j83).
+This is a known-patch minimum, not a promise that arbitrary model files are free
+of resource-exhaustion or future library risks.

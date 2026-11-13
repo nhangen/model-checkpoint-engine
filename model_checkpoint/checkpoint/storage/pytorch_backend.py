@@ -15,6 +15,7 @@ except ImportError:
     torch = None
 
 from ...utils.checksum import calculate_file_checksum
+from ...utils.serialization_runtime import require_restricted_loader_runtime
 from .base_backend import BaseStorageBackend
 
 
@@ -124,6 +125,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
         Returns:
             Dictionary containing checkpoint data
         """
+        require_restricted_loader_runtime()
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Checkpoint file not found: {file_path}")
 
@@ -231,6 +233,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
         self, file_path: str, device: Optional[Any] = None
     ) -> Dict[str, Any]:
         # Load using safetensors for the model state
+        require_restricted_loader_runtime()
         # Load main checkpoint
         checkpoint_data = torch.load(file_path, map_location="cpu", weights_only=True)
 
@@ -253,6 +256,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
 
     def _is_safetensors_file(self, file_path: str) -> bool:
         # Check if checkpoint was saved with safetensors
+        require_restricted_loader_runtime()
         try:
             checkpoint_data = torch.load(
                 file_path, map_location="cpu", weights_only=True
@@ -267,7 +271,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
 
     def get_model_info(self, file_path: str) -> Dict[str, Any]:
         """
-        Extract model information without loading full checkpoint
+        Extract model information through the guarded backend reader
 
         Args:
             file_path: Path to checkpoint file
@@ -275,11 +279,10 @@ class PyTorchStorageBackend(BaseStorageBackend):
         Returns:
             Dictionary with model metadata
         """
+        require_restricted_loader_runtime()
         try:
-            # Load only metadata without tensors for efficiency
-            checkpoint_data = torch.load(
-                file_path, map_location="cpu", weights_only=True
-            )
+            # Read through the same guarded backend, including any weight sidecar
+            checkpoint_data = self.load_checkpoint(file_path, device="cpu")
 
             info = {
                 "has_model_state": "model_state_dict" in checkpoint_data,

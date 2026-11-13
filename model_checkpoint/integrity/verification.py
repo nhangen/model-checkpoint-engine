@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from .checksum import ChecksumCalculator, IntegrityTracker
+from ..utils.serialization_runtime import require_restricted_loader_runtime
 
 
 class CheckpointVerifier:
@@ -254,6 +255,7 @@ class CheckpointVerifier:
         import torch
 
         try:
+            require_restricted_loader_runtime()
             # Quick load test - just check if PyTorch can read the file structure
             checkpoint_data = torch.load(
                 file_path, map_location="cpu", weights_only=True
