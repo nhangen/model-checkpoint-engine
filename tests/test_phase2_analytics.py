@@ -1,13 +1,14 @@
 # Tests for Phase 2 - Advanced Analytics Features
 
-import json
-import tempfile
-from pathlib import Path
-from unittest.mock import Mock, patch
 
 import pytest
+
 from model_checkpoint.analytics.metrics_collector import MetricsCollector
-from model_checkpoint.analytics.model_selector import BestModelSelector
+from model_checkpoint.analytics.model_selector import (
+    BestModelSelector,
+    SelectionConfig,
+    SelectionCriteria,
+)
 
 
 class TestMetricsCollector:
@@ -39,19 +40,19 @@ class TestMetricsCollector:
 
     def test_get_latest_metrics(self, collector):
         # Test getting latest metrics
-        collector.add_metric("accuracy", 0.8, step=1)
-        collector.add_metric("accuracy", 0.9, step=2)
-        collector.add_metric("accuracy", 0.95, step=3)
+        collector.collect_metric("accuracy", 0.8, step=1)
+        collector.collect_metric("accuracy", 0.9, step=2)
+        collector.collect_metric("accuracy", 0.95, step=3)
 
-        latest = collector.get_latest("accuracy")
+        latest = collector.get_aggregated_metric("accuracy")["value"]
         assert latest == 0.95
 
     def test_export_metrics(self, collector):
         # Test metrics export
-        collector.add_metric("loss", 0.5, step=1)
-        collector.add_metric("accuracy", 0.9, step=1)
+        collector.collect_metric("loss", 0.5, step=1)
+        collector.collect_metric("accuracy", 0.9, step=1)
 
-        exported = collector.export()
+        exported = collector.export_metrics(format_type="dict")["metrics"]
         assert "loss" in exported
         assert "accuracy" in exported
         assert len(exported["loss"]) == 1
@@ -73,36 +74,49 @@ class TestBestModelSelector:
 class TestPhase2Integration:
     # Test integration of Phase 2 components
 
-    def test_analytics_pipeline(self):
-        # Test complete analytics pipeline
-        collector = MetricsCollector()
-        selector = ModelSelector()
-        detector = BestModelDetector()
+    def test_analytics_pipeline(self, tmp_path):
+        import torch
 
-        # Simulate training loop
+        from model_checkpoint import EnhancedCheckpointManager
+
+        collector = MetricsCollector(auto_persist=False)
+        manager = EnhancedCheckpointManager(
+            checkpoint_dir=str(tmp_path / "checkpoints"),
+            database_url=f"sqlite:///{tmp_path / 'db.sqlite'}",
+            enable_integrity_checks=False,
+        )
+        manager.experiment_id = "pipeline"
+        ids = []
         for epoch in range(5):
             loss = 1.0 - epoch * 0.2
-            acc = 0.5 + epoch * 0.1
-
-            # Collect metrics
-            collector.add_metric("loss", loss, step=epoch)
-            collector.add_metric("accuracy", acc, step=epoch)
-
-            # Add to selector
-            model_id = f"epoch_{epoch}"
-            selector.add_model(model_id, {"loss": loss, "accuracy": acc})
-
-            # Check if best
-            is_best = detector.update(model_id, loss, "loss")
-
-            if epoch == 4:  # Last epoch
-                # Get best model
-                best = selector.select_best(metric="loss", mode="min")
-                assert best["model_id"] == "epoch_4"
-
-                # Check aggregated metrics
-                avg_loss = collector.aggregate_metric("loss", method="mean")
-                assert avg_loss == pytest.approx(0.6, rel=1e-2)
+            collector.collect_metric("loss", loss, step=epoch, epoch=epoch + 1)
+            collector.collect_metric(
+                "accuracy", 0.5 + epoch * 0.1, step=epoch, epoch=epoch + 1
+            )
+            ids.append(
+                manager.save_checkpoint(
+                    torch.nn.Linear(1, 1),
+                    epoch=epoch + 1,
+                    step=epoch,
+                    loss=loss,
+                    metrics={"loss": loss, "accuracy": 0.5 + epoch * 0.1},
+                )
+            )
+        selector = BestModelSelector(db_connection=manager.db)
+        selected = selector.select_best_model(
+            "pipeline",
+            SelectionConfig(
+                criteria=SelectionCriteria.SINGLE_METRIC,
+                primary_metric="loss",
+                require_validation=False,
+            ),
+        )
+        assert selected is not None and selected.checkpoint_id == ids[-1]
+        assert selected.metrics["loss"] == pytest.approx(0.2)
+        assert collector.get_aggregated_metric("loss")["statistics"][
+            "mean"
+        ] == pytest.approx(0.6)
+        assert len(manager.db.get_checkpoints_by_experiment("pipeline")) == 5
 
     def test_zero_redundancy_optimization(self):
         # Test that Phase 2 components follow zero redundancy principle

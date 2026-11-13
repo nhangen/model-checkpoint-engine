@@ -2,12 +2,12 @@
 
 import json
 import tempfile
-import time
 from pathlib import Path
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock
 
 import pytest
 import torch
+
 from model_checkpoint.hooks.base_hook import BaseHook, HookContext
 from model_checkpoint.hooks.checkpoint_strategies import (
     BestModelSelectionHook,
@@ -169,15 +169,28 @@ class TestGridProgressHook:
 
     def test_progress_logging(self, progress_hook, temp_dir):
         # Test progress logging functionality
-        # Mock context with checkpoint save (available event)
-        context = Mock(spec=HookContext)
-        context.event = HookEvent.BEFORE_CHECKPOINT_SAVE
-        context.get = Mock(return_value={"experiment_id": "test_exp"})
-
-        # Call handle method
-        progress_hook.handle(context)
-
-        # Should not raise exception
+        progress_hook.on_init()
+        progress_hook.handle(
+            HookContext(
+                event=HookEvent.EXPERIMENT_START,
+                experiment_id="test_exp",
+                data={"config": {"epochs": 2}},
+            )
+        )
+        progress_hook.handle(
+            HookContext(
+                event=HookEvent.AFTER_CHECKPOINT_SAVE,
+                experiment_id="test_exp",
+                data={"loss": 0.5},
+            )
+        )
+        entries = [
+            json.loads(line)
+            for line in Path(progress_hook.progress_file).read_text().splitlines()
+        ]
+        assert entries[0]["event"] == "experiment_start"
+        assert entries[-1]["progress"]["experiment_id"] == "test_exp"
+        assert progress_hook.progress_data["checkpoints_saved"] == 1
 
     def test_heartbeat_functionality(self, progress_hook):
         # Test heartbeat monitoring

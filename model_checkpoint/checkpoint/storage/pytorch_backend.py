@@ -1,9 +1,13 @@
 # PyTorch-optimized storage backend for efficient checkpoint handling
 
+import copy
 import os
 import time
+from collections import OrderedDict
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
+
+import numpy as np
 
 try:
     import torch
@@ -12,6 +16,21 @@ except ImportError:
 
 from ...utils.checksum import calculate_file_checksum
 from .base_backend import BaseStorageBackend
+
+
+def _native_scalars(value):
+    """Preserve tensor state while making NumPy scalar metadata restricted-loadable."""
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {
+            _native_scalars(key): _native_scalars(item) for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_native_scalars(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_native_scalars(item) for item in value)
+    return value
 
 
 class PyTorchStorageBackend(BaseStorageBackend):
@@ -50,6 +69,11 @@ class PyTorchStorageBackend(BaseStorageBackend):
     ) -> Dict[str, Any]:
         # Save checkpoint using PyTorch's optimized format - streamlined implementation
         start_time = time.time()
+        checkpoint_data = copy.copy(checkpoint_data)
+        # Model/optimizer/scheduler state and OrderedDict._metadata stay intact.
+        for key in ("metrics", "config", "loss", "val_loss", "epoch", "step"):
+            if key in checkpoint_data:
+                checkpoint_data[key] = _native_scalars(checkpoint_data[key])
 
         try:
             # Optimized: create directory once and handle exceptions efficiently
@@ -63,7 +87,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
                 torch.save(
                     checkpoint_data,
                     file_path,
-                    pickle_protocol=4,
+                    pickle_protocol=2,
                     _use_new_zipfile_serialization=self.compression,
                 )
 
@@ -107,14 +131,22 @@ class PyTorchStorageBackend(BaseStorageBackend):
 
         try:
             # Use safetensors for loading if the file was saved with it
-            if self.use_safetensors and self._is_safetensors_file(file_path):
+            if self._is_safetensors_file(file_path):
+                if not hasattr(self, "_safetensors"):
+                    import safetensors.torch
+
+                    self._safetensors = safetensors.torch
                 checkpoint_data = self._load_with_safetensors(file_path, device)
             else:
                 # Standard PyTorch load
                 if device is not None:
-                    checkpoint_data = torch.load(file_path, map_location=device)
+                    checkpoint_data = torch.load(
+                        file_path, map_location=device, weights_only=True
+                    )
                 else:
-                    checkpoint_data = torch.load(file_path, map_location="cpu")
+                    checkpoint_data = torch.load(
+                        file_path, map_location="cpu", weights_only=True
+                    )
 
             load_time = time.time() - start_time
 
@@ -131,6 +163,10 @@ class PyTorchStorageBackend(BaseStorageBackend):
             raise RuntimeError(
                 f"Failed to load checkpoint from {file_path}: {e}"
             ) from e
+
+    def get_checkpoint_files(self, file_path: str):
+        path = Path(file_path)
+        return [path, path.with_name(path.stem + "_model.safetensors")]
 
     def get_file_extension(self) -> str:
         # Get the file extension for PyTorch checkpoints
@@ -150,8 +186,9 @@ class PyTorchStorageBackend(BaseStorageBackend):
             return False
 
         try:
-            # Try to load just the keys to verify file integrity
-            checkpoint_data = torch.load(file_path, map_location="cpu")
+            # Verification must exercise the actual backend, including an
+            # adjacent safetensors weight file when metadata declares one.
+            checkpoint_data = self.load_checkpoint(file_path, device="cpu")
 
             # Basic validation - ensure it's a dictionary
             if not isinstance(checkpoint_data, dict):
@@ -178,7 +215,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
         model_state = checkpoint_data.get("model_state_dict", {})
 
         # Save model state with safetensors
-        safetensors_path = file_path.replace(".pth", "_model.safetensors")
+        safetensors_path = str(self.get_checkpoint_files(file_path)[1])
         self._safetensors.save_file(model_state, safetensors_path)
 
         # Save rest with standard PyTorch (excluding model state)
@@ -186,6 +223,8 @@ class PyTorchStorageBackend(BaseStorageBackend):
             k: v for k, v in checkpoint_data.items() if k != "model_state_dict"
         }
         remaining_data["_safetensors_model_path"] = safetensors_path
+        if hasattr(model_state, "_metadata"):
+            remaining_data["_safetensors_state_metadata"] = model_state._metadata
         torch.save(remaining_data, file_path)
 
     def _load_with_safetensors(
@@ -193,20 +232,31 @@ class PyTorchStorageBackend(BaseStorageBackend):
     ) -> Dict[str, Any]:
         # Load using safetensors for the model state
         # Load main checkpoint
-        checkpoint_data = torch.load(file_path, map_location="cpu")
+        checkpoint_data = torch.load(file_path, map_location="cpu", weights_only=True)
 
         # Load model state from safetensors
-        safetensors_path = checkpoint_data.pop("_safetensors_model_path", None)
-        if safetensors_path and os.path.exists(safetensors_path):
-            model_state = self._safetensors.load_file(safetensors_path, device=device)
-            checkpoint_data["model_state_dict"] = model_state
+        checkpoint_data.pop("_safetensors_model_path", None)
+        # The writer owns this adjacent file; do not follow an arbitrary path
+        # embedded in untrusted checkpoint metadata.
+        safetensors_path = str(self.get_checkpoint_files(file_path)[1])
+        model_state = OrderedDict(
+            self._safetensors.load_file(
+                safetensors_path, device=str(device) if device is not None else "cpu"
+            )
+        )
+        metadata = checkpoint_data.pop("_safetensors_state_metadata", None)
+        if metadata is not None:
+            model_state._metadata = metadata
+        checkpoint_data["model_state_dict"] = model_state
 
         return checkpoint_data
 
     def _is_safetensors_file(self, file_path: str) -> bool:
         # Check if checkpoint was saved with safetensors
         try:
-            checkpoint_data = torch.load(file_path, map_location="cpu")
+            checkpoint_data = torch.load(
+                file_path, map_location="cpu", weights_only=True
+            )
             return "_safetensors_model_path" in checkpoint_data
         except Exception:
             return False
@@ -227,7 +277,9 @@ class PyTorchStorageBackend(BaseStorageBackend):
         """
         try:
             # Load only metadata without tensors for efficiency
-            checkpoint_data = torch.load(file_path, map_location="cpu")
+            checkpoint_data = torch.load(
+                file_path, map_location="cpu", weights_only=True
+            )
 
             info = {
                 "has_model_state": "model_state_dict" in checkpoint_data,

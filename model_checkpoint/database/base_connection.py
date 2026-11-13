@@ -4,7 +4,7 @@ import json
 import logging
 import sqlite3
 from contextlib import contextmanager
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from .models import Checkpoint, Experiment, Metric
 
@@ -291,3 +291,9 @@ class BaseDatabaseConnection:
                 metadata=json.loads(row[16]) if row[16] else {},
                 created_at=row[17],
             )
+
+    def delete_checkpoint(self, checkpoint_id: str) -> None:
+        """Remove a checkpoint row after its corresponding file is removed."""
+        with self._get_connection() as conn:
+            conn.execute("DELETE FROM checkpoints WHERE id = ?", (checkpoint_id,))
+            conn.commit()

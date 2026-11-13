@@ -1,13 +1,5 @@
-# Documentation generation and validation system
+"""Public exports backed by the installed implementation."""
 
-from .api_doc_generator import APIDocumentationGenerator
-from .doc_generator import DocumentationGenerator
-from .schema_generator import SchemaGenerator
-from .validation_engine import DocumentationValidator
+from .doc_generator import DocumentationGenerator, DocumentationType, OutputFormat
 
-__all__ = [
-    'DocumentationGenerator',
-    'APIDocumentationGenerator',
-    'DocumentationValidator',
-    'SchemaGenerator'
-]
+__all__ = ["DocumentationGenerator", "DocumentationType", "OutputFormat"]

@@ -1,6 +1,5 @@
 # Optimized S3 provider implementation - zero redundancy design
 
-import json
 from typing import Any, Dict, List, Optional
 
 from .base_provider import (
@@ -77,10 +76,10 @@ class S3Provider(BaseCloudProvider):
             }
 
             if metadata:
-                # S3 metadata keys must be lowercase and prefixed
+                # The SDK supplies the x-amz-meta prefix; metadata keys are plain lowercase keys
                 s3_metadata = {}
                 for key, value in metadata.items():
-                    s3_key = f"x-amz-meta-{key.lower().replace('_', '-')}"
+                    s3_key = key.lower().replace("_", "-")
                     s3_metadata[s3_key] = str(value)
                 extra_args["Metadata"] = s3_metadata
 

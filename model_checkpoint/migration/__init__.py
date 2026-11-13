@@ -1,15 +1,19 @@
-# Migration utilities for legacy checkpoint systems
+"""Public exports backed by the installed implementation."""
 
-from .data_migrator import DataMigrator
 from .legacy_adapters import LegacyKerasAdapter, LegacyPickleAdapter, LegacyTorchAdapter
-from .migration_manager import MigrationManager
-from .validation_engine import ValidationEngine
+from .migration_manager import (
+    LegacyCheckpoint,
+    LegacyFormat,
+    MigrationManager,
+    MigrationResult,
+)
 
 __all__ = [
-    'MigrationManager',
-    'LegacyTorchAdapter',
-    'LegacyKerasAdapter',
-    'LegacyPickleAdapter',
-    'DataMigrator',
-    'ValidationEngine'
+    "MigrationManager",
+    "LegacyFormat",
+    "LegacyCheckpoint",
+    "MigrationResult",
+    "LegacyKerasAdapter",
+    "LegacyPickleAdapter",
+    "LegacyTorchAdapter",
 ]

@@ -3,12 +3,13 @@
 import importlib.util
 import json
 import os
+import re
 import threading
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 
 def _current_time() -> float:
@@ -133,6 +134,7 @@ class PluginManager:
         self._lock = threading.Lock()
 
         # Optimized: Plugin loading state
+        self._loading_plugins = set()
         self._discovery_complete = False
         self._auto_load_enabled = True
 
@@ -278,7 +280,7 @@ class PluginManager:
                 return True
 
         except Exception:
-            return True  # Default to compatible if version parsing fails
+            return False
 
     def load_plugin(
         self, plugin_name: str, config: Optional[Dict[str, Any]] = None
@@ -304,6 +306,34 @@ class PluginManager:
                 return True  # Already loaded
 
         try:
+            with self._lock:
+                if plugin_name in self._loading_plugins:
+                    raise ValueError(
+                        f"Cyclic plugin dependency involving {plugin_name}"
+                    )
+                self._loading_plugins.add(plugin_name)
+            for dependency in plugin_info.metadata.dependencies:
+                requirement = re.fullmatch(
+                    r"([A-Za-z0-9_.-]+)(?:(>=|<=|==)([0-9]+(?:\.[0-9]+)*))?", dependency
+                )
+                if requirement is None:
+                    raise ValueError(
+                        f"Unsupported plugin dependency requirement: {dependency}"
+                    )
+                name, operator, version = requirement.groups()
+                with self._lock:
+                    required = self._plugins.get(name)
+                if required is None or (
+                    operator
+                    and not self._version_satisfies(
+                        required.metadata.version, version, operator
+                    )
+                ):
+                    raise ValueError(f"Unsatisfied plugin dependency: {dependency}")
+                if not self.load_plugin(name):
+                    raise ValueError(
+                        f"Cannot initialize plugin dependency: {dependency}"
+                    )
             # Load plugin module
             spec = importlib.util.spec_from_file_location(
                 f"plugin_{plugin_name}", plugin_info.file_path
@@ -364,6 +394,9 @@ class PluginManager:
 
             print(f"Failed to load plugin {plugin_name}: {e}")
             return False
+        finally:
+            with self._lock:
+                self._loading_plugins.discard(plugin_name)
 
     def unload_plugin(self, plugin_name: str) -> bool:
         """
