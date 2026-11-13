@@ -1,13 +1,12 @@
 # Batch operations for efficient bulk checkpoint and experiment management
 
-import queue
-import threading
+import json
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
-from ..database.models import Checkpoint, Experiment, Metric
+from ..database.models import Checkpoint, Metric
 
 
 class BatchProcessor:
@@ -245,8 +244,8 @@ class BatchProcessor:
                             checkpoint.is_best_loss,
                             checkpoint.is_best_val_loss,
                             checkpoint.is_best_metric,
-                            checkpoint.metrics,
-                            checkpoint.metadata,
+                            json.dumps(checkpoint.metrics),
+                            json.dumps(checkpoint.metadata),
                             checkpoint.created_at,
                         ),
                     )
@@ -541,7 +540,8 @@ class BulkDataExporter:
         start_time = time.time()
 
         try:
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+            output_files = [output_path]
 
             if format_type == "json":
                 with open(output_path, "w") as f:
@@ -553,17 +553,18 @@ class BulkDataExporter:
 
             elif format_type == "csv":
                 # For CSV, we'll need to flatten the data structure
-                self._save_as_csv(data, output_path)
+                output_files = self._save_as_csv(data, output_path)
 
             else:
                 raise ValueError(f"Unsupported format: {format_type}")
 
-            file_size = os.path.getsize(output_path)
+            file_size = sum(os.path.getsize(path) for path in output_files)
 
             return {
                 "success": True,
                 "output_path": output_path,
                 "file_size": file_size,
+                "output_files": output_files,
                 "format": format_type,
                 "save_time": time.time() - start_time,
             }
@@ -571,12 +572,12 @@ class BulkDataExporter:
         except Exception as e:
             return {"success": False, "error": str(e), "output_path": output_path}
 
-    def _save_as_csv(self, data: Dict[str, Any], output_path: str) -> None:
+    def _save_as_csv(self, data: Dict[str, Any], output_path: str) -> List[str]:
         # Save data as CSV files (multiple files for different data types)
         import csv
-        import os
 
         base_path = output_path.replace(".csv", "")
+        output_files = [f"{base_path}_experiments.csv", f"{base_path}_metrics.csv"]
 
         # Save experiments
         exp_path = f"{base_path}_experiments.csv"
@@ -637,6 +638,7 @@ class BulkDataExporter:
             if isinstance(exp_data, dict)
         ):
             ckpt_path = f"{base_path}_checkpoints.csv"
+            output_files.append(ckpt_path)
             with open(ckpt_path, "w", newline="") as f:
                 writer = csv.writer(f)
                 writer.writerow(
@@ -671,3 +673,5 @@ class BulkDataExporter:
                                     ckpt["created_at"],
                                 ]
                             )
+
+        return output_files

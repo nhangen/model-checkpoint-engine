@@ -1,0 +1,5 @@
+# CPU PyTorch is installed separately by the downstream local CI workflow.
+pytest>=7.4
+pytest-xdist>=3.6
+safetensors>=0.4
+PyYAML>=6

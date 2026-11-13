@@ -1,14 +1,17 @@
-# Plugin architecture for extensibility
+"""Public exports backed by the installed implementation."""
 
-from .base_plugin import BasePlugin, PluginMetadata
-from .plugin_loader import PluginLoader
-from .plugin_manager import PluginManager
-from .plugin_registry import PluginRegistry
+from .plugin_manager import (
+    BasePlugin,
+    PluginManager,
+    PluginMetadata,
+    PluginStatus,
+    PluginType,
+)
 
 __all__ = [
-    'PluginManager',
-    'BasePlugin',
-    'PluginMetadata',
-    'PluginRegistry',
-    'PluginLoader'
+    "BasePlugin",
+    "PluginManager",
+    "PluginMetadata",
+    "PluginType",
+    "PluginStatus",
 ]

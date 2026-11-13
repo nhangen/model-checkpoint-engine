@@ -75,6 +75,10 @@ class BaseStorageBackend(ABC):
         """
         pass
 
+    def get_checkpoint_files(self, file_path: str):
+        """Return deterministic backend-owned files, without deserializing metadata."""
+        return [Path(file_path)]
+
     def get_checkpoint_path(
         self,
         checkpoint_id: str,
