@@ -101,6 +101,10 @@ def _allowed_globals() -> dict:
     return allowed
 
 
+class UnsupportedLegacyObject(ValueError):
+    """The input references a global outside the restricted allow-list."""
+
+
 class SafeUnpickler(_pickle.Unpickler):
     """Restricted unpickler that resolves only enumerated reconstruction globals."""
 
@@ -116,7 +120,7 @@ class SafeUnpickler(_pickle.Unpickler):
         try:
             return self.SAFE_GLOBALS[(module, name)]
         except KeyError:
-            raise ValueError(
+            raise UnsupportedLegacyObject(
                 f"Unsupported legacy object: {module}.{name}; no output was published"
             ) from None
 
@@ -155,22 +159,13 @@ def _is_legacy_torch_stream(stream: io.BufferedReader) -> bool:
     return head[offset:].startswith(_MAGIC_HEADERS)
 
 
-_LOAD_ERRORS = (
-    _pickle.UnpicklingError,
-    RuntimeError,
-    AttributeError,
-    EOFError,
-    TypeError,
-    KeyError,
-    IndexError,
-)
-
-
 def _load_restricted_checkpoint(source: Path) -> Any:
     """Load a checkpoint container using the safe restricted unpickler."""
     try:
         return _load_container(source)
-    except _LOAD_ERRORS as exc:
+    except UnsupportedLegacyObject:
+        raise
+    except Exception as exc:
         # Torch's own message advises retrying with weights_only=False.
         raise ValueError(
             f"Unsupported legacy input ({type(exc).__name__}); no output was published"
@@ -253,7 +248,8 @@ def convert_checkpoint(
     loaded = _load_restricted_checkpoint(source)
     if not isinstance(loaded, dict):
         raise ValueError(
-            "Legacy conversion requires a checkpoint or state-dict mapping"
+            "Legacy conversion requires a checkpoint or state-dict mapping; "
+            "no output was published"
         )
     data = _restricted_values(loaded)
     # Preserve legacy keys while making supported pose resume/inference aliases
@@ -275,7 +271,8 @@ def convert_checkpoint(
             torch.load(temporary, map_location="cpu", weights_only=True)
         except Exception as exc:
             raise ValueError(
-                f"Converted data is not supported by the restricted reader: {exc}"
+                "Converted data is not supported by the restricted reader "
+                f"({type(exc).__name__}); no output was published"
             ) from exc
         # Atomic and exclusive: no existing target can be replaced in a race.
         os.link(temporary, target)

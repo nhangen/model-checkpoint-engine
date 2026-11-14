@@ -323,3 +323,28 @@ def test_conversion_preserves_quantized_meta_and_untyped_dtype_tensors(
     if untyped:
         assert loaded["float8"].dtype is torch.float8_e4m3fn
         assert torch.equal(loaded["uint16"], data["uint16"])
+
+
+@pytest.mark.parametrize("format_name", ["torch-zip", "torch-legacy", "raw-pickle"])
+def test_corrupt_inputs_are_reported_without_publishing(tmp_path, format_name):
+    source = tmp_path / "legacy.pt"
+    _write_legacy(source, {"w": torch.ones(4), "epoch": 1}, format_name, 2)
+    good = source.read_bytes()
+    seen = set()
+    for cut in range(1, len(good), max(1, len(good) // 40)):
+        for blob in (
+            good[:cut],
+            good[:cut] + bytes([good[cut] ^ 0xFF]) + good[cut + 1 :],
+        ):
+            source.write_bytes(blob)
+            target = tmp_path / f"out-{len(seen)}.pt"
+            try:
+                convert_checkpoint(str(source), str(target), trusted_input=True)
+            except ValueError as exc:
+                if "no output was published" not in str(exc):
+                    seen.add(f"ValueError without marker: {exc}")
+            except Exception as exc:  # noqa: BLE001 - the assertion is the point
+                seen.add(type(exc).__name__)
+            else:
+                target.unlink()
+    assert not seen
