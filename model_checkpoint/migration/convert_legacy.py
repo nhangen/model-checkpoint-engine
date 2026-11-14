@@ -126,17 +126,24 @@ class SafePickleModule:
         return SafeUnpickler(io.BytesIO(data), **kwargs).load()
 
 
+_MAGIC = torch.serialization.MAGIC_NUMBER
+_MAGIC_HEADERS = (
+    b"\x8a\x0a" + _MAGIC.to_bytes(10, "little", signed=True),
+    b"L%dL\n" % _MAGIC,
+)
+
+
 def _is_legacy_torch_stream(stream: io.BufferedReader) -> bool:
-    """Identify legacy non-zip torch checkpoint header by its magic number."""
+    """Identify a legacy non-zip torch checkpoint by its magic-number header."""
     pos = stream.tell()
-    try:
-        u = SafeUnpickler(stream)
-        obj = u.load()
-        return obj == torch.serialization.MAGIC_NUMBER
-    except Exception:
-        return False
-    finally:
-        stream.seek(pos)
+    head = stream.read(64)
+    stream.seek(pos)
+    offset = 0
+    if head[:1] == b"\x80":
+        offset = 2
+        if head[offset : offset + 1] == b"\x95":
+            offset += 9
+    return head[offset:].startswith(_MAGIC_HEADERS)
 
 
 _LOAD_ERRORS = (

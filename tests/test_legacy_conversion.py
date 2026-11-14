@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 import torch
 
+from model_checkpoint.migration import convert_legacy
 from model_checkpoint.migration.convert_legacy import (
     SafeUnpickler,
     TrustedInputRequired,
@@ -252,3 +253,19 @@ def test_cli_reports_nested_malicious_storage_without_traceback(tmp_path, capsys
     assert error.value.code == 2
     assert "no output was published" in err and "weights_only" not in err
     assert not marker.exists() and not target.exists()
+
+
+@pytest.mark.parametrize("protocol", [0, 1, 2, 3, 4, 5])
+def test_legacy_header_detection_reads_bytes_only(tmp_path, monkeypatch, protocol):
+    legacy, raw = tmp_path / "legacy.pt", tmp_path / "raw.pkl"
+    torch.save(
+        {"a": 1}, legacy, pickle_protocol=protocol, _use_new_zipfile_serialization=False
+    )
+    raw.write_bytes(pickle.dumps({"a": 1}, protocol=protocol))
+    unpickler = Mock(side_effect=AssertionError("detection must not unpickle"))
+    monkeypatch.setattr(convert_legacy, "SafeUnpickler", unpickler)
+    with legacy.open("rb") as stream:
+        assert convert_legacy._is_legacy_torch_stream(stream) and stream.tell() == 0
+    with raw.open("rb") as stream:
+        assert not convert_legacy._is_legacy_torch_stream(stream)
+    unpickler.assert_not_called()
