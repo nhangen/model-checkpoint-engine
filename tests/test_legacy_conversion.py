@@ -87,13 +87,11 @@ def test_default_rejects_malicious_file_before_deserialization(tmp_path, monkeyp
 
     source = tmp_path / "untrusted.pkl"
     source.write_bytes(pickle.dumps(Payload(), protocol=4))
-    torch_reader, pickle_reader = Mock(), Mock()
-    monkeypatch.setattr(torch, "load", torch_reader)
-    monkeypatch.setattr(pickle, "load", pickle_reader)
+    reader = Mock()
+    monkeypatch.setattr(convert_legacy, "_load_container", reader)
     with pytest.raises(TrustedInputRequired, match="arbitrary Python code"):
         convert_checkpoint(str(source), str(tmp_path / "new.pt"))
-    torch_reader.assert_not_called()
-    pickle_reader.assert_not_called()
+    reader.assert_not_called()
     assert not marker.exists() and not (tmp_path / "new.pt").exists()
 
 
@@ -122,7 +120,7 @@ def test_trusted_conversion_rejects_malicious_input_without_execution(
             _use_new_zipfile_serialization=format_name == "torch-zip4",
         )
     original = source.read_bytes()
-    with pytest.raises(ValueError, match="Unsupported legacy object"):
+    with pytest.raises(ValueError, match=r"Unsupported legacy object: builtins\.eval"):
         convert_checkpoint(str(source), str(target), trusted_input=True)
     assert not marker.exists()
     assert not target.exists()
@@ -131,7 +129,7 @@ def test_trusted_conversion_rejects_malicious_input_without_execution(
 
 def test_cli_requires_explicit_opt_in(tmp_path, monkeypatch, capsys):
     reader = Mock()
-    monkeypatch.setattr(torch, "load", reader)
+    monkeypatch.setattr(convert_legacy, "_load_container", reader)
     with pytest.raises(SystemExit) as error:
         main(
             [
@@ -150,7 +148,7 @@ def test_existing_output_is_preserved_without_reading_input(tmp_path, monkeypatc
     target = tmp_path / "existing.pt"
     target.write_bytes(b"preserve")
     reader = Mock()
-    monkeypatch.setattr(torch, "load", reader)
+    monkeypatch.setattr(convert_legacy, "_load_container", reader)
     with pytest.raises(FileExistsError):
         convert_checkpoint(
             str(tmp_path / "not-opened"), str(target), trusted_input=True
