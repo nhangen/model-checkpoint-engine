@@ -9,6 +9,9 @@ The result is re-serialized with a restricted protocol and verified with
 weights_only=True before atomic publication.
 """
 
+import _codecs
+import _compat_pickle
+import _pickle
 import argparse
 import collections
 import io
@@ -19,9 +22,6 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-import _codecs
-import _compat_pickle
-import _pickle
 import numpy as np
 import torch
 import torch.serialization

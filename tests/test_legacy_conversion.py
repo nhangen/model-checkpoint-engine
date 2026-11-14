@@ -171,21 +171,35 @@ def test_unsupported_metadata_is_not_silently_discarded(tmp_path):
 
 def test_allow_list_is_enumerated():
     non_dtype = {
-        key for key, value in SafeUnpickler.SAFE_GLOBALS.items()
+        key
+        for key, value in SafeUnpickler.SAFE_GLOBALS.items()
         if not isinstance(value, torch.dtype)
     }
     storages = {
         ("torch", f"{kind}Storage")
         for kind in (
-            "BFloat16", "Bool", "Byte", "Char", "ComplexDouble", "ComplexFloat",
-            "Double", "Float", "Half", "Int", "Long", "Short",
+            "BFloat16",
+            "Bool",
+            "Byte",
+            "Char",
+            "ComplexDouble",
+            "ComplexFloat",
+            "Double",
+            "Float",
+            "Half",
+            "Int",
+            "Long",
+            "Short",
         )
     }
     rebuilds = {
         ("torch._utils", name)
         for name in (
-            "_rebuild_tensor", "_rebuild_tensor_v2", "_rebuild_tensor_v3",
-            "_rebuild_parameter", "_rebuild_parameter_with_state",
+            "_rebuild_tensor",
+            "_rebuild_tensor_v2",
+            "_rebuild_tensor_v3",
+            "_rebuild_parameter",
+            "_rebuild_parameter_with_state",
             "_rebuild_sparse_tensor",
         )
     }
