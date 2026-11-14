@@ -96,16 +96,19 @@ atomic, exclusive output publication. Unsupported objects/mapping attributes fai
 instead of being silently discarded; the result must not be claimed to preserve
 arbitrary Python object semantics.
 
-The converter deserializes legacy inputs using a restricted unpickler with an
-explicit allow-list of safe reconstruction primitives (tensors, storages, optimizer
-and scheduler dictionaries, numpy scalar reconstructors, and OrderedDict). Nested
-storage bytes from raw pickle inputs are loaded through the restricted loader
-(`weights_only=True`). Malicious inputs attempting arbitrary code execution are
-rejected before instantiation without executing input code or publishing partial output.
-The four previously unsuppressed Bandit findings in the converter (B403, B614, B301)
-are resolved at the source without suppressions or weakened security gates. Normal pose
-loading retains its restricted reader (`weights_only=True`) and never invokes the
-converter automatically. Existing generic legacy core/adapters have separate security
+As defense in depth, not a replacement for trusted provenance, the converter
+deserializes legacy inputs with a restricted unpickler whose allow-list is an
+enumerated table of reconstruction globals (tensor and storage rebuilds,
+optimizer and scheduler containers, numpy scalar reconstructors, torch dtypes,
+and OrderedDict), pinned by a test. Unlisted globals are rejected without
+publishing output, and nested storage bytes from raw pickle inputs are loaded
+with `weights_only=True`. This replaced the three unsuppressed Bandit findings
+in the converter (B403, B614, B301) without suppressions. Bandit does not
+pattern-match `_pickle.Unpickler` or `torch.serialization._load`, so it no
+longer inspects these loads; the allow-list test is the check that covers them.
+
+Normal pose loading retains its restricted reader (`weights_only=True`) and never
+invokes the converter automatically. Existing generic legacy core/adapters have separate security
 issues that this bounded downstream repair does not conceal.
 
 The restricted checkpoint feature requires stable **Torch>=2.15.0** (and thus

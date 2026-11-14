@@ -1,12 +1,12 @@
 """Explicit trusted-input conversion; never called by ordinary checkpoint loading.
 
 Legacy unpickling can execute arbitrary Python code. The caller must opt in for
-an input whose provenance they trust. The conversion path uses a restricted
-unpickler with an explicit allow-list of safe reconstruction primitives,
-protecting against code execution while preserving supported tensor/state-dict
-checkpoints, optimizer/scheduler state, scalar metadata, and state-dict version
-metadata. The result is re-serialized with a restricted protocol and verified
-with weights_only=True before atomic publication.
+an input whose provenance they trust. As defense in depth, the conversion path
+also uses a restricted unpickler with an enumerated allow-list of reconstruction
+globals, which preserves supported tensor/state-dict checkpoints,
+optimizer/scheduler state, scalar metadata, and state-dict version metadata.
+The result is re-serialized with a restricted protocol and verified with
+weights_only=True before atomic publication.
 """
 
 import argparse
