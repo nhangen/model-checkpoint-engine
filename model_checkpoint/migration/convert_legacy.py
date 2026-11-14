@@ -19,6 +19,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+import _codecs
 import _pickle
 import numpy as np
 import torch
@@ -56,7 +57,7 @@ class SafeUnpickler(_pickle.Unpickler):
         ("torch", "dtype"): torch.dtype,
         ("torch", "Tensor"): torch.Tensor,
         ("numpy", "dtype"): np.dtype,
-        ("_codecs", "encode"): getattr(sys.modules.get("_codecs"), "encode", None),
+        ("_codecs", "encode"): _codecs.encode,
     }
 
     def find_class(self, module: str, name: str) -> Any:
