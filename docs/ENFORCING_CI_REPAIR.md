@@ -100,8 +100,9 @@ As defense in depth, not a replacement for trusted provenance, the converter
 deserializes legacy inputs with a restricted unpickler whose allow-list is an
 enumerated table of reconstruction globals (tensor and storage rebuilds,
 optimizer and scheduler containers, numpy scalar reconstructors, torch dtypes,
-and OrderedDict), pinned by a test. Unlisted globals are rejected without
-publishing output, and nested storage bytes from raw pickle inputs are loaded
+and OrderedDict), pinned by a test. In zip and legacy containers torch's own
+reader resolves storage names to inert `StorageType` values before the
+allow-list sees them. Unlisted globals are rejected without publishing output, and nested storage bytes from raw pickle inputs are loaded
 with `weights_only=True`. This replaced the three unsuppressed Bandit findings
 in the converter (B403, B614, B301) without suppressions. Bandit does not
 pattern-match `_pickle.Unpickler` or `torch.serialization._load`, so it no
