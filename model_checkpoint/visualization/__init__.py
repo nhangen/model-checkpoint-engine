@@ -1,13 +1,5 @@
-# Advanced visualization dashboard components
+"""Public exports backed by the installed implementation."""
 
-from .chart_generator import ChartGenerator
-from .dashboard_engine import DashboardEngine
-from .dashboard_server import DashboardServer
-from .interactive_plots import InteractivePlotGenerator
+from .dashboard_engine import ChartConfig, DashboardConfig, DashboardEngine
 
-__all__ = [
-    'DashboardEngine',
-    'ChartGenerator',
-    'InteractivePlotGenerator',
-    'DashboardServer'
-]
+__all__ = ["DashboardEngine", "DashboardConfig", "ChartConfig"]

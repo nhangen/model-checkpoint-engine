@@ -1,14 +1,14 @@
 # Comprehensive checkpoint verification and repair system
 
-import json
 import os
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from .checksum import ChecksumCalculator, IntegrityTracker
+from ..utils.serialization_runtime import require_restricted_loader_runtime
 
 
 class CheckpointVerifier:
@@ -129,7 +129,10 @@ class CheckpointVerifier:
             # 5. Test loadability
             try:
                 # Try to load checkpoint metadata without full loading
-                self._test_checkpoint_loadability(checkpoint.file_path)
+                if not self._test_checkpoint_loadability(checkpoint.file_path):
+                    raise ValueError(
+                        "Restricted checkpoint load or structure check failed"
+                    )
                 result["checks"]["loadable"] = True
             except Exception as e:
                 result["status"] = "corrupted"
@@ -252,12 +255,24 @@ class CheckpointVerifier:
         import torch
 
         try:
+            require_restricted_loader_runtime()
             # Quick load test - just check if PyTorch can read the file structure
-            checkpoint_data = torch.load(file_path, map_location="cpu")
+            checkpoint_data = torch.load(
+                file_path, map_location="cpu", weights_only=True
+            )
 
             # Basic validation
             if not isinstance(checkpoint_data, dict):
                 raise ValueError("Checkpoint is not a dictionary")
+
+            if "_safetensors_model_path" in checkpoint_data:
+                from safetensors.torch import load_file
+
+                path = Path(file_path)
+                # Only the deterministic adjacent sidecar belongs to this file.
+                load_file(
+                    str(path.with_name(path.stem + "_model.safetensors")), device="cpu"
+                )
 
             # Check for basic structure
             expected_keys = [
