@@ -51,6 +51,11 @@ _STORAGE_TYPES = (
     "IntStorage",
     "LongStorage",
     "ShortStorage",
+    "QInt32Storage",
+    "QInt8Storage",
+    "QUInt2x4Storage",
+    "QUInt4x2Storage",
+    "QUInt8Storage",
 )
 _TENSOR_REBUILDS = (
     "_rebuild_tensor",
@@ -59,6 +64,8 @@ _TENSOR_REBUILDS = (
     "_rebuild_parameter",
     "_rebuild_parameter_with_state",
     "_rebuild_sparse_tensor",
+    "_rebuild_qtensor",
+    "_rebuild_meta_tensor_no_storage",
 )
 
 
@@ -77,6 +84,8 @@ def _allowed_globals() -> dict:
         ("torch.storage", "_load_from_bytes"): _safe_load_from_bytes,
         ("torch._tensor", "_rebuild_from_type_v2"): torch._tensor._rebuild_from_type_v2,
         ("torch.serialization", "_get_layout"): torch.serialization._get_layout,
+        ("torch", "UntypedStorage"): torch.UntypedStorage,
+        ("torch.storage", "UntypedStorage"): torch.UntypedStorage,
         ("numpy", "dtype"): np.dtype,
         ("numpy.core.multiarray", "scalar"): multiarray.scalar,
         ("numpy._core.multiarray", "scalar"): multiarray.scalar,
@@ -87,7 +96,7 @@ def _allowed_globals() -> dict:
     for name in _STORAGE_TYPES:
         allowed[("torch", name)] = torch.serialization.StorageType(name)
     for name in dir(torch):
-        if isinstance(getattr(torch, name), torch.dtype):
+        if isinstance(getattr(torch, name), (torch.dtype, torch.qscheme)):
             allowed[("torch", name)] = getattr(torch, name)
     return allowed
 

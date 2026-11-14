@@ -173,7 +173,7 @@ def test_allow_list_is_enumerated():
     non_dtype = {
         key
         for key, value in SafeUnpickler.SAFE_GLOBALS.items()
-        if not isinstance(value, torch.dtype)
+        if not isinstance(value, (torch.dtype, torch.qscheme))
     }
     storages = {
         ("torch", f"{kind}Storage")
@@ -190,6 +190,11 @@ def test_allow_list_is_enumerated():
             "Int",
             "Long",
             "Short",
+            "QInt32",
+            "QInt8",
+            "QUInt2x4",
+            "QUInt4x2",
+            "QUInt8",
         )
     }
     rebuilds = {
@@ -201,6 +206,8 @@ def test_allow_list_is_enumerated():
             "_rebuild_parameter",
             "_rebuild_parameter_with_state",
             "_rebuild_sparse_tensor",
+            "_rebuild_qtensor",
+            "_rebuild_meta_tensor_no_storage",
         )
     }
     assert non_dtype == storages | rebuilds | {
@@ -216,6 +223,8 @@ def test_allow_list_is_enumerated():
         ("torch.storage", "_load_from_bytes"),
         ("torch._tensor", "_rebuild_from_type_v2"),
         ("torch.serialization", "_get_layout"),
+        ("torch", "UntypedStorage"),
+        ("torch.storage", "UntypedStorage"),
         ("numpy", "dtype"),
         ("numpy.core.multiarray", "scalar"),
         ("numpy._core.multiarray", "scalar"),
@@ -232,7 +241,7 @@ def test_allow_list_is_enumerated():
         ("torch.serialization", "load"),
         ("torch._utils", "_rebuild_wrapper_subclass"),
         ("torch._utils", "_rebuild_xla_tensor"),
-        ("torch", "QInt8Storage"),
+        ("torch", "FakeStorage"),
         ("torch.storage", "TypedStorage"),
     ],
 )
@@ -281,3 +290,36 @@ def test_legacy_header_detection_reads_bytes_only(tmp_path, monkeypatch, protoco
     with raw.open("rb") as stream:
         assert not convert_legacy._is_legacy_torch_stream(stream)
     unpickler.assert_not_called()
+
+
+@pytest.mark.parametrize("protocol", [2, 4])
+@pytest.mark.parametrize("format_name", ["torch-zip", "torch-legacy", "raw-pickle"])
+def test_conversion_preserves_quantized_meta_and_untyped_dtype_tensors(
+    tmp_path, format_name, protocol
+):
+    scales = torch.tensor([0.1, 0.2], dtype=torch.double)
+    data = {
+        "qint8": torch.quantize_per_tensor(torch.ones(3), 0.5, 2, torch.qint8),
+        "per_channel": torch.quantize_per_channel(
+            torch.ones(2, 3), scales, torch.zeros(2, dtype=torch.long), 0, torch.quint8
+        ),
+        "meta": torch.empty(2, 3, device="meta"),
+    }
+    # Torch's own legacy and raw-pickle readers cannot rebuild untyped-storage
+    # dtypes, with or without restriction, so only zip carries them.
+    untyped = format_name == "torch-zip"
+    if untyped:
+        data["float8"] = torch.ones(2).to(torch.float8_e4m3fn)
+        data["uint16"] = torch.ones(2, dtype=torch.uint16)
+    source, target = tmp_path / "legacy.pt", tmp_path / "converted.pt"
+    _write_legacy(source, data, format_name, protocol)
+    convert_checkpoint(str(source), str(target), trusted_input=True)
+    loaded = torch.load(target, weights_only=True, map_location="cpu")
+    assert torch.equal(loaded["qint8"].dequantize(), data["qint8"].dequantize())
+    assert torch.equal(
+        loaded["per_channel"].dequantize(), data["per_channel"].dequantize()
+    )
+    assert loaded["meta"].is_meta and loaded["meta"].shape == (2, 3)
+    if untyped:
+        assert loaded["float8"].dtype is torch.float8_e4m3fn
+        assert torch.equal(loaded["uint16"], data["uint16"])
