@@ -226,3 +226,29 @@ def test_allow_list_is_enumerated():
 def test_find_class_rejects_unlisted_globals(module, name):
     with pytest.raises(ValueError, match="Unsupported legacy object"):
         SafeUnpickler(io.BytesIO(b"")).find_class(module, name)
+
+
+def test_cli_reports_nested_malicious_storage_without_traceback(tmp_path, capsys):
+    marker = tmp_path / "must-not-execute"
+
+    class Payload:
+        def __reduce__(self):
+            return builtins.eval, (
+                f"__import__('pathlib').Path({str(marker)!r}).write_text('executed')",
+            )
+
+    nested = io.BytesIO()
+    torch.save(Payload(), nested)
+
+    class NestedStorage:
+        def __reduce__(self):
+            return torch.storage._load_from_bytes, (nested.getvalue(),)
+
+    source, target = tmp_path / "nested.pkl", tmp_path / "new.pt"
+    source.write_bytes(pickle.dumps({"weights": NestedStorage()}, protocol=2))
+    with pytest.raises(SystemExit) as error:
+        main(["--input", str(source), "--output", str(target), "--trust-input"])
+    err = capsys.readouterr().err
+    assert error.value.code == 2
+    assert "no output was published" in err and "weights_only" not in err
+    assert not marker.exists() and not target.exists()

@@ -139,8 +139,29 @@ def _is_legacy_torch_stream(stream: io.BufferedReader) -> bool:
         stream.seek(pos)
 
 
+_LOAD_ERRORS = (
+    _pickle.UnpicklingError,
+    RuntimeError,
+    AttributeError,
+    EOFError,
+    TypeError,
+    KeyError,
+    IndexError,
+)
+
+
 def _load_restricted_checkpoint(source: Path) -> Any:
     """Load a checkpoint container using the safe restricted unpickler."""
+    try:
+        return _load_container(source)
+    except _LOAD_ERRORS as exc:
+        # Torch's own message advises retrying with weights_only=False.
+        raise ValueError(
+            f"Unsupported legacy input ({type(exc).__name__}); no output was published"
+        ) from exc
+
+
+def _load_container(source: Path) -> Any:
     if zipfile.is_zipfile(source):
         with torch.serialization._open_zipfile_reader(str(source)) as zf:
             return torch.serialization._load(
