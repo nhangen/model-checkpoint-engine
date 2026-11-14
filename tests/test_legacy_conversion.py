@@ -1,6 +1,7 @@
 """Conversion is an explicit trusted-input operation, separate from normal loads."""
 
 import builtins
+import io
 import pickle
 from pathlib import Path
 from unittest.mock import Mock
@@ -9,16 +10,31 @@ import numpy as np
 import pytest
 import torch
 
+from model_checkpoint.migration import convert_legacy
 from model_checkpoint.migration.convert_legacy import (
+    SafeUnpickler,
     TrustedInputRequired,
     convert_checkpoint,
     main,
 )
 
 
-@pytest.mark.parametrize("format_name", ["torch-zip4", "torch-legacy4", "raw-pickle4"])
+def _write_legacy(source, data, format_name, protocol):
+    if format_name == "raw-pickle":
+        source.write_bytes(pickle.dumps(data, protocol=protocol))
+    else:
+        torch.save(
+            data,
+            source,
+            pickle_protocol=protocol,
+            _use_new_zipfile_serialization=format_name == "torch-zip",
+        )
+
+
+@pytest.mark.parametrize("protocol", [2, 4])
+@pytest.mark.parametrize("format_name", ["torch-zip", "torch-legacy", "raw-pickle"])
 def test_explicit_conversion_preserves_supported_training_state(
-    tmp_path, capsys, format_name
+    tmp_path, capsys, format_name, protocol
 ):
     model = torch.nn.Sequential(torch.nn.BatchNorm1d(2), torch.nn.Linear(2, 1))
     model.eval()
@@ -33,17 +49,13 @@ def test_explicit_conversion_preserves_supported_training_state(
         "scheduler_state_dict": scheduler.state_dict(),
         "epoch": 2,
         "metrics": {"loss": np.float64(0.25)},
+        "dtype": torch.float16,
+        "tags": {"pose", "resume"},
+        "phase": complex(1, 2),
+        "sparse": torch.eye(3).to_sparse(),
     }
     source, target = tmp_path / "legacy.pt", tmp_path / "converted.pt"
-    if format_name == "raw-pickle4":
-        source.write_bytes(pickle.dumps(data, protocol=4))
-    else:
-        torch.save(
-            data,
-            source,
-            pickle_protocol=4,
-            _use_new_zipfile_serialization=format_name == "torch-zip4",
-        )
+    _write_legacy(source, data, format_name, protocol)
     original = source.read_bytes()
     assert convert_checkpoint(str(source), str(target), trusted_input=True) == target
     assert "may execute arbitrary Python code" in capsys.readouterr().err
@@ -59,6 +71,9 @@ def test_explicit_conversion_preserves_supported_training_state(
     )
     assert loaded["scheduler_state_dict"]["last_epoch"] == scheduler.last_epoch
     assert type(loaded["metrics"]["loss"]) is float and loaded["epoch"] == 2
+    assert loaded["dtype"] is torch.float16
+    assert loaded["tags"] == {"pose", "resume"} and loaded["phase"] == complex(1, 2)
+    assert torch.equal(loaded["sparse"].to_dense(), torch.eye(3))
 
 
 def test_default_rejects_malicious_file_before_deserialization(tmp_path, monkeypatch):
@@ -72,19 +87,49 @@ def test_default_rejects_malicious_file_before_deserialization(tmp_path, monkeyp
 
     source = tmp_path / "untrusted.pkl"
     source.write_bytes(pickle.dumps(Payload(), protocol=4))
-    torch_reader, pickle_reader = Mock(), Mock()
-    monkeypatch.setattr(torch, "load", torch_reader)
-    monkeypatch.setattr(pickle, "load", pickle_reader)
+    reader = Mock()
+    monkeypatch.setattr(convert_legacy, "_load_container", reader)
     with pytest.raises(TrustedInputRequired, match="arbitrary Python code"):
         convert_checkpoint(str(source), str(tmp_path / "new.pt"))
-    torch_reader.assert_not_called()
-    pickle_reader.assert_not_called()
+    reader.assert_not_called()
     assert not marker.exists() and not (tmp_path / "new.pt").exists()
+
+
+@pytest.mark.parametrize("format_name", ["torch-zip4", "torch-legacy4", "raw-pickle4"])
+def test_trusted_conversion_rejects_malicious_input_without_execution(
+    tmp_path, format_name
+):
+    marker = tmp_path / "must-not-execute"
+
+    class Payload:
+        def __reduce__(self):
+            return builtins.eval, (
+                f"__import__('pathlib').Path({str(marker)!r}).write_text('executed')",
+            )
+
+    source = tmp_path / f"malicious_{format_name}.pt"
+    target = tmp_path / "converted.pt"
+    payload_data = {"model_state_dict": {}, "payload": Payload()}
+    if format_name == "raw-pickle4":
+        source.write_bytes(pickle.dumps(payload_data, protocol=4))
+    else:
+        torch.save(
+            payload_data,
+            source,
+            pickle_protocol=4,
+            _use_new_zipfile_serialization=format_name == "torch-zip4",
+        )
+    original = source.read_bytes()
+    with pytest.raises(ValueError, match=r"Unsupported legacy object: builtins\.eval"):
+        convert_checkpoint(str(source), str(target), trusted_input=True)
+    assert not marker.exists()
+    assert not target.exists()
+    assert source.read_bytes() == original
 
 
 def test_cli_requires_explicit_opt_in(tmp_path, monkeypatch, capsys):
     reader = Mock()
-    monkeypatch.setattr(torch, "load", reader)
+    monkeypatch.setattr(convert_legacy, "_load_container", reader)
     with pytest.raises(SystemExit) as error:
         main(
             [
@@ -103,7 +148,7 @@ def test_existing_output_is_preserved_without_reading_input(tmp_path, monkeypatc
     target = tmp_path / "existing.pt"
     target.write_bytes(b"preserve")
     reader = Mock()
-    monkeypatch.setattr(torch, "load", reader)
+    monkeypatch.setattr(convert_legacy, "_load_container", reader)
     with pytest.raises(FileExistsError):
         convert_checkpoint(
             str(tmp_path / "not-opened"), str(target), trusted_input=True
@@ -122,3 +167,184 @@ def test_unsupported_metadata_is_not_silently_discarded(tmp_path):
     with pytest.raises(ValueError, match="Unsupported legacy object"):
         convert_checkpoint(str(source), str(target), trusted_input=True)
     assert not target.exists() and source.exists()
+
+
+def test_allow_list_is_enumerated():
+    non_dtype = {
+        key
+        for key, value in SafeUnpickler.SAFE_GLOBALS.items()
+        if not isinstance(value, (torch.dtype, torch.qscheme))
+    }
+    storages = {
+        ("torch", f"{kind}Storage")
+        for kind in (
+            "BFloat16",
+            "Bool",
+            "Byte",
+            "Char",
+            "ComplexDouble",
+            "ComplexFloat",
+            "Double",
+            "Float",
+            "Half",
+            "Int",
+            "Long",
+            "Short",
+            "QInt32",
+            "QInt8",
+            "QUInt2x4",
+            "QUInt4x2",
+            "QUInt8",
+        )
+    }
+    rebuilds = {
+        ("torch._utils", name)
+        for name in (
+            "_rebuild_tensor",
+            "_rebuild_tensor_v2",
+            "_rebuild_tensor_v3",
+            "_rebuild_parameter",
+            "_rebuild_parameter_with_state",
+            "_rebuild_sparse_tensor",
+            "_rebuild_qtensor",
+            "_rebuild_meta_tensor_no_storage",
+        )
+    }
+    assert non_dtype == storages | rebuilds | {
+        ("collections", "OrderedDict"),
+        ("builtins", "set"),
+        ("builtins", "bytearray"),
+        ("builtins", "complex"),
+        ("_codecs", "encode"),
+        ("torch", "Size"),
+        ("torch", "device"),
+        ("torch", "Tensor"),
+        ("torch", "_load_from_bytes"),
+        ("torch.storage", "_load_from_bytes"),
+        ("torch._tensor", "_rebuild_from_type_v2"),
+        ("torch.serialization", "_get_layout"),
+        ("torch", "UntypedStorage"),
+        ("torch.storage", "UntypedStorage"),
+        ("numpy", "dtype"),
+        ("numpy.core.multiarray", "scalar"),
+        ("numpy._core.multiarray", "scalar"),
+    }
+
+
+@pytest.mark.parametrize(
+    "module,name",
+    [
+        ("os", "system"),
+        ("builtins", "eval"),
+        ("__builtin__", "eval"),
+        ("torch", "load"),
+        ("torch.serialization", "load"),
+        ("torch._utils", "_rebuild_wrapper_subclass"),
+        ("torch._utils", "_rebuild_xla_tensor"),
+        ("torch", "FakeStorage"),
+        ("torch.storage", "TypedStorage"),
+    ],
+)
+def test_find_class_rejects_unlisted_globals(module, name):
+    with pytest.raises(ValueError, match="Unsupported legacy object"):
+        SafeUnpickler(io.BytesIO(b"")).find_class(module, name)
+
+
+def test_cli_reports_nested_malicious_storage_without_traceback(tmp_path, capsys):
+    marker = tmp_path / "must-not-execute"
+
+    class Payload:
+        def __reduce__(self):
+            return builtins.eval, (
+                f"__import__('pathlib').Path({str(marker)!r}).write_text('executed')",
+            )
+
+    nested = io.BytesIO()
+    torch.save(Payload(), nested)
+
+    class NestedStorage:
+        def __reduce__(self):
+            return torch.storage._load_from_bytes, (nested.getvalue(),)
+
+    source, target = tmp_path / "nested.pkl", tmp_path / "new.pt"
+    source.write_bytes(pickle.dumps({"weights": NestedStorage()}, protocol=2))
+    with pytest.raises(SystemExit) as error:
+        main(["--input", str(source), "--output", str(target), "--trust-input"])
+    err = capsys.readouterr().err
+    assert error.value.code == 2
+    assert "no output was published" in err and "weights_only" not in err
+    assert not marker.exists() and not target.exists()
+
+
+@pytest.mark.parametrize("protocol", [0, 1, 2, 3, 4, 5])
+def test_legacy_header_detection_reads_bytes_only(tmp_path, monkeypatch, protocol):
+    legacy, raw = tmp_path / "legacy.pt", tmp_path / "raw.pkl"
+    torch.save(
+        {"a": 1}, legacy, pickle_protocol=protocol, _use_new_zipfile_serialization=False
+    )
+    raw.write_bytes(pickle.dumps({"a": 1}, protocol=protocol))
+    unpickler = Mock(side_effect=AssertionError("detection must not unpickle"))
+    monkeypatch.setattr(convert_legacy, "SafeUnpickler", unpickler)
+    with legacy.open("rb") as stream:
+        assert convert_legacy._is_legacy_torch_stream(stream) and stream.tell() == 0
+    with raw.open("rb") as stream:
+        assert not convert_legacy._is_legacy_torch_stream(stream)
+    unpickler.assert_not_called()
+
+
+@pytest.mark.parametrize("protocol", [2, 4])
+@pytest.mark.parametrize("format_name", ["torch-zip", "torch-legacy", "raw-pickle"])
+def test_conversion_preserves_quantized_meta_and_untyped_dtype_tensors(
+    tmp_path, format_name, protocol
+):
+    scales = torch.tensor([0.1, 0.2], dtype=torch.double)
+    data = {
+        "qint8": torch.quantize_per_tensor(torch.ones(3), 0.5, 2, torch.qint8),
+        "per_channel": torch.quantize_per_channel(
+            torch.ones(2, 3), scales, torch.zeros(2, dtype=torch.long), 0, torch.quint8
+        ),
+        "meta": torch.empty(2, 3, device="meta"),
+    }
+    # Torch's own legacy and raw-pickle readers cannot rebuild untyped-storage
+    # dtypes, with or without restriction, so only zip carries them.
+    untyped = format_name == "torch-zip"
+    if untyped:
+        data["float8"] = torch.ones(2).to(torch.float8_e4m3fn)
+        data["uint16"] = torch.ones(2, dtype=torch.uint16)
+    source, target = tmp_path / "legacy.pt", tmp_path / "converted.pt"
+    _write_legacy(source, data, format_name, protocol)
+    convert_checkpoint(str(source), str(target), trusted_input=True)
+    loaded = torch.load(target, weights_only=True, map_location="cpu")
+    assert torch.equal(loaded["qint8"].dequantize(), data["qint8"].dequantize())
+    assert torch.equal(
+        loaded["per_channel"].dequantize(), data["per_channel"].dequantize()
+    )
+    assert loaded["meta"].is_meta and loaded["meta"].shape == (2, 3)
+    if untyped:
+        assert loaded["float8"].dtype is torch.float8_e4m3fn
+        assert torch.equal(loaded["uint16"], data["uint16"])
+
+
+@pytest.mark.parametrize("format_name", ["torch-zip", "torch-legacy", "raw-pickle"])
+def test_corrupt_inputs_are_reported_without_publishing(tmp_path, format_name):
+    source = tmp_path / "legacy.pt"
+    _write_legacy(source, {"w": torch.ones(4), "epoch": 1}, format_name, 2)
+    good = source.read_bytes()
+    seen = set()
+    for cut in range(1, len(good), max(1, len(good) // 40)):
+        for blob in (
+            good[:cut],
+            good[:cut] + bytes([good[cut] ^ 0xFF]) + good[cut + 1 :],
+        ):
+            source.write_bytes(blob)
+            target = tmp_path / f"out-{len(seen)}.pt"
+            try:
+                convert_checkpoint(str(source), str(target), trusted_input=True)
+            except ValueError as exc:
+                if "no output was published" not in str(exc):
+                    seen.add(f"ValueError without marker: {exc}")
+            except Exception as exc:  # noqa: BLE001 - the assertion is the point
+                seen.add(type(exc).__name__)
+            else:
+                target.unlink()
+    assert not seen
