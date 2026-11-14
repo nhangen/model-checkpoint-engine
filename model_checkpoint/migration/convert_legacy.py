@@ -38,28 +38,64 @@ def _safe_load_from_bytes(b: bytes) -> Any:
     return torch.load(io.BytesIO(b), map_location="cpu", weights_only=True)
 
 
-class SafeUnpickler(_pickle.Unpickler):
-    """Restricted unpickler that disallows arbitrary code execution."""
+_STORAGE_TYPES = (
+    "BFloat16Storage",
+    "BoolStorage",
+    "ByteStorage",
+    "CharStorage",
+    "ComplexDoubleStorage",
+    "ComplexFloatStorage",
+    "DoubleStorage",
+    "FloatStorage",
+    "HalfStorage",
+    "IntStorage",
+    "LongStorage",
+    "ShortStorage",
+)
+_TENSOR_REBUILDS = (
+    "_rebuild_tensor",
+    "_rebuild_tensor_v2",
+    "_rebuild_tensor_v3",
+    "_rebuild_parameter",
+    "_rebuild_parameter_with_state",
+    "_rebuild_sparse_tensor",
+)
 
-    SAFE_GLOBALS = {
+
+def _allowed_globals() -> dict:
+    multiarray = (getattr(np, "_core", None) or np.core).multiarray
+    allowed = {
         ("collections", "OrderedDict"): collections.OrderedDict,
         ("builtins", "set"): set,
         ("builtins", "bytearray"): bytearray,
         ("builtins", "complex"): complex,
-        ("torch._utils", "_rebuild_tensor"): torch._utils._rebuild_tensor,
-        ("torch._utils", "_rebuild_tensor_v2"): torch._utils._rebuild_tensor_v2,
-        ("torch._utils", "_rebuild_parameter"): torch._utils._rebuild_parameter,
-        ("torch._utils", "_rebuild_parameter_with_state"): getattr(
-            torch._utils, "_rebuild_parameter_with_state", None
-        ),
-        ("torch.Size", "Size"): torch.Size,
+        ("_codecs", "encode"): _codecs.encode,
         ("torch", "Size"): torch.Size,
         ("torch", "device"): torch.device,
-        ("torch", "dtype"): torch.dtype,
         ("torch", "Tensor"): torch.Tensor,
+        ("torch", "_load_from_bytes"): _safe_load_from_bytes,
+        ("torch.storage", "_load_from_bytes"): _safe_load_from_bytes,
+        ("torch._tensor", "_rebuild_from_type_v2"): torch._tensor._rebuild_from_type_v2,
+        ("torch.serialization", "_get_layout"): torch.serialization._get_layout,
         ("numpy", "dtype"): np.dtype,
-        ("_codecs", "encode"): _codecs.encode,
+        ("numpy.core.multiarray", "scalar"): multiarray.scalar,
+        ("numpy._core.multiarray", "scalar"): multiarray.scalar,
     }
+    for name in _TENSOR_REBUILDS:
+        if hasattr(torch._utils, name):
+            allowed[("torch._utils", name)] = getattr(torch._utils, name)
+    for name in _STORAGE_TYPES:
+        allowed[("torch", name)] = torch.serialization.StorageType(name)
+    for name in dir(torch):
+        if isinstance(getattr(torch, name), torch.dtype):
+            allowed[("torch", name)] = getattr(torch, name)
+    return allowed
+
+
+class SafeUnpickler(_pickle.Unpickler):
+    """Restricted unpickler that resolves only enumerated reconstruction globals."""
+
+    SAFE_GLOBALS = _allowed_globals()
 
     def find_class(self, module: str, name: str) -> Any:
         # Overriding find_class bypasses the C unpickler's fix_imports, so
@@ -68,55 +104,12 @@ class SafeUnpickler(_pickle.Unpickler):
             module, name = _compat_pickle.NAME_MAPPING[(module, name)]
         elif module in _compat_pickle.IMPORT_MAPPING:
             module = _compat_pickle.IMPORT_MAPPING[module]
-
-        if (module, name) in self.SAFE_GLOBALS:
-            target = self.SAFE_GLOBALS[(module, name)]
-            if target is not None:
-                return target
-
-        # Support numpy scalars safely
-        if module in ("numpy", "numpy.core.multiarray", "numpy._core.multiarray"):
-            if name == "scalar":
-                multiarray = getattr(np, "_core", getattr(np, "core", None))
-                if multiarray is not None and hasattr(multiarray, "multiarray"):
-                    return multiarray.multiarray.scalar
-                return (
-                    getattr(np, "scalar", None)
-                    or getattr(getattr(np, "core", None), "multiarray", None).scalar
-                )
-            if name == "dtype":
-                return np.dtype
-
-        if module == "torch" and isinstance(getattr(torch, name, None), torch.dtype):
-            return getattr(torch, name)
-        if module == "torch.serialization" and name == "_get_layout":
-            return torch.serialization._get_layout
-
-        # Handle torch storage types safely
-        if module in ("torch", "torch.storage"):
-            if name == "_load_from_bytes":
-                return _safe_load_from_bytes
-            if name.endswith("Storage"):
-                try:
-                    return torch.serialization.StorageType(name)
-                except KeyError:
-                    pass
-                if hasattr(torch, name):
-                    return getattr(torch, name)
-
-        # Handle torch tensor rebuild functions
-        if module == "torch._tensor" and name == "_rebuild_from_type_v2":
-            return torch._tensor._rebuild_from_type_v2
-        if (
-            module == "torch._utils"
-            and hasattr(torch._utils, name)
-            and name.startswith("_rebuild_")
-        ):
-            return getattr(torch._utils, name)
-
-        raise ValueError(
-            f"Unsupported legacy object: {module}.{name}; no output was published"
-        )
+        try:
+            return self.SAFE_GLOBALS[(module, name)]
+        except KeyError:
+            raise ValueError(
+                f"Unsupported legacy object: {module}.{name}; no output was published"
+            ) from None
 
 
 class SafePickleModule:

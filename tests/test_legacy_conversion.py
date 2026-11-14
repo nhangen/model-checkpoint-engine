@@ -1,6 +1,7 @@
 """Conversion is an explicit trusted-input operation, separate from normal loads."""
 
 import builtins
+import io
 import pickle
 from pathlib import Path
 from unittest.mock import Mock
@@ -10,6 +11,7 @@ import pytest
 import torch
 
 from model_checkpoint.migration.convert_legacy import (
+    SafeUnpickler,
     TrustedInputRequired,
     convert_checkpoint,
     main,
@@ -166,3 +168,61 @@ def test_unsupported_metadata_is_not_silently_discarded(tmp_path):
     with pytest.raises(ValueError, match="Unsupported legacy object"):
         convert_checkpoint(str(source), str(target), trusted_input=True)
     assert not target.exists() and source.exists()
+
+
+def test_allow_list_is_enumerated():
+    non_dtype = {
+        key for key, value in SafeUnpickler.SAFE_GLOBALS.items()
+        if not isinstance(value, torch.dtype)
+    }
+    storages = {
+        ("torch", f"{kind}Storage")
+        for kind in (
+            "BFloat16", "Bool", "Byte", "Char", "ComplexDouble", "ComplexFloat",
+            "Double", "Float", "Half", "Int", "Long", "Short",
+        )
+    }
+    rebuilds = {
+        ("torch._utils", name)
+        for name in (
+            "_rebuild_tensor", "_rebuild_tensor_v2", "_rebuild_tensor_v3",
+            "_rebuild_parameter", "_rebuild_parameter_with_state",
+            "_rebuild_sparse_tensor",
+        )
+    }
+    assert non_dtype == storages | rebuilds | {
+        ("collections", "OrderedDict"),
+        ("builtins", "set"),
+        ("builtins", "bytearray"),
+        ("builtins", "complex"),
+        ("_codecs", "encode"),
+        ("torch", "Size"),
+        ("torch", "device"),
+        ("torch", "Tensor"),
+        ("torch", "_load_from_bytes"),
+        ("torch.storage", "_load_from_bytes"),
+        ("torch._tensor", "_rebuild_from_type_v2"),
+        ("torch.serialization", "_get_layout"),
+        ("numpy", "dtype"),
+        ("numpy.core.multiarray", "scalar"),
+        ("numpy._core.multiarray", "scalar"),
+    }
+
+
+@pytest.mark.parametrize(
+    "module,name",
+    [
+        ("os", "system"),
+        ("builtins", "eval"),
+        ("__builtin__", "eval"),
+        ("torch", "load"),
+        ("torch.serialization", "load"),
+        ("torch._utils", "_rebuild_wrapper_subclass"),
+        ("torch._utils", "_rebuild_xla_tensor"),
+        ("torch", "QInt8Storage"),
+        ("torch.storage", "TypedStorage"),
+    ],
+)
+def test_find_class_rejects_unlisted_globals(module, name):
+    with pytest.raises(ValueError, match="Unsupported legacy object"):
+        SafeUnpickler(io.BytesIO(b"")).find_class(module, name)
