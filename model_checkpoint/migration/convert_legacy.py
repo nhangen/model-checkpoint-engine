@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 import _codecs
+import _compat_pickle
 import _pickle
 import numpy as np
 import torch
@@ -61,6 +62,13 @@ class SafeUnpickler(_pickle.Unpickler):
     }
 
     def find_class(self, module: str, name: str) -> Any:
+        # Overriding find_class bypasses the C unpickler's fix_imports, so
+        # protocol 0-2 pickles still carry Python 2 names such as __builtin__.set.
+        if (module, name) in _compat_pickle.NAME_MAPPING:
+            module, name = _compat_pickle.NAME_MAPPING[(module, name)]
+        elif module in _compat_pickle.IMPORT_MAPPING:
+            module = _compat_pickle.IMPORT_MAPPING[module]
+
         if (module, name) in self.SAFE_GLOBALS:
             target = self.SAFE_GLOBALS[(module, name)]
             if target is not None:
@@ -78,6 +86,11 @@ class SafeUnpickler(_pickle.Unpickler):
                 )
             if name == "dtype":
                 return np.dtype
+
+        if module == "torch" and isinstance(getattr(torch, name, None), torch.dtype):
+            return getattr(torch, name)
+        if module == "torch.serialization" and name == "_get_layout":
+            return torch.serialization._get_layout
 
         # Handle torch storage types safely
         if module in ("torch", "torch.storage"):

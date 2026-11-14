@@ -16,9 +16,22 @@ from model_checkpoint.migration.convert_legacy import (
 )
 
 
-@pytest.mark.parametrize("format_name", ["torch-zip4", "torch-legacy4", "raw-pickle4"])
+def _write_legacy(source, data, format_name, protocol):
+    if format_name == "raw-pickle":
+        source.write_bytes(pickle.dumps(data, protocol=protocol))
+    else:
+        torch.save(
+            data,
+            source,
+            pickle_protocol=protocol,
+            _use_new_zipfile_serialization=format_name == "torch-zip",
+        )
+
+
+@pytest.mark.parametrize("protocol", [2, 4])
+@pytest.mark.parametrize("format_name", ["torch-zip", "torch-legacy", "raw-pickle"])
 def test_explicit_conversion_preserves_supported_training_state(
-    tmp_path, capsys, format_name
+    tmp_path, capsys, format_name, protocol
 ):
     model = torch.nn.Sequential(torch.nn.BatchNorm1d(2), torch.nn.Linear(2, 1))
     model.eval()
@@ -33,17 +46,13 @@ def test_explicit_conversion_preserves_supported_training_state(
         "scheduler_state_dict": scheduler.state_dict(),
         "epoch": 2,
         "metrics": {"loss": np.float64(0.25)},
+        "dtype": torch.float16,
+        "tags": {"pose", "resume"},
+        "phase": complex(1, 2),
+        "sparse": torch.eye(3).to_sparse(),
     }
     source, target = tmp_path / "legacy.pt", tmp_path / "converted.pt"
-    if format_name == "raw-pickle4":
-        source.write_bytes(pickle.dumps(data, protocol=4))
-    else:
-        torch.save(
-            data,
-            source,
-            pickle_protocol=4,
-            _use_new_zipfile_serialization=format_name == "torch-zip4",
-        )
+    _write_legacy(source, data, format_name, protocol)
     original = source.read_bytes()
     assert convert_checkpoint(str(source), str(target), trusted_input=True) == target
     assert "may execute arbitrary Python code" in capsys.readouterr().err
@@ -59,6 +68,9 @@ def test_explicit_conversion_preserves_supported_training_state(
     )
     assert loaded["scheduler_state_dict"]["last_epoch"] == scheduler.last_epoch
     assert type(loaded["metrics"]["loss"]) is float and loaded["epoch"] == 2
+    assert loaded["dtype"] is torch.float16
+    assert loaded["tags"] == {"pose", "resume"} and loaded["phase"] == complex(1, 2)
+    assert torch.equal(loaded["sparse"].to_dense(), torch.eye(3))
 
 
 def test_default_rejects_malicious_file_before_deserialization(tmp_path, monkeypatch):
