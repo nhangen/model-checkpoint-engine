@@ -96,11 +96,17 @@ atomic, exclusive output publication. Unsupported objects/mapping attributes fai
 instead of being silently discarded; the result must not be claimed to preserve
 arbitrary Python object semantics.
 
-The converter intentionally contains unrestricted read operations behind this
-explicit opt-in. Their static security findings are not suppressed; this is not
-a claim that a global engine Bandit scan is clean. Normal pose loading has no
-unrestricted read or converter call. Existing generic legacy core/adapters have
-separate security issues that this bounded downstream repair does not conceal.
+The converter deserializes legacy inputs using a restricted unpickler with an
+explicit allow-list of safe reconstruction primitives (tensors, storages, optimizer
+and scheduler dictionaries, numpy scalar reconstructors, and OrderedDict). Nested
+storage bytes from raw pickle inputs are loaded through the restricted loader
+(`weights_only=True`). Malicious inputs attempting arbitrary code execution are
+rejected before instantiation without executing input code or publishing partial output.
+The four previously unsuppressed Bandit findings in the converter (B403, B614, B301)
+are resolved at the source without suppressions or weakened security gates. Normal pose
+loading retains its restricted reader (`weights_only=True`) and never invokes the
+converter automatically. Existing generic legacy core/adapters have separate security
+issues that this bounded downstream repair does not conceal.
 
 The restricted checkpoint feature requires stable **Torch>=2.15.0** (and thus
 Python3.11+ for current Torch wheels). Metadata APIs are not given a new global

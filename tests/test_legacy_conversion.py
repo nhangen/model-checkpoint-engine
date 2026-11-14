@@ -82,6 +82,38 @@ def test_default_rejects_malicious_file_before_deserialization(tmp_path, monkeyp
     assert not marker.exists() and not (tmp_path / "new.pt").exists()
 
 
+@pytest.mark.parametrize("format_name", ["torch-zip4", "torch-legacy4", "raw-pickle4"])
+def test_trusted_conversion_rejects_malicious_input_without_execution(
+    tmp_path, format_name
+):
+    marker = tmp_path / "must-not-execute"
+
+    class Payload:
+        def __reduce__(self):
+            return builtins.eval, (
+                f"__import__('pathlib').Path({str(marker)!r}).write_text('executed')",
+            )
+
+    source = tmp_path / f"malicious_{format_name}.pt"
+    target = tmp_path / "converted.pt"
+    payload_data = {"model_state_dict": {}, "payload": Payload()}
+    if format_name == "raw-pickle4":
+        source.write_bytes(pickle.dumps(payload_data, protocol=4))
+    else:
+        torch.save(
+            payload_data,
+            source,
+            pickle_protocol=4,
+            _use_new_zipfile_serialization=format_name == "torch-zip4",
+        )
+    original = source.read_bytes()
+    with pytest.raises(ValueError, match="Unsupported legacy object"):
+        convert_checkpoint(str(source), str(target), trusted_input=True)
+    assert not marker.exists()
+    assert not target.exists()
+    assert source.read_bytes() == original
+
+
 def test_cli_requires_explicit_opt_in(tmp_path, monkeypatch, capsys):
     reader = Mock()
     monkeypatch.setattr(torch, "load", reader)
