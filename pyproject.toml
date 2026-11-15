@@ -67,6 +67,7 @@ use_parentheses = true
 ensure_newline_before_comments = true
 skip_gitignore = true
 known_first_party = ["model_checkpoint"]
+extra_standard_library = ["_codecs", "_compat_pickle", "_pickle"]
 sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
 
 # Pytest configuration

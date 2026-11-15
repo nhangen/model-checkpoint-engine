@@ -19,6 +19,7 @@ def require_restricted_loader_runtime() -> None:
     )
     if match is None or tuple(int(part) for part in match.groups()) < (2, 15, 0):
         raise UnsupportedCheckpointRuntime(
-            f"Restricted checkpoint loading requires stable Torch>=2.15.0; found {version}. "
-            "Upgrade the runtime before loading or converting checkpoint files."
+            "Restricted checkpoint loading requires stable Torch>=2.15.0; "
+            f"found {version}. Upgrade the runtime before loading or converting "
+            "checkpoint files."
         )
