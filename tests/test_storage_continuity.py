@@ -2,9 +2,12 @@
 
 import pickle
 import sqlite3
+from pathlib import Path
 
 import pytest
+import torch
 
+from model_checkpoint.checkpoint.enhanced_manager import EnhancedCheckpointManager
 from model_checkpoint.core.checkpoint import CheckpointManager
 from model_checkpoint.core.experiment import ExperimentTracker
 
@@ -71,3 +74,39 @@ def test_resume_pre_upgrade_checkpoint(tmp_path, monkeypatch):
 
     assert checkpoint_file.is_file()
     assert not (tmp_path / "new_default").exists()
+
+
+def test_standalone_resume_preserves_resolved_root_across_cwd(tmp_path, monkeypatch):
+    first_cwd = tmp_path / "first"
+    second_cwd = tmp_path / "second"
+    first_cwd.mkdir()
+    second_cwd.mkdir()
+    monkeypatch.chdir(first_cwd)
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", "data")
+    manager = EnhancedCheckpointManager(enable_hooks=False)
+    manager.experiment_id = "standalone"
+    checkpoint_id = manager.save_checkpoint(torch.nn.Linear(2, 1), epoch=1)
+    original_root = first_cwd / "data"
+    record = manager.db.get_checkpoint(checkpoint_id)
+    files = [
+        path
+        for path in manager.storage_backend.get_checkpoint_files(record.file_path)
+        if path.is_file()
+    ]
+
+    monkeypatch.chdir(second_cwd)
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(original_root))
+    resumed = ExperimentTracker.resume("standalone")
+    resumed_manager = EnhancedCheckpointManager(resumed, enable_hooks=False)
+
+    assert resumed.experiment.data_dir == str(original_root)
+    assert (
+        Path(resumed_manager.checkpoint_dir) == original_root / "checkpoints_standalone"
+    )
+    records = resumed_manager.list_checkpoints()
+    assert [record["id"] for record in records] == [checkpoint_id]
+    assert all(record["file_exists"] for record in records)
+    assert Path(record.file_path) in files
+    assert all(path.is_file() and original_root in path.parents for path in files)
+    assert resumed_manager.load_checkpoint(checkpoint_id=checkpoint_id)["epoch"] == 1
+    assert not (second_cwd / "checkpoints_standalone").exists()

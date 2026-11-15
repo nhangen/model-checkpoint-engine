@@ -18,7 +18,11 @@ from ..database.models import Checkpoint, Experiment
 from ..hooks import HookContext, HookEvent, HookManager
 from ..integrity import CheckpointVerifier, ChecksumCalculator, IntegrityTracker
 from ..performance import BatchProcessor, CacheManager
-from ..utils.paths import get_default_checkpoint_dir, get_default_database_url
+from ..utils.paths import (
+    get_default_checkpoint_dir,
+    get_default_data_dir,
+    get_default_database_url,
+)
 from .storage import BaseStorageBackend, PyTorchStorageBackend
 
 
@@ -85,11 +89,18 @@ class EnhancedCheckpointManager:
             self.experiment_id = None
             self.experiment_tracker = None
 
+        data_dir = data_dir or getattr(experiment_tracker, "data_dir", None)
+        self.data_dir = str(
+            Path(data_dir).expanduser().resolve()
+            if data_dir
+            else get_default_data_dir()
+        )
+
         # Setup checkpoint directory
         if checkpoint_dir is None:
             self.checkpoint_dir = get_default_checkpoint_dir(
                 self.experiment_id,
-                data_dir=data_dir or getattr(experiment_tracker, "data_dir", None),
+                data_dir=self.data_dir,
             )
         else:
             self.checkpoint_dir = checkpoint_dir
@@ -222,7 +233,9 @@ class EnhancedCheckpointManager:
 
         if self.db.get_experiment(exp_id) is None:
             self.db.save_experiment(
-                Experiment(id=exp_id, name=exp_id, config=config or {})
+                Experiment(
+                    id=exp_id, name=exp_id, config=config or {}, data_dir=self.data_dir
+                )
             )
 
         # Generate checkpoint ID
