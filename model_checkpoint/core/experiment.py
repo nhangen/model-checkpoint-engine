@@ -31,7 +31,7 @@ class ExperimentTracker:
             tags: Optional tags for categorization
             config: Hyperparameters and configuration
             database_url: Database connection string
-            data_dir: Optional data directory for default database
+            data_dir: Optional storage root for default database and checkpoints
         """
         if database_url is None:
             database_url = get_default_database_url(data_dir=data_dir)
@@ -59,6 +59,7 @@ class ExperimentTracker:
             config=self.config,
             status="running",
             start_time=time.time(),
+            data_dir=self.data_dir,
         )
 
         self.db.save_experiment(self.experiment)
@@ -146,6 +147,7 @@ class ExperimentTracker:
 
         # Create new tracker instance with existing experiment
         tracker = cls.__new__(cls)
+        data_dir = data_dir or experiment.data_dir
         tracker.data_dir = str(
             Path(data_dir).expanduser().resolve()
             if data_dir

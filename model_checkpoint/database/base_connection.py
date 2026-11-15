@@ -70,9 +70,13 @@ class BaseDatabaseConnection:
                 end_time REAL,
                 tags TEXT,  -- JSON array
                 config TEXT,  -- JSON object
-                step INTEGER DEFAULT 0
+                step INTEGER DEFAULT 0,
+                data_dir TEXT
             )
         """)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(experiments)")}
+        if "data_dir" not in columns:
+            conn.execute("ALTER TABLE experiments ADD COLUMN data_dir TEXT")
 
     def _create_metrics_table(self, conn):
         # Create metrics table - centralized definition
@@ -122,8 +126,8 @@ class BaseDatabaseConnection:
                 """
                 INSERT OR REPLACE INTO experiments
                 (id, name, project_name, status, start_time, end_time,
-                 tags, config, step)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 tags, config, step, data_dir)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     experiment.id,
@@ -135,6 +139,7 @@ class BaseDatabaseConnection:
                     json.dumps(experiment.tags),
                     json.dumps(experiment.config),
                     experiment.step,
+                    experiment.data_dir,
                 ),
             )
             conn.commit()
@@ -149,7 +154,7 @@ class BaseDatabaseConnection:
             cursor = conn.execute(
                 """
                 SELECT id, name, project_name, status, start_time, end_time,
-                       tags, config, step
+                       tags, config, step, data_dir
                 FROM experiments WHERE id = ?
             """,
                 (experiment_id,),
@@ -169,6 +174,7 @@ class BaseDatabaseConnection:
                 tags=json.loads(row[6]) if row[6] else [],
                 config=json.loads(row[7]) if row[7] else {},
                 step=row[8] if row[8] is not None else 0,
+                data_dir=row[9],
             )
 
     def save_metric(self, metric: Metric) -> None:

@@ -1,6 +1,7 @@
 """Tests for anchoring library defaults to explicit project/data directories."""
 
 import os
+import sqlite3
 from pathlib import Path
 
 import pytest
@@ -328,3 +329,75 @@ def test_manager_tracker_root_ignores_unusable_global_default(
     assert manager.db.db_path == tracker.db.db_path
     assert Path(manager.integrity_tracker.tracker_file).parent == expected_dir
     assert global_root.read_text() == "not a directory"
+
+
+def test_resume_database_url_restores_checkpoint_root(tmp_path, monkeypatch):
+    custom_root = tmp_path / "custom"
+    global_root = tmp_path / "default"
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(global_root))
+    tracker = ExperimentTracker(
+        "resume_custom_root",
+        data_dir=str(custom_root),
+        database_url=f"sqlite:///{tmp_path / 'separate.db'}",
+    )
+    legacy = CheckpointManager(tracker)
+    legacy.save_checkpoint({"weight": 42}, epoch=1)
+    legacy_files = legacy.list_checkpoints()
+    enhanced = EnhancedCheckpointManager(
+        experiment_tracker=tracker, enable_hooks=False
+    )
+    checkpoint_id = enhanced.save_checkpoint(torch.nn.Linear(2, 1), epoch=1)
+    record = enhanced.db.get_checkpoint(checkpoint_id)
+    files = enhanced.storage_backend.get_checkpoint_files(record.file_path)
+    assert Path(record.file_path).is_file()
+    tracker.log_hyperparameters({"lr": 0.01})
+
+    resumed = ExperimentTracker.resume(
+        tracker.experiment_id, database_url=f"sqlite:///{tracker.db.db_path}"
+    )
+    assert resumed.data_dir == str(custom_root.resolve())
+    assert resumed.db.db_path == tracker.db.db_path
+    resumed_legacy = CheckpointManager(resumed)
+    assert resumed_legacy.list_checkpoints() == legacy_files
+    assert resumed_legacy.load_checkpoint(legacy_files[0]["id"])["model"] == {
+        "weight": 42
+    }
+    resumed_enhanced = EnhancedCheckpointManager(
+        experiment_tracker=resumed, enable_hooks=False
+    )
+    assert resumed_enhanced.delete_checkpoint(checkpoint_id)
+    assert resumed_enhanced.db.get_checkpoint(checkpoint_id) is None
+    assert all(not path.exists() for path in files)
+    assert Path(legacy_files[0]["file_path"]).is_file()
+    assert not global_root.exists()
+
+    override = tmp_path / "override"
+    overridden = ExperimentTracker.resume(
+        tracker.experiment_id,
+        database_url=resumed.database_url,
+        data_dir=str(override),
+    )
+    assert overridden.data_dir == str(override.resolve())
+    assert overridden.experiment.data_dir == str(custom_root.resolve())
+
+
+def test_resume_database_without_storage_root_upgrades_schema(tmp_path, monkeypatch):
+    db_path = tmp_path / "legacy.db"
+    with sqlite3.connect(db_path) as conn:
+        conn.execute(
+            "CREATE TABLE experiments (id TEXT PRIMARY KEY, name TEXT NOT NULL, "
+            "project_name TEXT, status TEXT, start_time REAL, end_time REAL, "
+            "tags TEXT, config TEXT, step INTEGER)"
+        )
+        conn.execute(
+            "INSERT INTO experiments (id, name, config) VALUES (?, ?, ?)",
+            ("legacy", "old_experiment", '{"lr": 0.01}'),
+        )
+    default_root = tmp_path / "default"
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(default_root))
+
+    for _ in range(2):
+        resumed = ExperimentTracker.resume("legacy", database_url=f"sqlite:///{db_path}")
+        assert resumed.data_dir == str(default_root.resolve())
+        assert resumed.experiment.data_dir is None
+        assert resumed.config == {"lr": 0.01}
