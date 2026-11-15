@@ -348,3 +348,56 @@ def test_corrupt_inputs_are_reported_without_publishing(tmp_path, format_name):
             else:
                 target.unlink()
     assert not seen
+
+
+def _simple_legacy(tmp_path):
+    source = tmp_path / "legacy.pt"
+    torch.save({"model": {"w": torch.ones(1)}, "epoch": 1}, source)
+    return source, tmp_path / "out" / "converted.pt"
+
+
+def test_output_rejected_by_restricted_reader_is_not_published(tmp_path, monkeypatch):
+    source, target = _simple_legacy(tmp_path)
+
+    def restricted_reader_rejects(*args, **kwargs):
+        raise pickle.UnpicklingError("unsupported global")
+
+    monkeypatch.setattr(convert_legacy.torch, "load", restricted_reader_rejects)
+    with pytest.raises(ValueError, match="no output was published"):
+        convert_checkpoint(str(source), str(target), trusted_input=True)
+    assert not target.exists()
+    assert not list(target.parent.glob("*.converting"))
+
+
+def test_publish_never_replaces_a_target_created_during_conversion(
+    tmp_path, monkeypatch
+):
+    source, target = _simple_legacy(tmp_path)
+    real_save = convert_legacy.torch.save
+
+    def save_then_race(data, path, **kwargs):
+        real_save(data, path, **kwargs)
+        target.write_bytes(b"written by someone else")
+
+    monkeypatch.setattr(convert_legacy.torch, "save", save_then_race)
+    with pytest.raises(FileExistsError):
+        convert_checkpoint(str(source), str(target), trusted_input=True)
+    assert target.read_bytes() == b"written by someone else"
+    assert not list(target.parent.glob("*.converting"))
+
+
+def test_missing_input_is_reported_as_a_file_error(tmp_path, capsys):
+    missing = tmp_path / "missing.pt"
+    with pytest.raises(FileNotFoundError):
+        convert_checkpoint(str(missing), str(tmp_path / "out.pt"), trusted_input=True)
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "--input",
+                str(missing),
+                "--output",
+                str(tmp_path / "out.pt"),
+                "--trust-input",
+            ]
+        )
+    assert "Unsupported legacy input" not in capsys.readouterr().err

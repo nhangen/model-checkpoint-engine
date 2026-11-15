@@ -163,7 +163,7 @@ def _load_restricted_checkpoint(source: Path) -> Any:
     """Load a checkpoint container using the safe restricted unpickler."""
     try:
         return _load_container(source)
-    except UnsupportedLegacyObject:
+    except (UnsupportedLegacyObject, OSError):
         raise
     except Exception as exc:
         # Torch's own message advises retrying with weights_only=False.
@@ -252,7 +252,7 @@ def convert_checkpoint(
             "no output was published"
         )
     data = _restricted_values(loaded)
-    # Preserve legacy keys while making supported pose resume/inference aliases
+    # Preserve legacy keys while making supported resume/inference aliases
     # explicit. Arbitrary module instances are rejected, never silently flattened.
     if "model_state_dict" not in data and isinstance(data.get("model"), dict):
         data["model_state_dict"] = data["model"]
