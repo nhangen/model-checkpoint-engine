@@ -465,3 +465,20 @@ def test_partial_unlink_during_retention_leaves_no_dangling_row(tmp_path, monkey
     assert manager.db.get_checkpoint(latest) is not None
     for record in manager.list_checkpoints():
         assert Path(record["file_path"]).exists()
+
+
+def test_safetensors_metadata_is_relative_and_never_followed(tmp_path):
+    from safetensors.torch import save_file
+
+    manager, checkpoint_id, record = _safetensors_manager(tmp_path, "sidecar-path")
+    stored = torch.load(record.file_path, map_location="cpu", weights_only=True)
+    assert str(tmp_path) not in str(stored["_safetensors_model_path"])
+
+    decoy = tmp_path / "decoy.safetensors"
+    save_file({"weight": torch.full((1, 2), 7.0), "bias": torch.zeros(1)}, decoy)
+    stored["_safetensors_model_path"] = str(decoy)
+    torch.save(stored, record.file_path)
+    loaded = manager.storage_backend.load_checkpoint(record.file_path)
+    assert not torch.equal(
+        loaded["model_state_dict"]["weight"], torch.full((1, 2), 7.0)
+    )

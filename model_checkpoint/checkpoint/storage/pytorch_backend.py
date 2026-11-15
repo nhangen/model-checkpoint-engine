@@ -218,14 +218,15 @@ class PyTorchStorageBackend(BaseStorageBackend):
         model_state = checkpoint_data.get("model_state_dict", {})
 
         # Save model state with safetensors
-        safetensors_path = str(self.get_checkpoint_files(file_path)[1])
-        self._safetensors.save_file(model_state, safetensors_path)
+        safetensors_path = self.get_checkpoint_files(file_path)[1]
+        self._safetensors.save_file(model_state, str(safetensors_path))
 
         # Save rest with standard PyTorch (excluding model state)
         remaining_data = {
             k: v for k, v in checkpoint_data.items() if k != "model_state_dict"
         }
-        remaining_data["_safetensors_model_path"] = safetensors_path
+        # Readers use the adjacent sidecar; record only its name as the marker.
+        remaining_data["_safetensors_model_path"] = safetensors_path.name
         if hasattr(model_state, "_metadata"):
             remaining_data["_safetensors_state_metadata"] = model_state._metadata
         torch.save(remaining_data, file_path)
