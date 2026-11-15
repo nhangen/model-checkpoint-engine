@@ -333,9 +333,14 @@ class CheckpointVerifier:
             if os.path.exists(backup_path):
                 # Verify backup integrity
                 try:
-                    if self._test_checkpoint_loadability(
-                        backup_path, str(self._weights_sidecar(original_path))
-                    ):
+                    original_sidecar = self._weights_sidecar(original_path)
+                    backup_sidecar = self._weights_sidecar(backup_path)
+                    sidecar = (
+                        backup_sidecar if backup_sidecar.exists() else original_sidecar
+                    )
+                    if self._test_checkpoint_loadability(backup_path, str(sidecar)):
+                        if sidecar != original_sidecar and sidecar.exists():
+                            shutil.copy2(sidecar, original_sidecar)
                         # Copy backup to original location
                         shutil.copy2(backup_path, original_path)
                         recovery_result.update(

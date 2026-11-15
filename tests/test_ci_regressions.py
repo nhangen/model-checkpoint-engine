@@ -384,6 +384,28 @@ def test_safetensors_checkpoint_restores_from_backup_file(tmp_path):
     assert manager.load_checkpoint(checkpoint_id=checkpoint_id)["epoch"] == 1
 
 
+def test_safetensors_recovery_restores_the_backup_weights(tmp_path):
+    manager, checkpoint_id, record = _safetensors_manager(tmp_path, "restore-pair")
+    original = Path(record.file_path)
+    weights = original.with_name(original.stem + "_model.safetensors")
+    expected_weights = manager.storage_backend.load_checkpoint(record.file_path)[
+        "model_state_dict"
+    ]["weight"].clone()
+    backup = original.with_name(original.stem + "_backup.pth")
+    backup_weights = backup.with_name(backup.stem + "_model.safetensors")
+    shutil.copy2(original, backup)
+    shutil.copy2(weights, backup_weights)
+    original.unlink()
+    weights.unlink()
+
+    result = manager.verifier.verify_checkpoint(checkpoint_id, repair_on_failure=True)
+
+    assert result["repair_successful"], result
+    loaded = manager.load_checkpoint(checkpoint_id=checkpoint_id)
+    assert torch.equal(loaded["model_state_dict"]["weight"], expected_weights)
+    assert weights.exists() and backup_weights.exists()
+
+
 def test_unsupported_runtime_is_not_reported_as_corruption(tmp_path, monkeypatch):
     from model_checkpoint.utils.serialization_runtime import (
         UnsupportedCheckpointRuntime,
