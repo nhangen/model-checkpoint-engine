@@ -3,6 +3,9 @@
 import os
 from pathlib import Path
 
+import pytest
+import torch
+
 from model_checkpoint import (
     EnhancedCheckpointManager,
     EnhancedDatabaseConnection,
@@ -246,3 +249,82 @@ def test_cwd_remains_clean(tmp_path, monkeypatch):
         assert cwd_files == [], f"CWD was polluted with: {cwd_files}"
     finally:
         os.chdir(original_cwd)
+
+
+@pytest.mark.parametrize("cleanup", ["delete", "retention"])
+@pytest.mark.parametrize("explicit_tracker_root", [True, False])
+def test_manager_inherits_tracker_data_root_across_environment_changes(
+    tmp_path, monkeypatch, cleanup, explicit_tracker_root
+):
+    tracker_root = tmp_path / "tracker"
+    global_root = tmp_path / "global"
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(tracker_root))
+    tracker = ExperimentTracker(
+        "stable_root", data_dir=str(tracker_root) if explicit_tracker_root else None
+    )
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(global_root))
+    options = dict(
+        experiment_tracker=tracker,
+        enable_hooks=False,
+        save_best=False,
+        save_last=False,
+        max_checkpoints=1,
+    )
+    manager = EnhancedCheckpointManager(**options)
+    model = torch.nn.Linear(2, 1)
+    checkpoint_id = manager.save_checkpoint(model, epoch=1, update_best=False)
+    record = manager.db.get_checkpoint(checkpoint_id)
+    assert Path(record.file_path).is_file()
+    files = [
+        path
+        for path in manager.storage_backend.get_checkpoint_files(record.file_path)
+        if path.is_file()
+    ]
+
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(tmp_path / "changed_global"))
+    resumed = EnhancedCheckpointManager(**options)
+    if cleanup == "delete":
+        assert resumed.delete_checkpoint(checkpoint_id)
+    else:
+        retained_id = resumed.save_checkpoint(model, epoch=2, update_best=False)
+        retained = resumed.db.get_checkpoint(retained_id)
+        assert Path(retained.file_path).is_file()
+        assert [row["id"] for row in resumed.list_checkpoints()] == [retained_id]
+
+    assert resumed.db.get_checkpoint(checkpoint_id) is None
+    assert all(not path.exists() for path in files)
+    expected_dir = tracker_root / f"checkpoints_{tracker.experiment_id}"
+    assert Path(manager.checkpoint_dir) == expected_dir
+    assert Path(resumed.checkpoint_dir) == expected_dir
+    assert manager.db.db_path == resumed.db.db_path == tracker.db.db_path
+    integrity_file = expected_dir / ".integrity_tracker.json"
+    assert Path(resumed.integrity_tracker.tracker_file) == integrity_file
+    assert integrity_file.is_file()
+    assert record.file_path not in resumed.integrity_tracker.records
+    assert not global_root.exists()
+    assert not (tmp_path / "changed_global").exists()
+
+
+@pytest.mark.parametrize("manager_override", [False, True])
+def test_manager_tracker_root_ignores_unusable_global_default(
+    tmp_path, monkeypatch, manager_override
+):
+    global_root = tmp_path / "global_file"
+    global_root.write_text("not a directory")
+    monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(global_root))
+    tracker_root = tmp_path / "tracker"
+    tracker = ExperimentTracker("explicit_root", data_dir=str(tracker_root))
+    manager_root = tmp_path / "manager" if manager_override else tracker_root
+
+    manager = EnhancedCheckpointManager(
+        experiment_tracker=tracker,
+        data_dir=str(manager_root) if manager_override else None,
+        enable_hooks=False,
+    )
+
+    expected_dir = manager_root / f"checkpoints_{tracker.experiment_id}"
+    assert Path(manager.checkpoint_dir) == expected_dir
+    assert expected_dir.is_dir()
+    assert manager.db.db_path == tracker.db.db_path
+    assert Path(manager.integrity_tracker.tracker_file).parent == expected_dir
+    assert global_root.read_text() == "not a directory"

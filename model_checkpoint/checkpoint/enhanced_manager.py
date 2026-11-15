@@ -88,7 +88,8 @@ class EnhancedCheckpointManager:
         # Setup checkpoint directory
         if checkpoint_dir is None:
             self.checkpoint_dir = get_default_checkpoint_dir(
-                self.experiment_id, data_dir=data_dir
+                self.experiment_id,
+                data_dir=data_dir or getattr(experiment_tracker, "data_dir", None),
             )
         else:
             self.checkpoint_dir = checkpoint_dir
