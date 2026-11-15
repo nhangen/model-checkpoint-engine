@@ -87,6 +87,44 @@ pip install -e .
 # - PyTorch (optional, only if using PyTorch storage backend)
 ```
 
+### Restricted checkpoint loading
+
+Checkpoint reads use `torch.load(..., weights_only=True)` and require stable
+Torch 2.15.0 or later, which patches the restricted-loader advisories
+[GHSA-63cw-57p8-fm3p](https://github.com/pytorch/pytorch/security/advisories/GHSA-63cw-57p8-fm3p)
+and [GHSA-v32g-mr63-3j83](https://github.com/pytorch/pytorch/security/advisories/GHSA-v32g-mr63-3j83).
+Install it with the `restricted-checkpoints` extra or `requirements-restricted.txt`:
+
+```bash
+pip install -e ".[restricted-checkpoints]"
+```
+
+On an older runtime, loading and conversion raise `UnsupportedCheckpointRuntime`
+before reading the file, and verification and backup report that error rather
+than marking the checkpoint corrupted.
+
+### Converting legacy checkpoints
+
+Ordinary loading never falls back to an unrestricted read. To convert a legacy
+tensor or state-dict checkpoint whose provenance you trust:
+
+```bash
+python -m model_checkpoint.migration.convert_legacy \
+  --input /path/to/trusted-legacy-file \
+  --output /path/to/new-checkpoint.pt --trust-input
+```
+
+Without `--trust-input` the converter refuses before opening the input. Legacy
+pickle input can execute code, so never convert files you don't trust. The
+converter keeps the original, never overwrites an existing output, rejects
+unsupported objects, and publishes only output the restricted reader accepts.
+
+### REST authorization
+
+Endpoints declared with `auth_required=True` return 401 unless you pass an
+`authorize(headers) -> bool` callback to `RestAPI`. `/api/health` and
+`/api/info` stay public.
+
 ## Development Setup
 
 This project uses pre-commit hooks to maintain code quality and consistency.
