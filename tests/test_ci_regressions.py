@@ -1,6 +1,9 @@
 """Exercise the production paths exposed by enforcing downstream CI."""
 
+import os
+import shutil
 import sqlite3
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -313,3 +316,34 @@ def test_safetensors_missing_or_corrupt_weights_are_not_verified(tmp_path, corru
     assert not manager.storage_backend.verify_checkpoint(record.file_path)
     with pytest.raises(RuntimeError):
         manager.load_checkpoint(checkpoint_id=checkpoint_id)
+
+
+def _safetensors_manager(tmp_path, name):
+    manager = EnhancedCheckpointManager(
+        checkpoint_dir=str(tmp_path / "models"),
+        database_url=f"sqlite:///{tmp_path / f'{name}.sqlite'}",
+        storage_backend="safetensors",
+    )
+    manager.experiment_id = name
+    checkpoint_id = manager.save_checkpoint(torch.nn.Linear(2, 1), epoch=1, loss=0.5)
+    return manager, checkpoint_id, manager.db.get_checkpoint(checkpoint_id)
+
+
+def test_safetensors_backup_copies_weights_and_verifies(tmp_path):
+    manager, checkpoint_id, record = _safetensors_manager(tmp_path, "backup")
+    result = manager.verifier.create_checkpoint_backup(
+        checkpoint_id, backup_dir=str(tmp_path / "backups")
+    )
+    assert result["success"], result
+    backup = Path(result["backup_path"])
+    assert backup.exists()
+    assert backup.with_name(backup.stem + "_model.safetensors").exists()
+
+
+def test_safetensors_checkpoint_restores_from_backup_file(tmp_path):
+    manager, checkpoint_id, record = _safetensors_manager(tmp_path, "restore")
+    shutil.copy2(record.file_path, record.file_path + ".backup")
+    os.unlink(record.file_path)
+    result = manager.verifier.verify_checkpoint(checkpoint_id, repair_on_failure=True)
+    assert result["repair_successful"], result
+    assert manager.load_checkpoint(checkpoint_id=checkpoint_id)["epoch"] == 1

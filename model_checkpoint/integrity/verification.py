@@ -242,12 +242,21 @@ class CheckpointVerifier:
             "message": "Global verification requires experiment enumeration capability",
         }
 
-    def _test_checkpoint_loadability(self, file_path: str) -> bool:
+    @staticmethod
+    def _weights_sidecar(file_path: str) -> Path:
+        path = Path(file_path)
+        return path.with_name(path.stem + "_model.safetensors")
+
+    def _test_checkpoint_loadability(
+        self, file_path: str, sidecar_path: Optional[str] = None
+    ) -> bool:
         """
         Test if a checkpoint file can be loaded without errors
 
         Args:
             file_path: Path to checkpoint file
+            sidecar_path: Safetensors weights file to check instead of the one
+                adjacent to file_path (used when the file is a renamed backup)
 
         Returns:
             True if loadable
@@ -268,10 +277,9 @@ class CheckpointVerifier:
             if "_safetensors_model_path" in checkpoint_data:
                 from safetensors.torch import load_file
 
-                path = Path(file_path)
                 # Only the deterministic adjacent sidecar belongs to this file.
                 load_file(
-                    str(path.with_name(path.stem + "_model.safetensors")), device="cpu"
+                    str(sidecar_path or self._weights_sidecar(file_path)), device="cpu"
                 )
 
             # Check for basic structure
@@ -320,7 +328,9 @@ class CheckpointVerifier:
             if os.path.exists(backup_path):
                 # Verify backup integrity
                 try:
-                    if self._test_checkpoint_loadability(backup_path):
+                    if self._test_checkpoint_loadability(
+                        backup_path, str(self._weights_sidecar(original_path))
+                    ):
                         # Copy backup to original location
                         shutil.copy2(backup_path, original_path)
                         recovery_result.update(
@@ -415,8 +425,11 @@ class CheckpointVerifier:
             backup_filename = f"{timestamp}_{original_filename}"
             backup_path = os.path.join(backup_dir, backup_filename)
 
-            # Copy file
             shutil.copy2(checkpoint.file_path, backup_path)
+            source_sidecar = self._weights_sidecar(checkpoint.file_path)
+            backup_sidecar = self._weights_sidecar(backup_path)
+            if source_sidecar.exists():
+                shutil.copy2(source_sidecar, backup_sidecar)
 
             # Verify backup
             if self._test_checkpoint_loadability(backup_path):
@@ -433,8 +446,8 @@ class CheckpointVerifier:
                     "original_path": checkpoint.file_path,
                 }
             else:
-                # Remove corrupted backup
                 os.unlink(backup_path)
+                backup_sidecar.unlink(missing_ok=True)
                 return {"success": False, "error": "Backup verification failed"}
 
         except Exception as e:
