@@ -76,7 +76,16 @@ class BaseDatabaseConnection:
         """)
         columns = {row[1] for row in conn.execute("PRAGMA table_info(experiments)")}
         if "data_dir" not in columns:
-            conn.execute("ALTER TABLE experiments ADD COLUMN data_dir TEXT")
+            try:
+                conn.execute("ALTER TABLE experiments ADD COLUMN data_dir TEXT")
+            except sqlite3.OperationalError as error:
+                if str(error) != "duplicate column name: data_dir":
+                    raise
+                columns = {
+                    row[1] for row in conn.execute("PRAGMA table_info(experiments)")
+                }
+                if "data_dir" not in columns:
+                    raise
 
     def _create_metrics_table(self, conn):
         # Create metrics table - centralized definition
