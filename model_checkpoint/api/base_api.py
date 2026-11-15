@@ -1,6 +1,7 @@
 # Optimized base API interface - zero redundancy design
 
 import json
+import logging
 import re
 import time
 from abc import ABC, abstractmethod
@@ -9,6 +10,8 @@ from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
 from ..hooks import HookContext, HookEvent, HookManager
+
+logger = logging.getLogger(__name__)
 
 
 def _current_time() -> float:
@@ -92,6 +95,8 @@ class BaseAPI(ABC):
             name: API name identifier
             version: API version string
             enable_hooks: Enable hook system for API events
+            authorize: Called with request headers; return True to allow the
+                request. When None, every auth_required endpoint returns 401.
         """
         self._authorize = authorize
         self.name = name
@@ -261,9 +266,7 @@ class BaseAPI(ABC):
                     404,
                 )
 
-            if endpoint.auth_required and (
-                self._authorize is None or not self._authorize(headers or {})
-            ):
+            if endpoint.auth_required and not self._is_authorized(headers or {}):
                 raise APIError("Authorization required", "UNAUTHORIZED", 401)
 
             # Check cache
@@ -336,6 +339,19 @@ class BaseAPI(ABC):
                 execution_time_ms=(_current_time() - start_time) * 1000,
                 metadata={"status_code": 500},
             )
+
+    def _is_authorized(self, headers: Dict[str, str]) -> bool:
+        if self._authorize is None:
+            return False
+        try:
+            return bool(self._authorize(headers))
+        except Exception as exc:
+            # Authorizer errors can carry credential material, so record only the type.
+            logger.error(
+                "Authorization callback failed (%s); request denied",
+                type(exc).__name__,
+            )
+            return False
 
     def _execute_handler(
         self,

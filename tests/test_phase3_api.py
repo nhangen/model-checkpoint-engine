@@ -84,6 +84,20 @@ class TestRestAPI:
         )
         assert Path(info["file_path"]).exists()
 
+    def test_authorizer_errors_fail_closed_without_leaking_detail(self, api):
+        def broken_authorize(headers):
+            raise RuntimeError("token=secret-value rejected by upstream")
+
+        api._authorize = broken_authorize
+        response = api.process_request(
+            f"/api/checkpoints/{api.test_checkpoint_id}", HTTPMethod.DELETE
+        )
+        assert response.metadata["status_code"] == 401
+        assert "secret-value" not in (response.message or "")
+        assert (
+            api.checkpoint_manager.db.get_checkpoint(api.test_checkpoint_id) is not None
+        )
+
     def test_authorization_precedes_cached_response(self, api):
         api._authorize = lambda headers: headers.get("X-Test-Identity") == "allowed"
         from model_checkpoint.api.base_api import EndpointConfig

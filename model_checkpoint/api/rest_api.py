@@ -33,6 +33,8 @@ class RestAPI(BaseAPI):
             checkpoint_manager: Checkpoint manager instance
             metrics_collector: Metrics collector instance
             cloud_manager: Cloud manager instance
+            authorize: Called with request headers; return True to allow the
+                request. When None, every auth_required endpoint returns 401.
         """
         super().__init__("checkpoint-engine-rest", "1.0.0", authorize=authorize)
 
