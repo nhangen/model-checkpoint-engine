@@ -18,6 +18,7 @@ from ..database.models import Checkpoint, Experiment
 from ..hooks import HookContext, HookEvent, HookManager
 from ..integrity import CheckpointVerifier, ChecksumCalculator, IntegrityTracker
 from ..performance import BatchProcessor, CacheManager
+from ..utils.paths import get_default_checkpoint_dir, get_default_database_url
 from .storage import BaseStorageBackend, PyTorchStorageBackend
 
 
@@ -43,8 +44,9 @@ class EnhancedCheckpointManager:
         save_last: bool = True,
         save_frequency: int = 5,
         max_checkpoints: int = 10,
-        database_url: str = "sqlite:///experiments.db",
+        database_url: Optional[str] = None,
         enable_hooks: bool = True,
+        data_dir: Optional[str] = None,
     ):
         """
         Initialize enhanced checkpoint manager
@@ -63,6 +65,7 @@ class EnhancedCheckpointManager:
             max_checkpoints: Maximum checkpoints to keep per experiment
             database_url: Database connection string
             enable_hooks: Enable hook system for extensibility
+            data_dir: Optional data directory for default database and checkpoints
         """
         # Core configuration
         self.save_best = save_best
@@ -74,9 +77,6 @@ class EnhancedCheckpointManager:
         # Setup logging
         self.logger = logging.getLogger(__name__)
 
-        # Initialize database connection (disable auto-migration for now)
-        self.db = EnhancedDatabaseConnection(database_url, auto_migrate=False)
-
         # Legacy compatibility
         if experiment_tracker:
             self.experiment_id = experiment_tracker.experiment_id
@@ -87,11 +87,33 @@ class EnhancedCheckpointManager:
 
         # Setup checkpoint directory
         if checkpoint_dir is None:
-            self.checkpoint_dir = f"checkpoints_{self.experiment_id or 'default'}"
+            self.checkpoint_dir = get_default_checkpoint_dir(
+                self.experiment_id, data_dir=data_dir
+            )
         else:
             self.checkpoint_dir = checkpoint_dir
 
         Path(self.checkpoint_dir).mkdir(parents=True, exist_ok=True)
+
+        # Resolve database connection
+        if database_url is None:
+            if (
+                experiment_tracker
+                and hasattr(experiment_tracker, "db")
+                and hasattr(experiment_tracker.db, "db_path")
+            ):
+                database_url = f"sqlite:///{experiment_tracker.db.db_path}"
+            elif (
+                experiment_tracker
+                and hasattr(experiment_tracker, "database_url")
+                and experiment_tracker.database_url
+            ):
+                database_url = experiment_tracker.database_url
+            else:
+                database_url = get_default_database_url(data_dir=data_dir)
+
+        # Initialize database connection (disable auto-migration for now)
+        self.db = EnhancedDatabaseConnection(database_url, auto_migrate=False)
 
         # Initialize storage backend
         self.storage_backend = self._initialize_storage_backend(
@@ -100,7 +122,8 @@ class EnhancedCheckpointManager:
 
         # Initialize integrity systems
         if enable_integrity_checks:
-            self.integrity_tracker = IntegrityTracker()
+            tracker_file = os.path.join(self.checkpoint_dir, ".integrity_tracker.json")
+            self.integrity_tracker = IntegrityTracker(tracker_file=tracker_file)
             self.checksum_calculator = ChecksumCalculator()
             self.verifier = CheckpointVerifier(self.db, self.integrity_tracker)
         else:

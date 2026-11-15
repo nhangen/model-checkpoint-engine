@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..database.models import Checkpoint
+from ..utils.paths import get_default_checkpoint_dir
 from .experiment import ExperimentTracker
 
 
@@ -22,6 +23,7 @@ class CheckpointManager:
         save_frequency: int = 5,
         max_checkpoints: int = 10,
         checkpoint_dir: Optional[str] = None,
+        data_dir: Optional[str] = None,
     ):
         """
         Initialize checkpoint manager
@@ -33,6 +35,7 @@ class CheckpointManager:
             save_frequency: Save checkpoint every N epochs
             max_checkpoints: Maximum checkpoints to keep
             checkpoint_dir: Directory to save checkpoints
+            data_dir: Optional data directory for default checkpoints
         """
         self.tracker = tracker
         self.save_best = save_best
@@ -42,7 +45,10 @@ class CheckpointManager:
 
         # Setup checkpoint directory
         if checkpoint_dir is None:
-            self.checkpoint_dir = f"checkpoints_{tracker.experiment_id}"
+            self.checkpoint_dir = get_default_checkpoint_dir(
+                tracker.experiment_id,
+                data_dir=data_dir or getattr(tracker, "data_dir", None),
+            )
         else:
             self.checkpoint_dir = checkpoint_dir
 

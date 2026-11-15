@@ -4,17 +4,25 @@ import json
 import logging
 import sqlite3
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Dict, List, Optional
 
+from ..utils.paths import get_default_database_url
 from .models import Checkpoint, Experiment, Metric
 
 
 class BaseDatabaseConnection:
     # Base SQLite database connection with core functionality
 
-    def __init__(self, database_url: str = "sqlite:///experiments.db"):
+    def __init__(self, database_url: Optional[str] = None):
         # Initialize base database connection
+        if database_url is None:
+            database_url = get_default_database_url()
+        self.database_url = database_url
         self.db_path = self._extract_db_path(database_url)
+        db_dir = Path(self.db_path).parent
+        if db_dir and not db_dir.exists():
+            db_dir.mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(__name__)
         self._init_tables()
 
@@ -50,8 +58,7 @@ class BaseDatabaseConnection:
 
     def _create_experiments_table(self, conn):
         # Create experiments table - centralized definition
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS experiments (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -63,13 +70,11 @@ class BaseDatabaseConnection:
                 config TEXT,  -- JSON object
                 step INTEGER DEFAULT 0
             )
-        """
-        )
+        """)
 
     def _create_metrics_table(self, conn):
         # Create metrics table - centralized definition
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 experiment_id TEXT,
@@ -79,13 +84,11 @@ class BaseDatabaseConnection:
                 timestamp REAL,
                 FOREIGN KEY (experiment_id) REFERENCES experiments (id)
             )
-        """
-        )
+        """)
 
     def _create_checkpoints_table(self, conn):
         # Create checkpoints table - centralized definition
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS checkpoints (
                 id TEXT PRIMARY KEY,
                 experiment_id TEXT,
@@ -107,8 +110,7 @@ class BaseDatabaseConnection:
                 created_at REAL,
                 FOREIGN KEY (experiment_id) REFERENCES experiments (id)
             )
-        """
-        )
+        """)
 
     # Core CRUD operations - shared between all connection types
     def save_experiment(self, experiment: Experiment) -> None:

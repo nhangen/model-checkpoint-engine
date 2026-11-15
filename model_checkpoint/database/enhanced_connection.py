@@ -11,7 +11,9 @@ class EnhancedDatabaseConnection(BaseDatabaseConnection):
     # Enhanced SQLite database connection - inherits all base functionality, adds migrations
 
     def __init__(
-        self, database_url: str = "sqlite:///experiments.db", auto_migrate: bool = True
+        self,
+        database_url: Optional[str] = None,
+        auto_migrate: bool = True,
     ):
         # Initialize enhanced database connection with migration support
         # Initialize base class (includes optimized table creation and CRUD)
@@ -45,15 +47,13 @@ class EnhancedDatabaseConnection(BaseDatabaseConnection):
     ) -> List[Checkpoint]:
         # Get checkpoints with advanced filtering - enhanced-specific method
         with self._get_connection() as conn:
-            query_parts = [
-                """
+            query_parts = ["""
                 SELECT id, experiment_id, epoch, step, checkpoint_type, file_path,
                        file_size, checksum, model_name, loss, val_loss, notes,
                        is_best_loss, is_best_val_loss, is_best_metric,
                        metrics, metadata, created_at
                 FROM checkpoints WHERE experiment_id = ?
-            """
-            ]
+            """]
             params = [experiment_id]
 
             if checkpoint_type:

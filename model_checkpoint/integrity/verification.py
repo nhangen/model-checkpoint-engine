@@ -30,7 +30,17 @@ class CheckpointVerifier:
             integrity_tracker: Optional integrity tracker for file monitoring
         """
         self.db = database_connection
-        self.integrity_tracker = integrity_tracker or IntegrityTracker()
+        if integrity_tracker is not None:
+            self.integrity_tracker = integrity_tracker
+        else:
+            db_dir = (
+                Path(database_connection.db_path).parent
+                if hasattr(database_connection, "db_path")
+                else None
+            )
+            self.integrity_tracker = IntegrityTracker(
+                data_dir=str(db_dir) if db_dir else None
+            )
         self.checksum_calculator = ChecksumCalculator()
 
     def verify_checkpoint(
