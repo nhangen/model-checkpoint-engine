@@ -20,6 +20,8 @@ class BaseDatabaseConnection:
             database_url = get_default_database_url()
         self.database_url = database_url
         self.db_path = self._extract_db_path(database_url)
+        if self.db_path != ":memory:":
+            self.db_path = str(Path(self.db_path).expanduser().resolve())
         db_dir = Path(self.db_path).parent
         if db_dir and not db_dir.exists():
             db_dir.mkdir(parents=True, exist_ok=True)
@@ -119,7 +121,8 @@ class BaseDatabaseConnection:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO experiments
-                (id, name, project_name, status, start_time, end_time, tags, config, step)
+                (id, name, project_name, status, start_time, end_time,
+                 tags, config, step)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
@@ -145,7 +148,8 @@ class BaseDatabaseConnection:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
-                SELECT id, name, project_name, status, start_time, end_time, tags, config, step
+                SELECT id, name, project_name, status, start_time, end_time,
+                       tags, config, step
                 FROM experiments WHERE id = ?
             """,
                 (experiment_id,),
@@ -195,7 +199,8 @@ class BaseDatabaseConnection:
         # Get metrics with enhanced filtering - optimized query building
         with self._get_connection() as conn:
             query_parts = [
-                "SELECT metric_name, metric_value, step, timestamp FROM metrics WHERE experiment_id = ?"
+                "SELECT metric_name, metric_value, step, timestamp "
+                "FROM metrics WHERE experiment_id = ?"
             ]
             params = [experiment_id]
 

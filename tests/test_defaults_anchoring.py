@@ -139,6 +139,33 @@ def test_manager_inherits_tracker_database(tmp_path):
     assert Path(manager.db.db_path).resolve() == custom_db.resolve()
 
 
+def test_manager_inherits_relative_tracker_database_after_cwd_change(
+    tmp_path, monkeypatch
+):
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    monkeypatch.chdir(dir_a)
+    tracker = ExperimentTracker(
+        "relative_database", database_url="sqlite:///custom.db"
+    )
+
+    monkeypatch.chdir(dir_b)
+    manager = EnhancedCheckpointManager(
+        experiment_tracker=tracker,
+        checkpoint_dir=str(tmp_path / "checkpoints"),
+        enable_integrity_checks=False,
+        enable_hooks=False,
+    )
+
+    assert manager.db.get_experiment(tracker.experiment_id).name == "relative_database"
+    assert tracker.db.get_experiment(tracker.experiment_id).name == "relative_database"
+    assert tracker.db.db_path == str(dir_a / "custom.db")
+    assert manager.db.db_path == tracker.db.db_path
+    assert not (dir_b / "custom.db").exists()
+
+
 def test_integrity_tracker_anchoring(tmp_path, monkeypatch):
     """Verify integrity tracker does not write to CWD."""
     data_dir = tmp_path / "data"
