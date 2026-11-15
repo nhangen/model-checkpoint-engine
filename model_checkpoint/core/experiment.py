@@ -149,9 +149,7 @@ class ExperimentTracker:
         tracker = cls.__new__(cls)
         data_dir = data_dir or experiment.data_dir
         tracker.data_dir = str(
-            Path(data_dir).expanduser().resolve()
-            if data_dir
-            else get_default_data_dir()
+            Path(data_dir).expanduser().resolve() if data_dir else Path.cwd()
         )
         tracker.database_url = f"sqlite:///{db.db_path}"
         tracker.experiment_id = experiment_id

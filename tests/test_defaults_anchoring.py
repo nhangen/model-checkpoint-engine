@@ -151,9 +151,7 @@ def test_manager_inherits_relative_tracker_database_after_cwd_change(
     dir_a.mkdir()
     dir_b.mkdir()
     monkeypatch.chdir(dir_a)
-    tracker = ExperimentTracker(
-        "relative_database", database_url="sqlite:///custom.db"
-    )
+    tracker = ExperimentTracker("relative_database", database_url="sqlite:///custom.db")
 
     monkeypatch.chdir(dir_b)
     manager = EnhancedCheckpointManager(
@@ -223,9 +221,7 @@ def test_checkpoint_dir_defaults_anchored(tmp_path, monkeypatch):
 
     tracker = ExperimentTracker(experiment_name="ckpt_test")
     legacy_mgr = CheckpointManager(tracker=tracker)
-    expected_legacy_ckpt = (
-        data_dir / f"checkpoints_{tracker.experiment_id}"
-    ).resolve()
+    expected_legacy_ckpt = (data_dir / f"checkpoints_{tracker.experiment_id}").resolve()
     assert Path(legacy_mgr.checkpoint_dir).resolve() == expected_legacy_ckpt
 
 
@@ -343,9 +339,7 @@ def test_resume_database_url_restores_checkpoint_root(tmp_path, monkeypatch):
     legacy = CheckpointManager(tracker)
     legacy.save_checkpoint({"weight": 42}, epoch=1)
     legacy_files = legacy.list_checkpoints()
-    enhanced = EnhancedCheckpointManager(
-        experiment_tracker=tracker, enable_hooks=False
-    )
+    enhanced = EnhancedCheckpointManager(experiment_tracker=tracker, enable_hooks=False)
     checkpoint_id = enhanced.save_checkpoint(torch.nn.Linear(2, 1), epoch=1)
     record = enhanced.db.get_checkpoint(checkpoint_id)
     files = enhanced.storage_backend.get_checkpoint_files(record.file_path)
@@ -382,6 +376,7 @@ def test_resume_database_url_restores_checkpoint_root(tmp_path, monkeypatch):
 
 
 def test_resume_database_without_storage_root_upgrades_schema(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     db_path = tmp_path / "legacy.db"
     with sqlite3.connect(db_path) as conn:
         conn.execute(
@@ -397,7 +392,9 @@ def test_resume_database_without_storage_root_upgrades_schema(tmp_path, monkeypa
     monkeypatch.setenv("MODEL_CHECKPOINT_DATA_DIR", str(default_root))
 
     for _ in range(2):
-        resumed = ExperimentTracker.resume("legacy", database_url=f"sqlite:///{db_path}")
-        assert resumed.data_dir == str(default_root.resolve())
+        resumed = ExperimentTracker.resume(
+            "legacy", database_url=f"sqlite:///{db_path}"
+        )
+        assert resumed.data_dir == str(tmp_path)
         assert resumed.experiment.data_dir is None
         assert resumed.config == {"lr": 0.01}
