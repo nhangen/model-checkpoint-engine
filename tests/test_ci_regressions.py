@@ -371,3 +371,62 @@ def test_unsupported_runtime_is_not_reported_as_corruption(tmp_path, monkeypatch
 
     with pytest.raises(UnsupportedCheckpointRuntime):
         manager.storage_backend.verify_checkpoint(record.file_path)
+
+
+def _retention_manager(tmp_path, max_checkpoints=2):
+    manager = EnhancedCheckpointManager(
+        checkpoint_dir=str(tmp_path / "models"),
+        database_url=f"sqlite:///{tmp_path / 'retention.sqlite'}",
+        storage_backend="safetensors",
+        max_checkpoints=max_checkpoints,
+    )
+    manager.experiment_id = "retention"
+    return manager
+
+
+def test_retention_failure_does_not_fail_a_committed_save(tmp_path, monkeypatch):
+    from model_checkpoint.database.models import Checkpoint
+
+    manager = _retention_manager(tmp_path)
+    outside = tmp_path / "elsewhere.pth"
+    outside.write_bytes(b"not ours")
+    manager.db.save_experiment(Experiment(id="retention", name="retention"))
+    manager.db.save_checkpoint(
+        Checkpoint(
+            id="foreign",
+            experiment_id="retention",
+            file_path=str(outside),
+            loss=9.0,
+            created_at=1.0,
+        )
+    )
+    model = torch.nn.Linear(2, 1)
+    saved = [manager.save_checkpoint(model, epoch=e, loss=1.0 / e) for e in (1, 2, 3)]
+
+    assert all(manager.db.get_checkpoint(cid) is not None for cid in saved[-1:])
+    assert outside.read_bytes() == b"not ours"
+    assert manager.db.get_checkpoint("foreign") is not None
+    with pytest.raises(ValueError, match="outside"):
+        manager.delete_checkpoint("foreign")
+    assert outside.exists()
+
+
+def test_partial_unlink_during_retention_leaves_no_dangling_row(tmp_path, monkeypatch):
+    manager = _retention_manager(tmp_path, max_checkpoints=1)
+    manager.save_best = False
+    model = torch.nn.Linear(2, 1)
+    manager.save_checkpoint(model, epoch=1, loss=0.5)
+
+    real_unlink = Path.unlink
+
+    def failing_sidecar_unlink(self, missing_ok=False):
+        if self.name.endswith("_model.safetensors"):
+            raise PermissionError("sidecar locked")
+        return real_unlink(self, missing_ok=missing_ok)
+
+    monkeypatch.setattr(Path, "unlink", failing_sidecar_unlink)
+    latest = manager.save_checkpoint(model, epoch=2, loss=0.4)
+
+    assert manager.db.get_checkpoint(latest) is not None
+    for record in manager.list_checkpoints():
+        assert Path(record["file_path"]).exists()

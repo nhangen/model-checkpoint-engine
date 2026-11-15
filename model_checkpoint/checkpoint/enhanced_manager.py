@@ -2,6 +2,7 @@
 
 import logging
 import os
+import sqlite3
 import time
 import uuid
 from pathlib import Path
@@ -654,19 +655,25 @@ class EnhancedCheckpointManager:
             if checkpoint.id in keep:
                 continue
             try:
-                for path in self._owned_checkpoint_paths(checkpoint.file_path):
-                    path.unlink(missing_ok=True)
-                self.db.delete_checkpoint(checkpoint.id)
-                if self.integrity_tracker:
-                    self.integrity_tracker.remove_file(checkpoint.file_path)
-                if self.cache_manager:
-                    self.cache_manager.checkpoint_cache.invalidate_checkpoint(
-                        checkpoint.id
-                    )
-            except OSError as exc:
-                self.logger.warning(
+                self._remove_checkpoint(checkpoint)
+            except (OSError, ValueError, sqlite3.Error) as exc:
+                # The new checkpoint is already committed; retention must not
+                # turn that save into a reported failure.
+                self.logger.error(
                     "Could not remove old checkpoint %s: %s", checkpoint.id, exc
                 )
+
+    def _remove_checkpoint(self, record) -> None:
+        paths = self._owned_checkpoint_paths(record.file_path)
+        # Drop the row first: a failed unlink then leaves an orphaned file,
+        # never a live record pointing at missing weights.
+        self.db.delete_checkpoint(record.id)
+        if self.cache_manager:
+            self.cache_manager.checkpoint_cache.invalidate_checkpoint(record.id)
+        if self.integrity_tracker:
+            self.integrity_tracker.remove_file(record.file_path)
+        for path in paths:
+            path.unlink(missing_ok=True)
 
     def _owned_checkpoint_paths(self, file_path: str):
         paths = self.storage_backend.get_checkpoint_files(file_path)
@@ -690,14 +697,8 @@ class EnhancedCheckpointManager:
         record = self.db.get_checkpoint(checkpoint_id)
         if record is None:
             return False
-        for path in self._owned_checkpoint_paths(record.file_path):
-            path.unlink(missing_ok=True)
-        self.db.delete_checkpoint(checkpoint_id)
-        if self.cache_manager:
-            self.cache_manager.checkpoint_cache.invalidate_checkpoint(checkpoint_id)
-        if self.integrity_tracker:
-            self.integrity_tracker.remove_file(record.file_path)
         self.best_metrics.pop(record.experiment_id, None)
+        self._remove_checkpoint(record)
         return True
 
     def list_checkpoints(
