@@ -187,6 +187,7 @@ class PyTorchStorageBackend(BaseStorageBackend):
         if not os.path.exists(file_path):
             return False
 
+        require_restricted_loader_runtime()
         try:
             # Verification must exercise the actual backend, including an
             # adjacent safetensors weight file when metadata declares one.

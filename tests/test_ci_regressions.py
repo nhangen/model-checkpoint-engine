@@ -347,3 +347,27 @@ def test_safetensors_checkpoint_restores_from_backup_file(tmp_path):
     result = manager.verifier.verify_checkpoint(checkpoint_id, repair_on_failure=True)
     assert result["repair_successful"], result
     assert manager.load_checkpoint(checkpoint_id=checkpoint_id)["epoch"] == 1
+
+
+def test_unsupported_runtime_is_not_reported_as_corruption(tmp_path, monkeypatch):
+    from model_checkpoint.utils.serialization_runtime import (
+        UnsupportedCheckpointRuntime,
+    )
+
+    manager, checkpoint_id, record = _safetensors_manager(tmp_path, "runtime")
+    monkeypatch.setattr(torch, "__version__", "2.8.0")
+
+    result = manager.verifier.verify_checkpoint(checkpoint_id, repair_on_failure=True)
+    assert result["status"] == "error"
+    assert not result["repair_attempted"]
+    assert any("2.15.0" in error for error in result["errors"])
+
+    backup_dir = tmp_path / "backups"
+    backup = manager.verifier.create_checkpoint_backup(
+        checkpoint_id, backup_dir=str(backup_dir)
+    )
+    assert not backup["success"] and "2.15.0" in backup["error"]
+    assert not backup_dir.exists() or not any(backup_dir.iterdir())
+
+    with pytest.raises(UnsupportedCheckpointRuntime):
+        manager.storage_backend.verify_checkpoint(record.file_path)

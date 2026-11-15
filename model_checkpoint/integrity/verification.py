@@ -7,8 +7,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
+from ..utils.serialization_runtime import (
+    UnsupportedCheckpointRuntime,
+    require_restricted_loader_runtime,
+)
 from .checksum import ChecksumCalculator, IntegrityTracker
-from ..utils.serialization_runtime import require_restricted_loader_runtime
 
 
 class CheckpointVerifier:
@@ -134,6 +137,8 @@ class CheckpointVerifier:
                         "Restricted checkpoint load or structure check failed"
                     )
                 result["checks"]["loadable"] = True
+            except UnsupportedCheckpointRuntime:
+                raise
             except Exception as e:
                 result["status"] = "corrupted"
                 result["errors"].append(f"Checkpoint not loadable: {e}")
@@ -263,8 +268,8 @@ class CheckpointVerifier:
         """
         import torch
 
+        require_restricted_loader_runtime()
         try:
-            require_restricted_loader_runtime()
             # Quick load test - just check if PyTorch can read the file structure
             checkpoint_data = torch.load(
                 file_path, map_location="cpu", weights_only=True
@@ -342,6 +347,8 @@ class CheckpointVerifier:
                             }
                         )
                         return recovery_result
+                except UnsupportedCheckpointRuntime:
+                    raise
                 except Exception as e:
                     recovery_result["details"].append(
                         f"Backup {backup_path} corrupted: {e}"
@@ -412,6 +419,7 @@ class CheckpointVerifier:
             return {"success": False, "error": "Checkpoint file not found"}
 
         try:
+            require_restricted_loader_runtime()
             # Determine backup location
             if backup_dir is None:
                 original_dir = os.path.dirname(checkpoint.file_path)
