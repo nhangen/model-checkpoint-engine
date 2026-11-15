@@ -24,6 +24,7 @@ class Experiment:
     tags: List[str] = field(default_factory=list)
     config: Dict[str, Any] = field(default_factory=dict)
     step: int = 0
+    data_dir: Optional[str] = None
 
 
 @dataclass

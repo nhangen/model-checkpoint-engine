@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, Union
 
+from ..utils.paths import get_default_plugin_directories
+
 
 def _current_time() -> float:
     # Shared time function
@@ -114,6 +116,7 @@ class PluginManager:
         self,
         plugin_directories: Optional[List[str]] = None,
         engine_version: str = "1.0.0",
+        data_dir: Optional[str] = None,
     ):
         """
         Initialize plugin manager
@@ -121,9 +124,13 @@ class PluginManager:
         Args:
             plugin_directories: Directories to search for plugins
             engine_version: Current engine version
+            data_dir: Optional data directory for default plugin directories
         """
         self.engine_version = engine_version
-        self.plugin_directories = plugin_directories or ["./plugins"]
+        if plugin_directories is not None:
+            self.plugin_directories = plugin_directories
+        else:
+            self.plugin_directories = get_default_plugin_directories(data_dir=data_dir)
 
         # Optimized: Plugin storage
         self._plugins: Dict[str, PluginInfo] = {}

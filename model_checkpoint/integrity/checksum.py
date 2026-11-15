@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from ..utils.checksum import calculate_data_checksum, calculate_file_checksum
+from ..utils.paths import get_default_tracker_file
 
 
 class ChecksumCalculator:
@@ -155,14 +156,25 @@ class ChecksumCalculator:
 class IntegrityTracker:
     # Track and manage file integrity over time
 
-    def __init__(self, tracker_file: Optional[str] = None):
+    def __init__(
+        self,
+        tracker_file: Optional[str] = None,
+        data_dir: Optional[str] = None,
+    ):
         """
         Initialize integrity tracker
 
         Args:
             tracker_file: File to store integrity records (JSON)
+            data_dir: Optional data directory for default tracker file
         """
-        self.tracker_file = tracker_file or ".integrity_tracker.json"
+        if tracker_file is None:
+            self.tracker_file = get_default_tracker_file(data_dir=data_dir)
+        else:
+            self.tracker_file = tracker_file
+        tracker_dir = Path(self.tracker_file).parent
+        if tracker_dir and not tracker_dir.exists():
+            tracker_dir.mkdir(parents=True, exist_ok=True)
         self.calculator = ChecksumCalculator()
         self._load_records()
 

@@ -1,5 +1,7 @@
 # Database connection and operations - optimized legacy compatibility
 
+from typing import Optional
+
 from .base_connection import BaseDatabaseConnection
 
 
@@ -10,7 +12,7 @@ class DatabaseConnection(BaseDatabaseConnection):
     base implementation. All CRUD operations are inherited from BaseDatabaseConnection.
     """
 
-    def __init__(self, database_url: str = "sqlite:///experiments.db"):
+    def __init__(self, database_url: Optional[str] = None):
         # Initialize database connection with legacy compatibility
         # Initialize base class (includes all optimized functionality)
         super().__init__(database_url)

@@ -143,6 +143,7 @@ dmypy.json
 *.onnx
 experiments.db
 checkpoints/
+checkpoints_default/
 logs/
 runs/
 wandb/

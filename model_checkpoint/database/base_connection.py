@@ -4,17 +4,27 @@ import json
 import logging
 import sqlite3
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Dict, List, Optional
 
+from ..utils.paths import get_default_database_url
 from .models import Checkpoint, Experiment, Metric
 
 
 class BaseDatabaseConnection:
     # Base SQLite database connection with core functionality
 
-    def __init__(self, database_url: str = "sqlite:///experiments.db"):
+    def __init__(self, database_url: Optional[str] = None):
         # Initialize base database connection
+        if database_url is None:
+            database_url = get_default_database_url()
+        self.database_url = database_url
         self.db_path = self._extract_db_path(database_url)
+        if self.db_path != ":memory:":
+            self.db_path = str(Path(self.db_path).expanduser().resolve())
+        db_dir = Path(self.db_path).parent
+        if db_dir and not db_dir.exists():
+            db_dir.mkdir(parents=True, exist_ok=True)
         self.logger = logging.getLogger(__name__)
         self._init_tables()
 
@@ -50,8 +60,7 @@ class BaseDatabaseConnection:
 
     def _create_experiments_table(self, conn):
         # Create experiments table - centralized definition
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS experiments (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -61,15 +70,26 @@ class BaseDatabaseConnection:
                 end_time REAL,
                 tags TEXT,  -- JSON array
                 config TEXT,  -- JSON object
-                step INTEGER DEFAULT 0
+                step INTEGER DEFAULT 0,
+                data_dir TEXT
             )
-        """
-        )
+        """)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(experiments)")}
+        if "data_dir" not in columns:
+            try:
+                conn.execute("ALTER TABLE experiments ADD COLUMN data_dir TEXT")
+            except sqlite3.OperationalError as error:
+                if str(error) != "duplicate column name: data_dir":
+                    raise
+                columns = {
+                    row[1] for row in conn.execute("PRAGMA table_info(experiments)")
+                }
+                if "data_dir" not in columns:
+                    raise
 
     def _create_metrics_table(self, conn):
         # Create metrics table - centralized definition
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 experiment_id TEXT,
@@ -79,13 +99,11 @@ class BaseDatabaseConnection:
                 timestamp REAL,
                 FOREIGN KEY (experiment_id) REFERENCES experiments (id)
             )
-        """
-        )
+        """)
 
     def _create_checkpoints_table(self, conn):
         # Create checkpoints table - centralized definition
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS checkpoints (
                 id TEXT PRIMARY KEY,
                 experiment_id TEXT,
@@ -107,8 +125,7 @@ class BaseDatabaseConnection:
                 created_at REAL,
                 FOREIGN KEY (experiment_id) REFERENCES experiments (id)
             )
-        """
-        )
+        """)
 
     # Core CRUD operations - shared between all connection types
     def save_experiment(self, experiment: Experiment) -> None:
@@ -117,8 +134,9 @@ class BaseDatabaseConnection:
             conn.execute(
                 """
                 INSERT OR REPLACE INTO experiments
-                (id, name, project_name, status, start_time, end_time, tags, config, step)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (id, name, project_name, status, start_time, end_time,
+                 tags, config, step, data_dir)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     experiment.id,
@@ -130,6 +148,7 @@ class BaseDatabaseConnection:
                     json.dumps(experiment.tags),
                     json.dumps(experiment.config),
                     experiment.step,
+                    experiment.data_dir,
                 ),
             )
             conn.commit()
@@ -143,7 +162,8 @@ class BaseDatabaseConnection:
         with self._get_connection() as conn:
             cursor = conn.execute(
                 """
-                SELECT id, name, project_name, status, start_time, end_time, tags, config, step
+                SELECT id, name, project_name, status, start_time, end_time,
+                       tags, config, step, data_dir
                 FROM experiments WHERE id = ?
             """,
                 (experiment_id,),
@@ -163,6 +183,7 @@ class BaseDatabaseConnection:
                 tags=json.loads(row[6]) if row[6] else [],
                 config=json.loads(row[7]) if row[7] else {},
                 step=row[8] if row[8] is not None else 0,
+                data_dir=row[9],
             )
 
     def save_metric(self, metric: Metric) -> None:
@@ -193,7 +214,8 @@ class BaseDatabaseConnection:
         # Get metrics with enhanced filtering - optimized query building
         with self._get_connection() as conn:
             query_parts = [
-                "SELECT metric_name, metric_value, step, timestamp FROM metrics WHERE experiment_id = ?"
+                "SELECT metric_name, metric_value, step, timestamp "
+                "FROM metrics WHERE experiment_id = ?"
             ]
             params = [experiment_id]
 

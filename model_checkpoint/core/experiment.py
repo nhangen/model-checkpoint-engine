@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from ..database.connection import DatabaseConnection
 from ..database.models import Experiment, Metric
+from ..utils.paths import get_default_data_dir, get_default_database_url
 
 
 class ExperimentTracker:
@@ -18,7 +19,8 @@ class ExperimentTracker:
         project_name: Optional[str] = None,
         tags: Optional[List[str]] = None,
         config: Optional[Dict] = None,
-        database_url: str = "sqlite:///experiments.db",
+        database_url: Optional[str] = None,
+        data_dir: Optional[str] = None,
     ):
         """
         Initialize experiment tracker
@@ -29,7 +31,16 @@ class ExperimentTracker:
             tags: Optional tags for categorization
             config: Hyperparameters and configuration
             database_url: Database connection string
+            data_dir: Optional storage root for default database and checkpoints
         """
+        if database_url is None:
+            database_url = get_default_database_url(data_dir=data_dir)
+        self.data_dir = str(
+            Path(data_dir).expanduser().resolve()
+            if data_dir
+            else get_default_data_dir()
+        )
+        self.database_url = database_url
         self.experiment_id = str(uuid.uuid4())
         self.experiment_name = experiment_name
         self.project_name = project_name
@@ -48,6 +59,7 @@ class ExperimentTracker:
             config=self.config,
             status="running",
             start_time=time.time(),
+            data_dir=self.data_dir,
         )
 
         self.db.save_experiment(self.experiment)
@@ -118,8 +130,15 @@ class ExperimentTracker:
         return report_path
 
     @classmethod
-    def resume(cls, experiment_id: str, database_url: str = "sqlite:///experiments.db"):
+    def resume(
+        cls,
+        experiment_id: str,
+        database_url: Optional[str] = None,
+        data_dir: Optional[str] = None,
+    ):
         # Resume an existing experiment
+        if database_url is None:
+            database_url = get_default_database_url(data_dir=data_dir)
         db = DatabaseConnection(database_url)
         experiment = db.get_experiment(experiment_id)
 
@@ -128,6 +147,11 @@ class ExperimentTracker:
 
         # Create new tracker instance with existing experiment
         tracker = cls.__new__(cls)
+        data_dir = data_dir or experiment.data_dir
+        tracker.data_dir = str(
+            Path(data_dir).expanduser().resolve() if data_dir else Path.cwd()
+        )
+        tracker.database_url = f"sqlite:///{db.db_path}"
         tracker.experiment_id = experiment_id
         tracker.experiment_name = experiment.name
         tracker.project_name = experiment.project_name
