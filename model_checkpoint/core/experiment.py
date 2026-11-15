@@ -2,11 +2,12 @@
 
 import time
 import uuid
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..database.connection import DatabaseConnection
 from ..database.models import Experiment, Metric
-from ..utils.paths import get_default_database_url
+from ..utils.paths import get_default_data_dir, get_default_database_url
 
 
 class ExperimentTracker:
@@ -34,7 +35,11 @@ class ExperimentTracker:
         """
         if database_url is None:
             database_url = get_default_database_url(data_dir=data_dir)
-        self.data_dir = data_dir
+        self.data_dir = str(
+            Path(data_dir).expanduser().resolve()
+            if data_dir
+            else get_default_data_dir()
+        )
         self.database_url = database_url
         self.experiment_id = str(uuid.uuid4())
         self.experiment_name = experiment_name
@@ -141,6 +146,12 @@ class ExperimentTracker:
 
         # Create new tracker instance with existing experiment
         tracker = cls.__new__(cls)
+        tracker.data_dir = str(
+            Path(data_dir).expanduser().resolve()
+            if data_dir
+            else get_default_data_dir()
+        )
+        tracker.database_url = f"sqlite:///{db.db_path}"
         tracker.experiment_id = experiment_id
         tracker.experiment_name = experiment.name
         tracker.project_name = experiment.project_name
