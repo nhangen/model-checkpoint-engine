@@ -170,8 +170,46 @@ def test_reopened_manager_preserves_best_before_worse_saves(tmp_path):
     for epoch in range(2, 7):
         resumed.save_checkpoint(torch.nn.Linear(1, 1), epoch=epoch, loss=0.9)
     assert resumed.load_checkpoint(checkpoint_type="best_loss")["epoch"] == 1
-    assert best in {checkpoint["id"] for checkpoint in resumed.list_checkpoints()}
-    assert len(resumed.list_checkpoints()) == 3
+    remaining = resumed.list_checkpoints()
+    assert best in {checkpoint["id"] for checkpoint in remaining}
+    assert len(remaining) == 3
+    assert [c["id"] for c in remaining if c["is_best_loss"]] == [best]
+
+
+def test_reopened_manager_keeps_best_metric_through_retention(tmp_path):
+    options = dict(
+        checkpoint_dir=str(tmp_path / "models"),
+        database_url=f"sqlite:///{tmp_path / 'metric.sqlite'}",
+        max_checkpoints=2,
+    )
+    first = EnhancedCheckpointManager(**options)
+    first.experiment_id = "metric"
+    best = first.save_checkpoint(
+        torch.nn.Linear(1, 1), epoch=1, loss=0.5, metrics={"accuracy": 0.9}
+    )
+    resumed = EnhancedCheckpointManager(**options)
+    resumed.experiment_id = "metric"
+    for epoch in range(2, 7):
+        resumed.save_checkpoint(
+            torch.nn.Linear(1, 1), epoch=epoch, loss=0.5, metrics={"accuracy": 0.5}
+        )
+    remaining = resumed.list_checkpoints()
+    assert best in {checkpoint["id"] for checkpoint in remaining}
+    assert [c["id"] for c in remaining if c["is_best_metric"]] == [best]
+
+
+def test_deleting_the_best_checkpoint_resets_best_tracking(tmp_path):
+    manager = EnhancedCheckpointManager(
+        checkpoint_dir=str(tmp_path / "models"),
+        database_url=f"sqlite:///{tmp_path / 'reset.sqlite'}",
+        max_checkpoints=5,
+    )
+    manager.experiment_id = "reset"
+    best = manager.save_checkpoint(torch.nn.Linear(1, 1), epoch=1, loss=0.1)
+    manager.save_checkpoint(torch.nn.Linear(1, 1), epoch=2, loss=0.5)
+    assert manager.delete_checkpoint(best)
+    newer = manager.save_checkpoint(torch.nn.Linear(1, 1), epoch=3, loss=0.3)
+    assert manager.get_checkpoint_info(newer)["is_best_loss"]
 
 
 def test_existing_hook_event_ids_are_unchanged():
@@ -265,9 +303,6 @@ def test_restricted_backend_rejects_code_execution_payload(tmp_path):
 
 
 def test_safetensors_state_metadata_delete_and_retention(tmp_path):
-    from safetensors import torch as safetensors_torch
-
-    assert callable(safetensors_torch.load_file)
     options = dict(
         checkpoint_dir=str(tmp_path / "models"),
         database_url=f"sqlite:///{tmp_path / 'safe.sqlite'}",
@@ -286,9 +321,9 @@ def test_safetensors_state_metadata_delete_and_retention(tmp_path):
     records = manager.list_checkpoints()
     assert len(records) == 2
     assert len(list((tmp_path / "models").glob("*_model.safetensors"))) == 2
-    paths = manager._owned_checkpoint_paths(
-        manager.get_checkpoint_info(first)["file_path"]
-    )
+    weights = Path(manager.get_checkpoint_info(first)["file_path"])
+    paths = [weights, weights.with_name(weights.stem + "_model.safetensors")]
+    assert all(path.exists() for path in paths)
     assert manager.delete_checkpoint(first)
     assert all(not path.exists() for path in paths)
     assert manager.db.get_checkpoint(first) is None

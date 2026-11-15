@@ -74,6 +74,7 @@ class TestRestAPI:
 
     def test_protected_routes_fail_closed_without_authorizer(self, api):
         api._authorize = None
+        info = api.checkpoint_manager.get_checkpoint_info(api.test_checkpoint_id)
         response = api.process_request(
             f"/api/checkpoints/{api.test_checkpoint_id}", HTTPMethod.DELETE
         )
@@ -81,6 +82,7 @@ class TestRestAPI:
         assert (
             api.checkpoint_manager.db.get_checkpoint(api.test_checkpoint_id) is not None
         )
+        assert Path(info["file_path"]).exists()
 
     def test_authorization_precedes_cached_response(self, api):
         api._authorize = lambda headers: headers.get("X-Test-Identity") == "allowed"
