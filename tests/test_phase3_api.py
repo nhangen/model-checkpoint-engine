@@ -246,6 +246,15 @@ class Plugin(BasePlugin):
         assert not plugin_manager.load_plugin("consumer")
         assert plugin_manager.get_plugin("consumer") is None
 
+    def test_cyclic_dependencies_are_rejected_by_the_guard(
+        self, plugin_manager, tmp_path, capsys
+    ):
+        self.write_plugin(tmp_path, "alpha", ["beta"])
+        self.write_plugin(tmp_path, "beta", ["alpha"])
+        plugin_manager.discover_plugins()
+        assert not plugin_manager.load_plugin("alpha")
+        assert "Cyclic plugin dependency involving alpha" in capsys.readouterr().out
+
 
 class TestPerformanceMonitor:
     @pytest.fixture
