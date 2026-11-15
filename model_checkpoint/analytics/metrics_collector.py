@@ -2,14 +2,13 @@
 
 import json
 import statistics
-import time
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from ..hooks import HookContext, HookEvent, HookManager
-from .shared_utils import calculate_statistics, current_time, is_loss_metric
+from .shared_utils import current_time
 
 
 @dataclass
@@ -229,7 +228,7 @@ class MetricsCollector:
         """
         # Optimized: Single timestamp calculation
         if timestamp is None:
-            timestamp = _current_time()
+            timestamp = current_time()
 
         # Optimized: Batch processing to reduce function call overhead
         for name, value in metrics.items():
@@ -403,7 +402,7 @@ class MetricsCollector:
             "composite_score": composite_score,
             "metric_count": len(weighted_scores),
             "total_weight": total_weight,
-            "timestamp": _current_time(),
+            "timestamp": current_time(),
             "details": metric_details,
         }
 
@@ -440,7 +439,7 @@ class MetricsCollector:
 
                 conn.commit()
 
-            self._last_persist_time = _current_time()
+            self._last_persist_time = current_time()
 
         except Exception as e:
             # Log error but don't interrupt metrics collection
@@ -471,7 +470,7 @@ class MetricsCollector:
             "metrics": dict(self._metrics),
             "aggregated": self.get_all_aggregated_metrics(),
             "composite_score": self.calculate_composite_score(),
-            "export_timestamp": _current_time(),
+            "export_timestamp": current_time(),
         }
 
         if format_type == "json":

@@ -1,6 +1,5 @@
 # Central hook management system with event-driven architecture
 
-import asyncio
 import logging
 import time
 import traceback
@@ -105,6 +104,17 @@ class HookEvent(Enum):
     ON_ERROR = auto()
     ON_WARNING = auto()
     ON_INFO = auto()
+
+    # Optional training lifecycle events used by the shipped domain hooks.
+    BEFORE_TRAINING_STEP = auto()
+    AFTER_TRAINING_STEP = auto()
+    AFTER_FORWARD_PASS = auto()
+    BEFORE_LOSS_COMPUTATION = auto()
+    AFTER_LOSS_COMPUTATION = auto()
+    EPOCH_START = auto()
+    EXPERIMENT_START = auto()
+    EXPERIMENT_END = auto()
+    EXPERIMENT_ERROR = auto()
 
 
 class HookPriority(Enum):

@@ -1,13 +1,16 @@
 # Comprehensive checkpoint verification and repair system
 
-import json
 import os
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
+from ..utils.serialization_runtime import (
+    UnsupportedCheckpointRuntime,
+    require_restricted_loader_runtime,
+)
 from .checksum import ChecksumCalculator, IntegrityTracker
 
 
@@ -129,8 +132,13 @@ class CheckpointVerifier:
             # 5. Test loadability
             try:
                 # Try to load checkpoint metadata without full loading
-                self._test_checkpoint_loadability(checkpoint.file_path)
+                if not self._test_checkpoint_loadability(checkpoint.file_path):
+                    raise ValueError(
+                        "Restricted checkpoint load or structure check failed"
+                    )
                 result["checks"]["loadable"] = True
+            except UnsupportedCheckpointRuntime:
+                raise
             except Exception as e:
                 result["status"] = "corrupted"
                 result["errors"].append(f"Checkpoint not loadable: {e}")
@@ -239,25 +247,45 @@ class CheckpointVerifier:
             "message": "Global verification requires experiment enumeration capability",
         }
 
-    def _test_checkpoint_loadability(self, file_path: str) -> bool:
+    @staticmethod
+    def _weights_sidecar(file_path: str) -> Path:
+        path = Path(file_path)
+        return path.with_name(path.stem + "_model.safetensors")
+
+    def _test_checkpoint_loadability(
+        self, file_path: str, sidecar_path: Optional[str] = None
+    ) -> bool:
         """
         Test if a checkpoint file can be loaded without errors
 
         Args:
             file_path: Path to checkpoint file
+            sidecar_path: Safetensors weights file to check instead of the one
+                adjacent to file_path (used when the file is a renamed backup)
 
         Returns:
             True if loadable
         """
         import torch
 
+        require_restricted_loader_runtime()
         try:
             # Quick load test - just check if PyTorch can read the file structure
-            checkpoint_data = torch.load(file_path, map_location="cpu")
+            checkpoint_data = torch.load(
+                file_path, map_location="cpu", weights_only=True
+            )
 
             # Basic validation
             if not isinstance(checkpoint_data, dict):
                 raise ValueError("Checkpoint is not a dictionary")
+
+            if "_safetensors_model_path" in checkpoint_data:
+                from safetensors.torch import load_file
+
+                # Only the deterministic adjacent sidecar belongs to this file.
+                load_file(
+                    str(sidecar_path or self._weights_sidecar(file_path)), device="cpu"
+                )
 
             # Check for basic structure
             expected_keys = [
@@ -305,7 +333,14 @@ class CheckpointVerifier:
             if os.path.exists(backup_path):
                 # Verify backup integrity
                 try:
-                    if self._test_checkpoint_loadability(backup_path):
+                    original_sidecar = self._weights_sidecar(original_path)
+                    backup_sidecar = self._weights_sidecar(backup_path)
+                    sidecar = (
+                        backup_sidecar if backup_sidecar.exists() else original_sidecar
+                    )
+                    if self._test_checkpoint_loadability(backup_path, str(sidecar)):
+                        if sidecar != original_sidecar and sidecar.exists():
+                            shutil.copy2(sidecar, original_sidecar)
                         # Copy backup to original location
                         shutil.copy2(backup_path, original_path)
                         recovery_result.update(
@@ -317,6 +352,8 @@ class CheckpointVerifier:
                             }
                         )
                         return recovery_result
+                except UnsupportedCheckpointRuntime:
+                    raise
                 except Exception as e:
                     recovery_result["details"].append(
                         f"Backup {backup_path} corrupted: {e}"
@@ -387,6 +424,7 @@ class CheckpointVerifier:
             return {"success": False, "error": "Checkpoint file not found"}
 
         try:
+            require_restricted_loader_runtime()
             # Determine backup location
             if backup_dir is None:
                 original_dir = os.path.dirname(checkpoint.file_path)
@@ -400,8 +438,11 @@ class CheckpointVerifier:
             backup_filename = f"{timestamp}_{original_filename}"
             backup_path = os.path.join(backup_dir, backup_filename)
 
-            # Copy file
             shutil.copy2(checkpoint.file_path, backup_path)
+            source_sidecar = self._weights_sidecar(checkpoint.file_path)
+            backup_sidecar = self._weights_sidecar(backup_path)
+            if source_sidecar.exists():
+                shutil.copy2(source_sidecar, backup_sidecar)
 
             # Verify backup
             if self._test_checkpoint_loadability(backup_path):
@@ -418,8 +459,8 @@ class CheckpointVerifier:
                     "original_path": checkpoint.file_path,
                 }
             else:
-                # Remove corrupted backup
                 os.unlink(backup_path)
+                backup_sidecar.unlink(missing_ok=True)
                 return {"success": False, "error": "Backup verification failed"}
 
         except Exception as e:

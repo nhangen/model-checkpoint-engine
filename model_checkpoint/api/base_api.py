@@ -1,13 +1,17 @@
 # Optimized base API interface - zero redundancy design
 
 import json
+import logging
+import re
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional
 
 from ..hooks import HookContext, HookEvent, HookManager
+
+logger = logging.getLogger(__name__)
 
 
 def _current_time() -> float:
@@ -77,7 +81,13 @@ class EndpointConfig:
 class BaseAPI(ABC):
     # Optimized base class for API implementations
 
-    def __init__(self, name: str, version: str = "1.0.0", enable_hooks: bool = True):
+    def __init__(
+        self,
+        name: str,
+        version: str = "1.0.0",
+        enable_hooks: bool = True,
+        authorize: Optional[Callable[[Dict[str, str]], bool]] = None,
+    ):
         """
         Initialize base API
 
@@ -85,7 +95,10 @@ class BaseAPI(ABC):
             name: API name identifier
             version: API version string
             enable_hooks: Enable hook system for API events
+            authorize: Called with request headers; return True to allow the
+                request. When None, every auth_required endpoint returns 401.
         """
+        self._authorize = authorize
         self.name = name
         self.version = version
 
@@ -227,14 +240,34 @@ class BaseAPI(ABC):
 
             # Find endpoint
             endpoint_key = f"{method.value}:{path}"
-            if endpoint_key not in self._endpoints:
+            endpoint = self._endpoints.get(endpoint_key)
+            route_values = {}
+            if endpoint is None:
+                for candidate in self._endpoints.values():
+                    if candidate.method != method:
+                        continue
+                    parts = re.split(r"(<[A-Za-z_][A-Za-z0-9_]*>)", candidate.path)
+                    pattern = "".join(
+                        (
+                            f"(?P<{part[1:-1]}>[^/]+)"
+                            if part.startswith("<")
+                            else re.escape(part)
+                        )
+                        for part in parts
+                    )
+                    match = re.fullmatch(pattern, path)
+                    if match:
+                        endpoint, route_values = candidate, match.groupdict()
+                        break
+            if endpoint is None:
                 raise APIError(
-                    message=f"Endpoint not found: {method.value} {path}",
-                    error_code="ENDPOINT_NOT_FOUND",
-                    status_code=404,
+                    f"Endpoint not found: {method.value} {path}",
+                    "ENDPOINT_NOT_FOUND",
+                    404,
                 )
 
-            endpoint = self._endpoints[endpoint_key]
+            if endpoint.auth_required and not self._is_authorized(headers or {}):
+                raise APIError("Authorization required", "UNAUTHORIZED", 401)
 
             # Check cache
             if endpoint.cache_ttl and method == HTTPMethod.GET:
@@ -255,7 +288,7 @@ class BaseAPI(ABC):
                     )
 
             # Execute handler
-            response = self._execute_handler(endpoint, data, headers)
+            response = self._execute_handler(endpoint, data, headers, route_values)
 
             # Set response metadata
             response.request_id = request_id
@@ -307,16 +340,30 @@ class BaseAPI(ABC):
                 metadata={"status_code": 500},
             )
 
+    def _is_authorized(self, headers: Dict[str, str]) -> bool:
+        if self._authorize is None:
+            return False
+        try:
+            return bool(self._authorize(headers))
+        except Exception as exc:
+            # Authorizer errors can carry credential material, so record only the type.
+            logger.error(
+                "Authorization callback failed (%s); request denied",
+                type(exc).__name__,
+            )
+            return False
+
     def _execute_handler(
         self,
         endpoint: EndpointConfig,
         data: Optional[Dict[str, Any]],
         headers: Optional[Dict[str, str]],
+        route_values: Optional[Dict[str, str]] = None,
     ) -> APIResponse:
         # Execute endpoint handler - optimized execution
         try:
             # Prepare handler arguments
-            handler_args = {}
+            handler_args = dict(route_values or {})
             if data is not None:
                 handler_args["data"] = data
             if headers is not None:
@@ -333,6 +380,8 @@ class BaseAPI(ABC):
             else:
                 return APIResponse(status=APIStatus.SUCCESS, data={"result": result})
 
+        except APIError:
+            raise
         except Exception as e:
             raise APIError(
                 message=f"Handler execution failed: {e}",

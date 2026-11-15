@@ -2,8 +2,10 @@
 
 import logging
 import os
+import re
 import sqlite3
 import time
+from contextlib import closing
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -43,7 +45,7 @@ class MigrationManager:
 
     def _init_migration_table(self) -> None:
         # Initialize migration tracking table
-        with self._get_connection() as conn:
+        with closing(self._get_connection()) as conn, conn:
             conn.execute(
                 """
                 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -60,7 +62,7 @@ class MigrationManager:
 
     def get_current_version(self) -> Optional[str]:
         # Get current database schema version
-        with self._get_connection() as conn:
+        with closing(self._get_connection()) as conn, conn:
             cursor = conn.execute(
                 """
                 SELECT version FROM schema_migrations
@@ -72,7 +74,7 @@ class MigrationManager:
 
     def get_applied_migrations(self) -> List[str]:
         # Get list of applied migration versions
-        with self._get_connection() as conn:
+        with closing(self._get_connection()) as conn, conn:
             cursor = conn.execute(
                 """
                 SELECT version FROM schema_migrations
@@ -181,10 +183,32 @@ class MigrationManager:
         checksum = self._calculate_checksum(sql_content)
         start_time = time.time()
 
-        with self._get_connection() as conn:
+        with closing(self._get_connection()) as conn, conn:
             # Execute migration SQL
             for statement in self._split_sql_statements(sql_content):
                 if statement.strip():
+                    # Historical004 cannot create its time-dependent partial index
+                    # on populated databases. Execute its deterministic equivalent,
+                    # retaining the original migration file/checksum for history.
+                    if (
+                        migration["version"] == "004"
+                        and " ".join(statement.split()).rstrip(";")
+                        == "CREATE INDEX IF NOT EXISTS idx_recent_experiments ON experiments(start_time) WHERE start_time > strftime('%s', 'now', '-30 days')"
+                    ):
+                        statement = "CREATE INDEX IF NOT EXISTS idx_recent_experiments ON experiments(start_time)"
+                    addition = re.fullmatch(
+                        r"ALTER\s+TABLE\s+([A-Za-z_][A-Za-z0-9_]*)\s+ADD\s+COLUMN\s+([A-Za-z_][A-Za-z0-9_]*)\s+(.+)",
+                        statement.strip().rstrip(";"),
+                        re.IGNORECASE | re.DOTALL,
+                    )
+                    if addition:
+                        table, column, _ = addition.groups()
+                        existing = {
+                            row[1]
+                            for row in conn.execute(f'PRAGMA table_info("{table}")')
+                        }
+                        if column in existing:
+                            continue
                     conn.execute(statement)
 
             # Record migration
@@ -258,7 +282,7 @@ class MigrationManager:
             "missing_files": [],
         }
 
-        with self._get_connection() as conn:
+        with closing(self._get_connection()) as conn, conn:
             cursor = conn.execute(
                 """
                 SELECT version, filename, checksum

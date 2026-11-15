@@ -2,7 +2,7 @@
 
 import statistics
 import time
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, List
 
 
 # Shared time function used across all analytics modules
@@ -74,3 +74,12 @@ def calculate_statistics(values: List[float]) -> Dict[str, float]:
         "std": statistics.stdev(values) if len(values) > 1 else 0.0,
         "range": max(values) - min(values),
     }
+
+
+def format_metric_value(
+    value: float, precision: int = 2, use_scientific: bool = False
+) -> str:
+    """Format numeric metrics consistently for textual reports."""
+    if precision < 0:
+        raise ValueError("precision must be nonnegative")
+    return format(value, f".{precision}{'e' if use_scientific else 'f'}")

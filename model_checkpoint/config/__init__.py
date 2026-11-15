@@ -1,13 +1,5 @@
-# Comprehensive configuration management system
+"""Public exports backed by the installed implementation."""
 
-from .config_manager import ConfigManager
-from .environment_loader import EnvironmentLoader
-from .schema_definitions import ConfigSchema
-from .validation_engine import ConfigValidator
+from .config_manager import ConfigEntry, ConfigFormat, ConfigManager, ConfigSection
 
-__all__ = [
-    'ConfigManager',
-    'EnvironmentLoader',
-    'ConfigValidator',
-    'ConfigSchema'
-]
+__all__ = ["ConfigManager", "ConfigFormat", "ConfigEntry", "ConfigSection"]

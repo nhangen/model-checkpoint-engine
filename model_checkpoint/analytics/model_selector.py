@@ -4,7 +4,7 @@ import json
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from ..database.enhanced_connection import EnhancedDatabaseConnection
 from .metrics_collector import MetricsCollector
@@ -203,19 +203,19 @@ class BestModelSelector:
         candidates = []
 
         try:
-            with self.db_connection.get_connection() as conn:
+            with self.db_connection._get_connection() as conn:
                 # Optimized: Single query with all required data
                 cursor = conn.execute(
                     """
                     SELECT
-                        c.id, c.checkpoint_path, c.step, c.epoch, c.timestamp, c.file_size,
+                        c.id, c.file_path, c.step, c.epoch, c.created_at, c.file_size,
                         c.metadata, c.metrics,
                         e.id as experiment_id
                     FROM checkpoints c
                     JOIN experiments e ON c.experiment_id = e.id
-                    WHERE e.id = ? OR e.name = ?
+                    WHERE (e.id = ? OR e.name = ?)
                     AND c.step >= ? AND c.epoch >= ?
-                    ORDER BY c.timestamp DESC
+                    ORDER BY c.created_at DESC
                 """,
                     (
                         experiment_id,
@@ -494,7 +494,7 @@ class BestModelSelector:
     ) -> None:
         # Persist best model selection - optimized single operation
         try:
-            with self.db_connection.get_connection() as conn:
+            with self.db_connection._get_connection() as conn:
                 conn.execute(
                     """
                     INSERT OR REPLACE INTO best_models
@@ -531,7 +531,7 @@ class BestModelSelector:
             return []
 
         try:
-            with self.db_connection.get_connection() as conn:
+            with self.db_connection._get_connection() as conn:
                 if config_name:
                     cursor = conn.execute(
                         """
